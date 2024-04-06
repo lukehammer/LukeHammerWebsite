@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Pages\chess.razor" />
+    <None Include="Pages\Chess.razor" />
   </ItemGroup>
 
   <ItemGroup>
