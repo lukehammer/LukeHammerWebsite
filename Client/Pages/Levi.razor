@@ -1,15 +1,48 @@
 @page "/Levi"
 
 
-<PageTitle>Levi's Home Page'</PageTitle>
+<liageTitle>Levi's Home Page</liageTitle>
+
+<style>
+    table {
+      border-collapse: collapse;
+      width: 50%;
+      margin: auto;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
 
 
-<p> THU
-18
-@@ HDLL Marlins NL
-at H.B. Fuller Company Park</p>
+
+<table>
+    <thead>
+    <th scope="col">Day of week</th>
+    <th scope="col">Date</th>
+    <th scope="col">Name</th>
+    </thead>
+    
+    
+    @foreach (var game in BlazorApp.Shared.BaseBallGames.UpComingGames)
+    {
+        <tr>
+
+            <td>@game.DateTime.DayOfWeek</td>
+            <td>@game.DateTime</td>
+            <td>  @game.Name at @game.Location </td>
+        </tr>
+    }
+
+</table>
+
 
 <footer>
-    <p>&copy; @DateTime.Now.Year Luke Hammer - Chess coach</p>
+    <li>&copy; @DateTime.Now.Year Luke Hammer </li>
 </footer>
 
