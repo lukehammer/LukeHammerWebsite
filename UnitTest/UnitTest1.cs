@@ -10,7 +10,7 @@ namespace UnitTest
 
             BlazorApp.Shared.BaseBallGames.Games.Count().Should().Be(13);
 
-            BlazorApp.Shared.BaseBallGames.UpComingGames.Count().Should().Be(12);
+            BlazorApp.Shared.BaseBallGames.UpComingGames.Count().Should().Be(10);
                         
 
         }
