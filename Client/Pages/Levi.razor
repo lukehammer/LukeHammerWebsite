@@ -6,7 +6,6 @@
 <style>
     table {
       border-collapse: collapse;
-      width: 50%;
       margin: auto;
     }
     th, td {
@@ -29,13 +28,13 @@
     </thead>
     
     
-    @foreach (var game in BlazorApp.Shared.BaseBallGames.UpComingGames)
+    @foreach (var game in BlazorApp.Shared.Matches.UpComingGames)
     {
         <tr>
 
             <td>@game.DateTime.DayOfWeek</td>
-            <td>@game.DateTime</td>
-            <td>  @game.Name at @game.Location </td>
+            <td>@game.DateTime.ToString("MMM-dd htt")</td>
+            <td>@game.Name at @game.Location </td>
         </tr>
     }
 

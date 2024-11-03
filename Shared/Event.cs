@@ -16,7 +16,7 @@ namespace BlazorApp.Shared
         {
             return new Event { DateTime = DateTime.Parse(dateTime), Name = name, Location = "H.B. Fuller Company Park" };
         }
-        public static Event CreateBaseBallGame(string dateTime, string name, string location)
+        public static Event CreateContest(string dateTime, string name, string location)
         {
 
             return new Event { DateTime = DateTime.Parse(dateTime), Name = name, Location = location};
@@ -24,23 +24,22 @@ namespace BlazorApp.Shared
         }
     }
 
-    public class BaseBallGames
+    public class Matches
     {
-        public static List<Event> Games => GetGames();
-        public static IEnumerable<Event> UpComingGames => Games.Where(x => x.DateTime > DateTime.Now.AddDays(-1));
+        public static List<Event> Contests => GetContest();
+        public static IEnumerable<Event> UpComingGames => Contests.Where(x => x.DateTime > DateTime.Now.AddDays(-1));
 
-        private static List<Event> GetGames()
+        private static List<Event> GetContest()
         {
-
-            var r = "vs.Bananas - Ridgefeild LL";
-            var s = "vs.Bananas - Salmon Creek Little League";
 
             var games = new List<Event>
             {
-                Event.CreateBaseBallGame("9/29/2024 13:00", r, "Abrams Park Ridgefeild"),
-                Event.CreateBaseBallGame("10/6/2024 13:00", s, "Gasier Middle School"),
-                Event.CreateBaseBallGame("10/20/2024 13:00", r, "Abrams Park Ridgefeild"),
-                Event.CreateBaseBallGame("10/27/2024 13:00", s, "Last Game Gaiser")
+                Event.CreateContest("11/7/2024 17:00", "Discouvery", "Discouvery Commons"),
+                Event.CreateContest("11/13/2024 17:00", "Gaiser", "Gasier Middle School gym"),
+                Event.CreateContest("11/20/2024 17:00", "Mac", "Thomas Jefferson Gym"),
+                Event.CreateContest("12/4/2024 17:00", "Jason Lee", "Thomas Jefferson Gym"),
+                Event.CreateContest("12/11/2024 17:00", "Alki", "Thomas Jefferson Gym"),
+                Event.CreateContest("12/14/2024 9:00", "VPS Varsity Tournament" , "Hudson's Bay High School Gym")
             };
 
             return games;

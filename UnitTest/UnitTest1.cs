@@ -8,9 +8,9 @@ namespace UnitTest
         public void Test1()
         {
 
-            BlazorApp.Shared.BaseBallGames.Games.Count().Should().Be(4);
+            BlazorApp.Shared.Matches.Contests.Count().Should().Be(6);
 
-            BlazorApp.Shared.BaseBallGames.UpComingGames.Count().Should().Be(4);
+            BlazorApp.Shared.Matches.UpComingGames.Count().Should().Be(6);
                         
 
         }
