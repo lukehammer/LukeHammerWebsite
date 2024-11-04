@@ -27,7 +27,7 @@ namespace BlazorApp.Shared
     public class Matches
     {
         public static List<Event> Contests => GetContest();
-        public static IEnumerable<Event> UpComingGames => Contests.Where(x => x.DateTime > DateTime.Now.AddDays(-1));
+        public static IEnumerable<Event> UpComingContests => Contests.Where(x => x.DateTime > DateTime.Now.AddDays(-1));
 
         private static List<Event> GetContest()
         {
