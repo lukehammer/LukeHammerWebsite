@@ -18,6 +18,10 @@
     }
   </style>
 
+  @if (BlazorApp.Shared.Matches.UpComingContests.Count() == 0)
+  {
+    <h3>No upcoming games</h3>
+  }
 
 
 <table>
@@ -26,7 +30,6 @@
     <th scope="col">Date</th>
     <th scope="col">Name</th>
     </thead>
-    
     
     @foreach (var game in BlazorApp.Shared.Matches.UpComingContests)
     {
