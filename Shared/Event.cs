@@ -34,12 +34,7 @@ namespace BlazorApp.Shared
 
             var games = new List<Event>
             {
-                Event.CreateContest("11/7/2024 17:00", "Discouvery", "Discouvery Commons"),
-                Event.CreateContest("11/13/2024 17:00", "Gaiser", "Gasier Middle School gym"),
-                Event.CreateContest("11/20/2024 17:00", "Mac", "Thomas Jefferson Gym"),
-                Event.CreateContest("12/4/2024 17:00", "Jason Lee", "Thomas Jefferson Gym"),
-                Event.CreateContest("12/11/2024 17:00", "Alki", "Thomas Jefferson Gym"),
-                Event.CreateContest("12/14/2024 9:00", "VPS Varsity Tournament" , "Hudson's Bay High School Gym")
+                Event.CreateContest("9/7/2025 14:00", "Jr. Hawks 12U Fallball 12U", "Heritage High School")
             };
 
             return games;
