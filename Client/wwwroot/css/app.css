@@ -22,19 +22,9 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
-.lucky-luke-links a .bi,
-.lucky-luke-links a .icon-jam-jar {
+.lucky-luke-links a .bi {
     margin-right: 0.35rem;
     vertical-align: -0.15em;
-}
-
-.lucky-luke-links a .icon-jam-jar {
-    display: inline-block;
-    line-height: 1;
-}
-
-.lucky-luke-links a .icon-jam-jar svg {
-    display: block;
 }
 
 .lucky-luke-category {
@@ -46,15 +36,10 @@ a, .btn-link {
     margin-bottom: 0.5rem;
 }
 
-.lucky-luke-links .event-with-details {
-    margin-bottom: 0.25rem;
-}
-
-.lucky-luke-links .event-details {
+.lucky-luke-links .event-note {
     font-size: 0.9rem;
-    color: #555;
-    margin-top: 0.2rem;
-    margin-left: 1.5em;
+    color: #666;
+    margin-left: 1.5rem;
 }
 
 .valid.modified:not([type=checkbox]) {
