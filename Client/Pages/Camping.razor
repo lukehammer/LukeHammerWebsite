@@ -1,0 +1,459 @@
+@page "/camping"
+@using BlazorApp.Shared
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>Camping Potluck</PageTitle>
+
+<main class="camping-page">
+    <h1>Camping Potluck Survey</h1>
+    <p class="camping-intro">Enter your name, upvote or downvote potluck ideas, and tell us what you plan to bring.</p>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="camping-error">@errorMessage</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <p class="camping-success">@successMessage</p>
+    }
+
+    <section class="camping-card">
+        <h2>Your info</h2>
+
+        <div class="camping-field">
+            <label for="voter-name">Your name</label>
+            <input id="voter-name" class="form-control camping-input" @bind="name" @bind:after="OnNameChanged" placeholder="Enter your name" autocomplete="name" />
+        </div>
+
+        <div class="camping-field">
+            <label for="bringing">What do you plan to bring?</label>
+            <input id="bringing" class="form-control camping-input" @bind="bringing" placeholder="e.g. chips and salsa" />
+        </div>
+
+        <button class="btn btn-primary camping-btn" @onclick="SaveParticipant" disabled="@isSavingParticipant">
+            @(isSavingParticipant ? "Saving..." : "Save what you're bringing")
+        </button>
+    </section>
+
+    <section class="camping-card">
+        <h2>What kind of Potluck would you like?</h2>
+        <p class="camping-hint">Options are sorted by score. Use the arrows to upvote or downvote.</p>
+
+        @if (surveyState == null)
+        {
+            <p>Loading options...</p>
+        }
+        else if (!SortedOptionRows.Any())
+        {
+            <p>No options yet.</p>
+        }
+        else
+        {
+            <div class="camping-option-list">
+                @foreach (var row in SortedOptionRows)
+                {
+                    var userRating = GetUserRating(row.Option.Id);
+                    <div class="camping-option-row">
+                        <div class="camping-vote-controls">
+                            <button type="button"
+                                    class="camping-vote-btn @(userRating == 1 ? "is-active" : "")"
+                                    title="Upvote"
+                                    aria-label="Upvote @row.Option.Label"
+                                    @onclick="() => RateOption(row.Option.Id, 1)">
+                                ▲
+                            </button>
+                            <span class="camping-score" aria-hidden="true">@row.Score</span>
+                            <button type="button"
+                                    class="camping-vote-btn camping-vote-down @(userRating == -1 ? "is-active" : "")"
+                                    title="Downvote"
+                                    aria-label="Downvote @row.Option.Label"
+                                    @onclick="() => RateOption(row.Option.Id, -1)">
+                                ▼
+                            </button>
+                        </div>
+
+                        <div class="camping-option-body">
+                            <div class="camping-option-header">
+                                <span class="camping-option-label">@row.Option.Label</span>
+                                @if (!row.Option.IsBuiltIn)
+                                {
+                                    <button type="button"
+                                            class="camping-remove-btn"
+                                            title="Remove this option"
+                                            @onclick="() => RemoveOption(row.Option.Id)">
+                                        Remove
+                                    </button>
+                                }
+                            </div>
+
+                            @if (row.Upvoters.Count > 0)
+                            {
+                                <div class="camping-upvoters">
+                                    <span class="camping-upvoters-label">Yes:</span>
+                                    @{
+                                        var visibleUpvoters = GetVisibleUpvoters(row).ToList();
+                                    }
+                                    @for (var i = 0; i < visibleUpvoters.Count; i++)
+                                    {
+                                        if (i > 0)
+                                        {
+                                            <span class="camping-upvoter-separator">,</span>
+                                        }
+                                        <button type="button"
+                                                class="camping-edit-link"
+                                                @onclick="() => LoadParticipant(visibleUpvoters[i])">
+                                            @visibleUpvoters[i]
+                                        </button>
+                                    }
+                                    @if (ShouldShowExpandButton(row))
+                                    {
+                                        <button type="button"
+                                                class="camping-expand-btn"
+                                                title="@(IsUpvotersExpanded(row.Option.Id) ? "Show fewer voters" : "Show all voters")"
+                                                @onclick="() => ToggleUpvoters(row.Option.Id)">
+                                            @(IsUpvotersExpanded(row.Option.Id) ? "▲" : "▼")
+                                        </button>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="camping-other-section">
+            <label for="other-option">Other</label>
+            <div class="camping-other-row">
+                <input id="other-option" class="form-control camping-input" @bind="otherText" placeholder="Suggest a new potluck option" />
+                <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="AddOtherOption" disabled="@isAddingOption">
+                    @(isAddingOption ? "Adding..." : "Add option")
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="camping-card">
+        <h2>What everyone is bringing</h2>
+        @if (BringItems.Count == 0)
+        {
+            <p>No items listed yet.</p>
+        }
+        else
+        {
+            <div class="camping-bring-cards">
+                @foreach (var item in BringItems)
+                {
+                    <article class="camping-bring-card">
+                        <p class="camping-bring-item">@item.Bringing</p>
+                        <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                    </article>
+                }
+            </div>
+
+            <div class="camping-table-wrap">
+                <table class="table camping-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Person</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in BringItems)
+                        {
+                            <tr>
+                                <td>@item.Bringing</td>
+                                <td>
+                                    <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</main>
+
+@code {
+    private const string NameStorageKey = "camping-potluck-name";
+    private PotluckSurveyState? surveyState;
+    private string name = "";
+    private string bringing = "";
+    private string otherText = "";
+    private bool isSavingParticipant;
+    private bool isAddingOption;
+    private readonly HashSet<string> expandedUpvoters = new(StringComparer.OrdinalIgnoreCase);
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSurveyAsync();
+
+        var savedName = await JS.InvokeAsync<string?>("localStorage.getItem", NameStorageKey);
+        if (!string.IsNullOrWhiteSpace(savedName))
+        {
+            name = savedName;
+            LoadParticipant(name);
+        }
+    }
+
+    private async Task LoadSurveyAsync()
+    {
+        try
+        {
+            surveyState = await Http.GetFromJsonAsync<PotluckSurveyState>("/api/camping/potluck")
+                ?? PotluckSurveyState.CreateDefault();
+            errorMessage = null;
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not load survey results. Make sure the API is running.";
+            surveyState = PotluckSurveyState.CreateDefault();
+        }
+    }
+
+    private IEnumerable<PotluckOptionRow> SortedOptionRows =>
+        surveyState?.GetSortedOptionRows() ?? Enumerable.Empty<PotluckOptionRow>();
+
+    private List<PotluckParticipant> BringItems =>
+        (surveyState?.Participants ?? new List<PotluckParticipant>())
+            .Where(participant => !string.IsNullOrWhiteSpace(participant.Bringing))
+            .OrderBy(participant => participant.Bringing, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(participant => participant.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private void OnNameChanged()
+    {
+        LoadParticipant(name);
+    }
+
+    private void LoadParticipant(string participantName)
+    {
+        name = participantName;
+        bringing = FindParticipant(participantName)?.Bringing ?? "";
+    }
+
+    private PotluckParticipant? FindParticipant(string participantName)
+    {
+        if (string.IsNullOrWhiteSpace(participantName) || surveyState?.Participants == null)
+        {
+            return null;
+        }
+
+        return surveyState.Participants.FirstOrDefault(participant =>
+            string.Equals(participant.Name, participantName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private int? GetUserRating(string optionId)
+    {
+        if (string.IsNullOrWhiteSpace(name) || surveyState == null)
+        {
+            return null;
+        }
+
+        return surveyState.GetParticipantRating(name.Trim(), optionId);
+    }
+
+    private IEnumerable<string> GetVisibleUpvoters(PotluckOptionRow row)
+    {
+        if (row.Upvoters.Count < 5 || IsUpvotersExpanded(row.Option.Id))
+        {
+            return row.Upvoters;
+        }
+
+        return row.Upvoters.Take(5);
+    }
+
+    private static bool ShouldShowExpandButton(PotluckOptionRow row) => row.Upvoters.Count >= 5;
+
+    private bool IsUpvotersExpanded(string optionId) => expandedUpvoters.Contains(optionId);
+
+    private void ToggleUpvoters(string optionId)
+    {
+        if (!expandedUpvoters.Add(optionId))
+        {
+            expandedUpvoters.Remove(optionId);
+        }
+    }
+
+    private bool RequireName()
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            return true;
+        }
+
+        errorMessage = "Please enter your name first.";
+        successMessage = null;
+        return false;
+    }
+
+    private async Task RateOption(string optionId, int direction)
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        errorMessage = null;
+        successMessage = null;
+
+        var current = GetUserRating(optionId);
+        var newRating = direction > 0
+            ? current == 1 ? 0 : 1
+            : current == -1 ? 0 : -1;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/camping/potluck/rate", new PotluckRateRequest
+            {
+                Name = name.Trim(),
+                OptionId = optionId,
+                Rating = newRating
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Could not save your vote. Please try again.";
+                return;
+            }
+
+            surveyState = await response.Content.ReadFromJsonAsync<PotluckSurveyState>()
+                ?? PotluckSurveyState.CreateDefault();
+            await JS.InvokeVoidAsync("localStorage.setItem", NameStorageKey, name.Trim());
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not save your vote. Make sure the API is running.";
+        }
+    }
+
+    private async Task SaveParticipant()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (!RequireName())
+        {
+            return;
+        }
+
+        isSavingParticipant = true;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/camping/potluck/participant", new PotluckParticipantRequest
+            {
+                Name = name.Trim(),
+                Bringing = bringing
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Could not save your info. Please try again.";
+                return;
+            }
+
+            surveyState = await response.Content.ReadFromJsonAsync<PotluckSurveyState>()
+                ?? PotluckSurveyState.CreateDefault();
+            await JS.InvokeVoidAsync("localStorage.setItem", NameStorageKey, name.Trim());
+
+            successMessage = string.IsNullOrWhiteSpace(bringing)
+                ? $"Saved, {name.Trim()}."
+                : $"Saved, {name.Trim()}. You are bringing {bringing.Trim()}.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not save your info. Make sure the API is running.";
+        }
+        finally
+        {
+            isSavingParticipant = false;
+        }
+    }
+
+    private async Task AddOtherOption()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (!RequireName())
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(otherText))
+        {
+            errorMessage = "Please enter a new potluck option.";
+            return;
+        }
+
+        isAddingOption = true;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/camping/potluck/options", new PotluckAddOptionRequest
+            {
+                Label = otherText.Trim(),
+                CreatedBy = name.Trim()
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrWhiteSpace(message)
+                    ? "Could not add that option."
+                    : message;
+                return;
+            }
+
+            surveyState = await response.Content.ReadFromJsonAsync<PotluckSurveyState>()
+                ?? PotluckSurveyState.CreateDefault();
+            otherText = "";
+            successMessage = "New option added.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not add that option. Make sure the API is running.";
+        }
+        finally
+        {
+            isAddingOption = false;
+        }
+    }
+
+    private async Task RemoveOption(string optionId)
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/camping/potluck/options/remove", new PotluckRemoveOptionRequest
+            {
+                OptionId = optionId
+            });
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrWhiteSpace(message)
+                    ? "Could not remove that option."
+                    : message;
+                return;
+            }
+
+            surveyState = await response.Content.ReadFromJsonAsync<PotluckSurveyState>()
+                ?? PotluckSurveyState.CreateDefault();
+            successMessage = "Option removed.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not remove that option. Make sure the API is running.";
+        }
+    }
+}

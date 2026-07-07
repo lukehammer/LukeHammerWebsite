@@ -42,6 +42,116 @@ a, .btn-link {
     margin-left: 1.5rem;
 }
 
+.lucky-luke-links .club-note {
+    font-size: 0.9rem;
+    color: #666;
+    margin-left: 1.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.club-invite {
+    margin-top: 0.5rem;
+}
+
+.pmj-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem 0.25rem 2rem;
+}
+
+.pmj-hero {
+    background: linear-gradient(160deg, #0b0f1a 0%, #18233f 55%, #243865 100%);
+    border-radius: 14px;
+    color: #f5f8ff;
+    padding: 2rem 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.pmj-kicker {
+    margin: 0 0 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.8rem;
+    color: #b6d4ff;
+}
+
+.pmj-hero h1 {
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1.2;
+}
+
+.pmj-date-location {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    color: #d4e5ff;
+}
+
+.pmj-lead {
+    margin-top: 0.9rem;
+    max-width: 70ch;
+}
+
+.pmj-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.pmj-btn {
+    display: inline-block;
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 0.55rem 0.95rem;
+    font-weight: 600;
+}
+
+.pmj-btn-primary {
+    background: #ffcb47;
+    color: #202020;
+}
+
+.pmj-btn-secondary {
+    border: 1px solid #d4e5ff;
+    color: #f5f8ff;
+}
+
+.pmj-section {
+    background: #fff;
+    border: 1px solid #dce4f2;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.pmj-section h2 {
+    margin-top: 0;
+}
+
+.pmj-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem;
+}
+
+.pmj-card {
+    border: 1px solid #e6ecf7;
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: #fbfdff;
+}
+
+.pmj-card h3 {
+    margin-top: 0;
+    font-size: 1.05rem;
+}
+
+.pmj-list {
+    margin-bottom: 0;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }
@@ -82,3 +192,378 @@ a, .btn-link {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+.camping-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem max(0.75rem, env(safe-area-inset-right)) 2rem max(0.75rem, env(safe-area-inset-left));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+
+.camping-page h1 {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    line-height: 1.2;
+    word-wrap: break-word;
+}
+
+.camping-intro {
+    margin-bottom: 1.25rem;
+    color: #444;
+    line-height: 1.5;
+}
+
+.camping-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.camping-page .form-control,
+.camping-input {
+    font-size: 16px;
+}
+
+.camping-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+.camping-btn-secondary {
+    white-space: nowrap;
+}
+
+.camping-card h2 {
+    font-size: 1.2rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.camping-field {
+    margin-bottom: 1rem;
+}
+
+.camping-field legend {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.camping-check {
+    display: block;
+    margin-bottom: 0.4rem;
+}
+
+.camping-other-input {
+    margin: 0.25rem 0 0.5rem 1.5rem;
+    max-width: 24rem;
+}
+
+.camping-vote-list {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.camping-voters {
+    color: #555;
+}
+
+.camping-table {
+    margin-bottom: 0;
+    background: #fff;
+}
+
+.camping-error {
+    color: #b00020;
+}
+
+.camping-success {
+    color: #1b6e1b;
+}
+
+.camping-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.camping-edit-link {
+    background: none;
+    border: none;
+    padding: 0.25rem 0;
+    color: #0077cc;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+}
+
+.camping-edit-link:hover {
+    color: #005fa3;
+}
+
+.camping-option-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .camping-option-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.camping-option-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem;
+    height: 100%;
+}
+
+.camping-vote-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.75rem;
+    flex-shrink: 0;
+}
+
+.camping-vote-btn {
+    background: none;
+    border: none;
+    color: #6a737c;
+    font-size: 1.25rem;
+    line-height: 1;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.35rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camping-vote-btn:hover {
+    color: #2f6f44;
+    background: #e8f5e9;
+    border-radius: 4px;
+}
+
+.camping-vote-btn.is-active {
+    color: #2f6f44;
+}
+
+.camping-vote-down:hover {
+    color: #9b1c1c;
+    background: #fdecea;
+}
+
+.camping-vote-down.is-active {
+    color: #9b1c1c;
+}
+
+.camping-score {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #24292f;
+    padding: 0.15rem 0;
+}
+
+.camping-option-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.camping-option-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.camping-option-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #24292f;
+    word-break: break-word;
+}
+
+.camping-upvoters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.15rem 0.25rem;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.camping-upvoters-label {
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+
+.camping-upvoter-separator {
+    margin-right: 0.2rem;
+}
+
+.camping-expand-btn {
+    background: none;
+    border: none;
+    color: #0077cc;
+    font-size: 1rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.25rem;
+    margin-left: 0.1rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camping-expand-btn:hover {
+    color: #005fa3;
+}
+
+.camping-remove-btn {
+    background: none;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    color: #9b1c1c;
+    font-size: 0.8rem;
+    min-height: 36px;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    flex-shrink: 0;
+}
+
+.camping-remove-btn:hover {
+    background: #fdecea;
+    border-color: #9b1c1c;
+}
+
+.camping-other-section {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+}
+
+.camping-other-section label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.camping-other-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.camping-other-row .form-control {
+    flex: 1;
+    min-width: 0;
+}
+
+.camping-bring-cards {
+    display: none;
+}
+
+.camping-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.camping-bring-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.65rem;
+}
+
+.camping-bring-card:last-child {
+    margin-bottom: 0;
+}
+
+.camping-bring-item {
+    margin: 0 0 0.35rem;
+    font-weight: 600;
+    color: #24292f;
+    word-break: break-word;
+}
+
+.camping-bring-card .camping-edit-link {
+    min-height: 36px;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+    .camping-page {
+        padding-top: 0.75rem;
+    }
+
+    .camping-card {
+        padding: 1rem;
+        border-radius: 10px;
+    }
+
+    .camping-card h2 {
+        font-size: 1.1rem;
+    }
+
+    .camping-hint {
+        margin-bottom: 0.75rem;
+    }
+
+    .camping-btn {
+        width: 100%;
+    }
+
+    .camping-other-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .camping-btn-secondary {
+        width: 100%;
+    }
+
+    .camping-option-row {
+        padding: 0.85rem;
+    }
+
+    .camping-upvoters .camping-edit-link {
+        min-height: 36px;
+    }
+
+    .camping-bring-cards {
+        display: block;
+    }
+
+    .camping-table-wrap {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .camping-btn:not(.camping-btn-secondary) {
+        width: auto;
+    }
+}

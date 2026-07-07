@@ -1,9 +1,13 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (!ShouldHideSidebar)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
 
     <main>
         <div class="top-row px-4">
@@ -15,3 +19,8 @@
         </article>
     </main>
 </div>
+
+@code {
+    private bool ShouldHideSidebar =>
+        Navigation.ToBaseRelativePath(Navigation.Uri).Equals("pdxMagicjam", StringComparison.OrdinalIgnoreCase);
+}
