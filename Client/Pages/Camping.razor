@@ -56,67 +56,90 @@
                 {
                     var userRating = GetUserRating(row.Option.Id);
                     <div class="camping-option-row">
-                        <div class="camping-vote-controls">
-                            <button type="button"
-                                    class="camping-vote-btn @(userRating == 1 ? "is-active" : "")"
-                                    title="Upvote"
-                                    aria-label="Upvote @row.Option.Label"
-                                    @onclick="() => RateOption(row.Option.Id, 1)">
-                                ▲
-                            </button>
-                            <span class="camping-score" aria-hidden="true">@row.Score</span>
-                            <button type="button"
-                                    class="camping-vote-btn camping-vote-down @(userRating == -1 ? "is-active" : "")"
-                                    title="Downvote"
-                                    aria-label="Downvote @row.Option.Label"
-                                    @onclick="() => RateOption(row.Option.Id, -1)">
-                                ▼
-                            </button>
+                        <div class="camping-option-vote-col">
+                            <span class="camping-option-label">@row.Option.Label</span>
+                            <div class="camping-vote-controls">
+                                <button type="button"
+                                        class="camping-vote-btn @(userRating == 1 ? "is-active" : "")"
+                                        title="Upvote"
+                                        aria-label="Upvote @row.Option.Label"
+                                        @onclick="() => RateOption(row.Option.Id, 1)">
+                                    ▲
+                                </button>
+                                <span class="camping-score" aria-hidden="true">@row.Score</span>
+                                <button type="button"
+                                        class="camping-vote-btn camping-vote-down @(userRating == -1 ? "is-active" : "")"
+                                        title="Downvote"
+                                        aria-label="Downvote @row.Option.Label"
+                                        @onclick="() => RateOption(row.Option.Id, -1)">
+                                    ▼
+                                </button>
+                            </div>
+                            @if (!row.Option.IsBuiltIn)
+                            {
+                                <button type="button"
+                                        class="camping-remove-btn"
+                                        title="Remove this option"
+                                        @onclick="() => RemoveOption(row.Option.Id)">
+                                    Remove
+                                </button>
+                            }
                         </div>
 
-                        <div class="camping-option-body">
-                            <div class="camping-option-header">
-                                <span class="camping-option-label">@row.Option.Label</span>
-                                @if (!row.Option.IsBuiltIn)
-                                {
-                                    <button type="button"
-                                            class="camping-remove-btn"
-                                            title="Remove this option"
-                                            @onclick="() => RemoveOption(row.Option.Id)">
-                                        Remove
-                                    </button>
-                                }
-                            </div>
-
+                        <div class="camping-option-results-col">
                             @if (row.Upvoters.Count > 0)
                             {
-                                <div class="camping-upvoters">
-                                    <span class="camping-upvoters-label">Yes:</span>
-                                    @{
-                                        var visibleUpvoters = GetVisibleUpvoters(row).ToList();
-                                    }
+                                var visibleUpvoters = GetVisibleVoters(row, isUp: true).ToList();
+                                var upExpandKey = GetVoterExpandKey(row.Option.Id, isUp: true);
+                                <div class="camping-voter-line">
+                                    <span class="camping-voters-label">Up:</span>
                                     @for (var i = 0; i < visibleUpvoters.Count; i++)
                                     {
                                         if (i > 0)
                                         {
-                                            <span class="camping-upvoter-separator">,</span>
+                                            <text>, </text>
                                         }
-                                        <button type="button"
-                                                class="camping-edit-link"
-                                                @onclick="() => LoadParticipant(visibleUpvoters[i])">
-                                            @visibleUpvoters[i]
-                                        </button>
+                                        <span class="camping-voter-name">@visibleUpvoters[i]</span>
                                     }
-                                    @if (ShouldShowExpandButton(row))
+                                    @if (ShouldShowVoterExpand(row, isUp: true))
                                     {
                                         <button type="button"
                                                 class="camping-expand-btn"
-                                                title="@(IsUpvotersExpanded(row.Option.Id) ? "Show fewer voters" : "Show all voters")"
-                                                @onclick="() => ToggleUpvoters(row.Option.Id)">
-                                            @(IsUpvotersExpanded(row.Option.Id) ? "▲" : "▼")
+                                                title="@(IsVotersExpanded(upExpandKey) ? "Show fewer voters" : "Show all voters")"
+                                                @onclick="() => ToggleVoters(upExpandKey)">
+                                            @(IsVotersExpanded(upExpandKey) ? "▲" : "▼")
                                         </button>
                                     }
                                 </div>
+                            }
+                            @if (row.Downvoters.Count > 0)
+                            {
+                                var visibleDownvoters = GetVisibleVoters(row, isUp: false).ToList();
+                                var downExpandKey = GetVoterExpandKey(row.Option.Id, isUp: false);
+                                <div class="camping-voter-line">
+                                    <span class="camping-voters-label">Down:</span>
+                                    @for (var i = 0; i < visibleDownvoters.Count; i++)
+                                    {
+                                        if (i > 0)
+                                        {
+                                            <text>, </text>
+                                        }
+                                        <span class="camping-voter-name">@visibleDownvoters[i]</span>
+                                    }
+                                    @if (ShouldShowVoterExpand(row, isUp: false))
+                                    {
+                                        <button type="button"
+                                                class="camping-expand-btn"
+                                                title="@(IsVotersExpanded(downExpandKey) ? "Show fewer voters" : "Show all voters")"
+                                                @onclick="() => ToggleVoters(downExpandKey)">
+                                            @(IsVotersExpanded(downExpandKey) ? "▲" : "▼")
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            @if (row.Upvoters.Count == 0 && row.Downvoters.Count == 0)
+                            {
+                                <span class="camping-no-votes">No votes yet</span>
                             }
                         </div>
                     </div>
@@ -186,7 +209,7 @@
     private string otherText = "";
     private bool isSavingParticipant;
     private bool isAddingOption;
-    private readonly HashSet<string> expandedUpvoters = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> expandedVoterLists = new(StringComparer.OrdinalIgnoreCase);
     private string? errorMessage;
     private string? successMessage;
 
@@ -259,25 +282,32 @@
         return surveyState.GetParticipantRating(name.Trim(), optionId);
     }
 
-    private IEnumerable<string> GetVisibleUpvoters(PotluckOptionRow row)
+    private IEnumerable<string> GetVisibleVoters(PotluckOptionRow row, bool isUp)
     {
-        if (row.Upvoters.Count < 5 || IsUpvotersExpanded(row.Option.Id))
+        var voters = isUp ? row.Upvoters : row.Downvoters;
+        var expandKey = GetVoterExpandKey(row.Option.Id, isUp);
+
+        if (voters.Count < 5 || IsVotersExpanded(expandKey))
         {
-            return row.Upvoters;
+            return voters;
         }
 
-        return row.Upvoters.Take(5);
+        return voters.Take(5);
     }
 
-    private static bool ShouldShowExpandButton(PotluckOptionRow row) => row.Upvoters.Count >= 5;
+    private static bool ShouldShowVoterExpand(PotluckOptionRow row, bool isUp) =>
+        (isUp ? row.Upvoters : row.Downvoters).Count >= 5;
 
-    private bool IsUpvotersExpanded(string optionId) => expandedUpvoters.Contains(optionId);
+    private static string GetVoterExpandKey(string optionId, bool isUp) =>
+        $"{optionId}:{(isUp ? "up" : "down")}";
 
-    private void ToggleUpvoters(string optionId)
+    private bool IsVotersExpanded(string expandKey) => expandedVoterLists.Contains(expandKey);
+
+    private void ToggleVoters(string expandKey)
     {
-        if (!expandedUpvoters.Add(optionId))
+        if (!expandedVoterLists.Add(expandKey))
         {
-            expandedUpvoters.Remove(optionId);
+            expandedVoterLists.Remove(expandKey);
         }
     }
 
