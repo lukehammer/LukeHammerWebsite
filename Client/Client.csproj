@@ -16,4 +16,21 @@
 		<ProjectReference Include="..\Shared\Shared.csproj" />
 	</ItemGroup>
 
+	<!-- Workaround SDK 9.0.300 static web assets cache duplicates (dotnet/sdk#49180). -->
+	<Target Name="_CleanupStaticWebAssetsCache" AfterTargets="Build">
+		<PropertyGroup>
+			<StaticWebAssetsCachePaths>
+				$(_ResolveBuildCompressedStaticWebAssetsCachePath);
+				$(_ResolveJsInitializerModuleStaticWebAssetsCachePath);
+				$(_ResolveJSModuleStaticWebAssetsRazorCachePath);
+				$(_ResolveJSModuleStaticWebAssetsCshtmlCachePath);
+				$(_ResolveProjectStaticWebAssetsCachePath)
+			</StaticWebAssetsCachePaths>
+		</PropertyGroup>
+		<ItemGroup>
+			<_CacheFilesToDelete Include="$(StaticWebAssetsCachePaths)" />
+		</ItemGroup>
+		<Delete Files="@(_CacheFilesToDelete)" Condition="Exists('%(_CacheFilesToDelete.Identity)')" />
+	</Target>
+
 </Project>
