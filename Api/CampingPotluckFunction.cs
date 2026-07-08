@@ -22,11 +22,18 @@ namespace ApiIsolated
         public async Task<HttpResponseData> Get(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "camping/potluck")] HttpRequestData req)
         {
-            var state = CampingPotluckMigration.Normalize(await CampingPotluckStorage.LoadAsync());
-            await CampingPotluckStorage.SaveAsync(state);
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(state);
-            return response;
+            try
+            {
+                var state = await CampingPotluckStorage.LoadAsync();
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load camping potluck survey.");
+                return await ServerError(req, ex.Message);
+            }
         }
 
         [Function("SaveCampingParticipant")]
@@ -39,28 +46,38 @@ namespace ApiIsolated
                 return await BadRequest(req, "Name is required.");
             }
 
-            var state = CampingPotluckMigration.Normalize(await CampingPotluckStorage.LoadAsync());
-            var name = request.Name.Trim();
-            var bringing = request.Bringing?.Trim() ?? "";
-
-            var participant = state.Participants.FirstOrDefault(p =>
-                string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
-
-            if (participant == null)
+            try
             {
-                participant = new PotluckParticipant { Name = name };
-                state.Participants.Add(participant);
+                var name = request.Name.Trim();
+                var bringing = request.Bringing?.Trim() ?? "";
+
+                var state = await CampingPotluckStorage.UpdateAsync(current =>
+                {
+                    var participant = current.Participants.FirstOrDefault(p =>
+                        string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                    if (participant == null)
+                    {
+                        participant = new PotluckParticipant { Name = name };
+                        current.Participants.Add(participant);
+                    }
+
+                    participant.Bringing = bringing;
+                    participant.SubmittedAt = DateTime.UtcNow;
+                    return current;
+                });
+
+                _logger.LogInformation("Camping participant saved for {Name}", name);
+
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
             }
-
-            participant.Bringing = bringing;
-            participant.SubmittedAt = DateTime.UtcNow;
-
-            await CampingPotluckStorage.SaveAsync(state);
-            _logger.LogInformation("Camping participant saved for {Name}", name);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(state);
-            return response;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save camping participant.");
+                return await ServerError(req, ex.Message);
+            }
         }
 
         [Function("RateCampingOption")]
@@ -78,39 +95,53 @@ namespace ApiIsolated
                 return await BadRequest(req, "Rating must be 1, -1, or 0.");
             }
 
-            var state = CampingPotluckMigration.Normalize(await CampingPotluckStorage.LoadAsync());
-            var name = request.Name.Trim();
-            var optionId = request.OptionId.Trim().ToLowerInvariant();
-
-            if (!state.Options.Any(option => string.Equals(option.Id, optionId, StringComparison.OrdinalIgnoreCase)))
+            try
             {
-                return await BadRequest(req, "Option not found.");
+                var name = request.Name.Trim();
+                var optionId = request.OptionId.Trim().ToLowerInvariant();
+
+                var state = await CampingPotluckStorage.UpdateAsync(current =>
+                {
+                    if (!current.Options.Any(option => string.Equals(option.Id, optionId, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw new InvalidOperationException("Option not found.");
+                    }
+
+                    var participant = current.Participants.FirstOrDefault(p =>
+                        string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                    if (participant == null)
+                    {
+                        participant = new PotluckParticipant { Name = name };
+                        current.Participants.Add(participant);
+                    }
+
+                    if (request.Rating == 0)
+                    {
+                        participant.Ratings.Remove(optionId);
+                    }
+                    else
+                    {
+                        participant.Ratings[optionId] = request.Rating;
+                    }
+
+                    participant.SubmittedAt = DateTime.UtcNow;
+                    return current;
+                });
+
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
             }
-
-            var participant = state.Participants.FirstOrDefault(p =>
-                string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
-
-            if (participant == null)
+            catch (InvalidOperationException ex) when (ex.Message == "Option not found.")
             {
-                participant = new PotluckParticipant { Name = name };
-                state.Participants.Add(participant);
+                return await BadRequest(req, ex.Message);
             }
-
-            if (request.Rating == 0)
+            catch (Exception ex)
             {
-                participant.Ratings.Remove(optionId);
+                _logger.LogError(ex, "Failed to save camping vote.");
+                return await ServerError(req, ex.Message);
             }
-            else
-            {
-                participant.Ratings[optionId] = request.Rating;
-            }
-
-            participant.SubmittedAt = DateTime.UtcNow;
-            await CampingPotluckStorage.SaveAsync(state);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(state);
-            return response;
         }
 
         [Function("AddCampingOption")]
@@ -123,29 +154,43 @@ namespace ApiIsolated
                 return await BadRequest(req, "Option label is required.");
             }
 
-            var state = CampingPotluckMigration.Normalize(await CampingPotluckStorage.LoadAsync());
-            var label = request.Label.Trim();
-            var optionId = PotluckOptionIds.ToCustomOptionId(label);
-
-            if (state.Options.Any(option => string.Equals(option.Id, optionId, StringComparison.OrdinalIgnoreCase)))
+            try
             {
-                return await BadRequest(req, "That option already exists.");
+                var label = request.Label.Trim();
+                var optionId = PotluckOptionIds.ToCustomOptionId(label);
+
+                var state = await CampingPotluckStorage.UpdateAsync(current =>
+                {
+                    if (current.Options.Any(option => string.Equals(option.Id, optionId, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        throw new InvalidOperationException("That option already exists.");
+                    }
+
+                    current.Options.Add(new PotluckOptionDefinition
+                    {
+                        Id = optionId,
+                        Label = label,
+                        IsBuiltIn = false,
+                        CreatedBy = request.CreatedBy?.Trim() ?? "",
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    return current;
+                });
+
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
             }
-
-            state.Options.Add(new PotluckOptionDefinition
+            catch (InvalidOperationException ex) when (ex.Message == "That option already exists.")
             {
-                Id = optionId,
-                Label = label,
-                IsBuiltIn = false,
-                CreatedBy = request.CreatedBy?.Trim() ?? "",
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await CampingPotluckStorage.SaveAsync(state);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(state);
-            return response;
+                return await BadRequest(req, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to add camping option.");
+                return await ServerError(req, ex.Message);
+            }
         }
 
         [Function("RemoveCampingOption")]
@@ -158,37 +203,60 @@ namespace ApiIsolated
                 return await BadRequest(req, "Option id is required.");
             }
 
-            var state = CampingPotluckMigration.Normalize(await CampingPotluckStorage.LoadAsync());
-            var option = state.Options.FirstOrDefault(o =>
-                string.Equals(o.Id, request.OptionId.Trim(), StringComparison.OrdinalIgnoreCase));
-
-            if (option == null)
+            try
             {
-                return await BadRequest(req, "Option not found.");
-            }
+                var optionId = request.OptionId.Trim();
 
-            if (option.IsBuiltIn)
+                var state = await CampingPotluckStorage.UpdateAsync(current =>
+                {
+                    var option = current.Options.FirstOrDefault(o =>
+                        string.Equals(o.Id, optionId, StringComparison.OrdinalIgnoreCase));
+
+                    if (option == null)
+                    {
+                        throw new InvalidOperationException("Option not found.");
+                    }
+
+                    if (option.IsBuiltIn)
+                    {
+                        throw new InvalidOperationException("Built-in options cannot be removed.");
+                    }
+
+                    current.Options.Remove(option);
+
+                    foreach (var participant in current.Participants)
+                    {
+                        participant.Ratings.Remove(option.Id);
+                    }
+
+                    return current;
+                });
+
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
+            }
+            catch (InvalidOperationException ex)
             {
-                return await BadRequest(req, "Built-in options cannot be removed.");
+                return await BadRequest(req, ex.Message);
             }
-
-            state.Options.Remove(option);
-
-            foreach (var participant in state.Participants)
+            catch (Exception ex)
             {
-                participant.Ratings.Remove(option.Id);
+                _logger.LogError(ex, "Failed to remove camping option.");
+                return await ServerError(req, ex.Message);
             }
-
-            await CampingPotluckStorage.SaveAsync(state);
-
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(state);
-            return response;
         }
 
         private static async Task<HttpResponseData> BadRequest(HttpRequestData req, string message)
         {
             var response = req.CreateResponse(HttpStatusCode.BadRequest);
+            await response.WriteStringAsync(message);
+            return response;
+        }
+
+        private static async Task<HttpResponseData> ServerError(HttpRequestData req, string message)
+        {
+            var response = req.CreateResponse(HttpStatusCode.InternalServerError);
             await response.WriteStringAsync(message);
             return response;
         }
