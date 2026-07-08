@@ -26,6 +26,10 @@ namespace ApiIsolated
             WriteIndented = true
         };
 
+        private static string? GetStorageConnectionString() =>
+            Environment.GetEnvironmentVariable("CAMPING_POTLUCK_STORAGE")
+            ?? Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+
         public static async Task<PotluckSurveyState> LoadAsync()
         {
             var stored = await LoadStoredAsync();
@@ -51,13 +55,13 @@ namespace ApiIsolated
 
         private static async Task<StoredSurvey> LoadStoredAsync()
         {
-            var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            var connectionString = GetStorageConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 if (IsAzureEnvironment())
                 {
                     throw new InvalidOperationException(
-                        "AzureWebJobsStorage is not configured. Link a storage account to the Static Web App so votes persist for everyone.");
+                        "Shared storage is not configured. In Azure Portal, add app setting CAMPING_POTLUCK_STORAGE with your storage account connection string.");
                 }
 
                 return await LoadFromLocalFileAsync();
@@ -86,7 +90,7 @@ namespace ApiIsolated
         private static async Task<bool> TrySaveAsync(PotluckSurveyState state, string? etag)
         {
             var json = JsonSerializer.Serialize(state, JsonOptions);
-            var connectionString = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
+            var connectionString = GetStorageConnectionString();
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 await SaveToLocalFileAsync(json);
