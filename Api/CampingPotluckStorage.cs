@@ -27,7 +27,7 @@ namespace ApiIsolated
         };
 
         private static string? GetStorageConnectionString() =>
-            Environment.GetEnvironmentVariable("CAMPING_POTLUCK_STORAGE")
+            Environment.GetEnvironmentVariable("LUKE_HAMMER_WEBSITE")
             ?? Environment.GetEnvironmentVariable("AzureWebJobsStorage");
 
         public static async Task<PotluckSurveyState> LoadAsync()
@@ -61,7 +61,7 @@ namespace ApiIsolated
                 if (IsAzureEnvironment())
                 {
                     throw new InvalidOperationException(
-                        "Shared storage is not configured. In Azure Portal, add app setting CAMPING_POTLUCK_STORAGE with your storage account connection string.");
+                        "Shared storage is not configured. In Azure Portal, add app setting LUKE_HAMMER_WEBSITE with your storage account connection string.");
                 }
 
                 return await LoadFromLocalFileAsync();
