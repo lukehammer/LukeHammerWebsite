@@ -169,9 +169,45 @@
             <div class="camping-bring-cards">
                 @foreach (var item in BringItems)
                 {
+                    var isEditing = IsEditingBringItem(item.Name);
                     <article class="camping-bring-card">
-                        <p class="camping-bring-item">@item.Bringing</p>
-                        <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                        @if (isEditing)
+                        {
+                            <div class="camping-bring-edit">
+                                <input class="form-control camping-input"
+                                       @bind="editingBringText"
+                                       @bind:event="oninput"
+                                       placeholder="What are you bringing?"
+                                       aria-label="Edit item for @item.Name" />
+                                <div class="camping-bring-edit-actions">
+                                    <button type="button"
+                                            class="btn btn-primary camping-btn camping-bring-save-btn"
+                                            @onclick="() => SaveBringEdit(item.Name)"
+                                            disabled="@isSavingBringEdit">
+                                        @(isSavingBringEdit ? "Saving..." : "Save")
+                                    </button>
+                                    <button type="button"
+                                            class="btn btn-secondary camping-btn camping-btn-secondary"
+                                            @onclick="CancelBringEdit"
+                                            disabled="@isSavingBringEdit">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="camping-bring-person">@item.Name</p>
+                        }
+                        else
+                        {
+                            <div class="camping-bring-row">
+                                <p class="camping-bring-item">@item.Bringing</p>
+                                <button type="button"
+                                        class="camping-item-edit-btn"
+                                        @onclick="() => StartBringEdit(item)">
+                                    Edit
+                                </button>
+                            </div>
+                            <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                        }
                     </article>
                 }
             </div>
@@ -182,16 +218,55 @@
                         <tr>
                             <th>Item</th>
                             <th>Person</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var item in BringItems)
                         {
+                            var isEditing = IsEditingBringItem(item.Name);
                             <tr>
-                                <td>@item.Bringing</td>
-                                <td>
-                                    <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
-                                </td>
+                                @if (isEditing)
+                                {
+                                    <td colspan="3">
+                                        <div class="camping-bring-edit">
+                                            <input class="form-control camping-input"
+                                                   @bind="editingBringText"
+                                                   @bind:event="oninput"
+                                                   placeholder="What are you bringing?"
+                                                   aria-label="Edit item for @item.Name" />
+                                            <div class="camping-bring-edit-actions">
+                                                <button type="button"
+                                                        class="btn btn-primary camping-btn camping-bring-save-btn"
+                                                        @onclick="() => SaveBringEdit(item.Name)"
+                                                        disabled="@isSavingBringEdit">
+                                                    @(isSavingBringEdit ? "Saving..." : "Save")
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-secondary camping-btn camping-btn-secondary"
+                                                        @onclick="CancelBringEdit"
+                                                        disabled="@isSavingBringEdit">
+                                                    Cancel
+                                                </button>
+                                                <span class="camping-bring-person">@item.Name</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td>@item.Bringing</td>
+                                    <td>
+                                        <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                                    </td>
+                                    <td>
+                                        <button type="button"
+                                                class="camping-item-edit-btn"
+                                                @onclick="() => StartBringEdit(item)">
+                                            Edit
+                                        </button>
+                                    </td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -207,7 +282,10 @@
     private string name = "";
     private string bringing = "";
     private string otherText = "";
+    private string? editingBringName;
+    private string editingBringText = "";
     private bool isSavingParticipant;
+    private bool isSavingBringEdit;
     private bool isAddingOption;
     private readonly HashSet<string> expandedVoterLists = new(StringComparer.OrdinalIgnoreCase);
     private string? errorMessage;
@@ -259,6 +337,75 @@
     {
         name = participantName;
         bringing = FindParticipant(participantName)?.Bringing ?? "";
+    }
+
+    private bool IsEditingBringItem(string participantName) =>
+        !string.IsNullOrWhiteSpace(editingBringName)
+        && string.Equals(editingBringName, participantName, StringComparison.OrdinalIgnoreCase);
+
+    private void StartBringEdit(PotluckParticipant item)
+    {
+        editingBringName = item.Name;
+        editingBringText = item.Bringing ?? "";
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void CancelBringEdit()
+    {
+        editingBringName = null;
+        editingBringText = "";
+    }
+
+    private async Task SaveBringEdit(string participantName)
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(participantName))
+        {
+            errorMessage = "Could not update that item.";
+            return;
+        }
+
+        isSavingBringEdit = true;
+
+        try
+        {
+            var updatedBringing = editingBringText.Trim();
+            var response = await Http.PostAsJsonAsync("/api/camping/potluck/participant", new PotluckParticipantRequest
+            {
+                Name = participantName.Trim(),
+                Bringing = updatedBringing
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Could not update that item. Please try again.";
+                return;
+            }
+
+            surveyState = await response.Content.ReadFromJsonAsync<PotluckSurveyState>()
+                ?? PotluckSurveyState.CreateDefault();
+
+            if (string.Equals(name.Trim(), participantName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                bringing = updatedBringing;
+            }
+
+            CancelBringEdit();
+            successMessage = string.IsNullOrWhiteSpace(updatedBringing)
+                ? $"Cleared what {participantName.Trim()} is bringing."
+                : $"Updated what {participantName.Trim()} is bringing.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not update that item. Make sure the API is running.";
+        }
+        finally
+        {
+            isSavingBringEdit = false;
+        }
     }
 
     private PotluckParticipant? FindParticipant(string participantName)
