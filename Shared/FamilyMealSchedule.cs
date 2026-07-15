@@ -184,7 +184,7 @@ namespace BlazorApp.Shared
                 (MealTypes.Breakfast, "Breakfast"),
                 (MealTypes.Lunch, "Lunch"),
                 (MealTypes.Dinner, "Dinner"),
-                (MealTypes.SpecialTreat, "desert")
+                (MealTypes.SpecialTreat, "Dessert")
             };
 
             var slots = new List<MealSlotDefinition>();

@@ -846,11 +846,33 @@ a, .btn-link {
     padding: 0.2rem 0;
 }
 
+.family-notes-check.has-cook-warning {
+    grid-column: 1 / -1;
+    background: #fff8e6;
+    border: 1px solid #f0c36d;
+    border-radius: 8px;
+    padding: 0.4rem 0.55rem;
+}
+
 .family-notes-check input {
     margin-top: 0.25rem;
     min-width: 1.1rem;
     min-height: 1.1rem;
     flex-shrink: 0;
+}
+
+.family-notes-check-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.family-notes-inline-warning {
+    color: #7a5b00;
+    font-size: 0.78rem;
+    font-weight: 600;
 }
 
 .family-notes-save-btn {

@@ -119,12 +119,19 @@
                             @foreach (var family in FamilyMealScheduleState.Families)
                             {
                                 var isChecked = draft.CookForFamilyIds.Contains(family.Id, StringComparer.OrdinalIgnoreCase);
-                                <label class="family-notes-check">
+                                var showCookWarning = isChecked && IsEatingWithoutCooking(family.Id);
+                                <label class="family-notes-check @(showCookWarning ? "has-cook-warning" : null)">
                                     <input type="checkbox"
                                            checked="@isChecked"
                                            disabled="@string.IsNullOrWhiteSpace(draft.CookFamilyId)"
                                            @onchange="e => OnCookForChanged(slot.Id, family.Id, e)" />
-                                    <span>@ShortFamilyLabel(family.Label)</span>
+                                    <span class="family-notes-check-text">
+                                        <span>@ShortFamilyLabel(family.Label)</span>
+                                        @if (showCookWarning)
+                                        {
+                                            <span class="family-notes-inline-warning">hasn’t cooked yet — you can still save</span>
+                                        }
+                                    </span>
                                 </label>
                             }
                         </div>
@@ -304,14 +311,8 @@
         }
     }
 
-    private void RefreshGlobalWarning(string? focusFamilyId = null)
+    private FamilyMealScheduleState BuildDraftCombinedState()
     {
-        if (schedule == null)
-        {
-            warningMessage = null;
-            return;
-        }
-
         var combined = FamilyMealScheduleState.CreateDefault();
         foreach (var slot in FamilyMealScheduleState.MealSlots)
         {
@@ -322,23 +323,50 @@
             assignment.CookForFamilyIds = draft.CookForFamilyIds?.ToList() ?? new List<string>();
         }
 
-        var eatersWithoutCooking = combined.GetFamiliesEatingWithoutCooking();
+        return combined;
+    }
+
+    private bool IsEatingWithoutCooking(string familyId)
+    {
+        if (string.IsNullOrWhiteSpace(familyId))
+        {
+            return false;
+        }
+
+        var combined = BuildDraftCombinedState();
+        var isEating = combined.Assignments.Any(a =>
+            (a.CookForFamilyIds ?? new List<string>())
+                .Contains(familyId, StringComparer.OrdinalIgnoreCase));
+
+        return isEating && !combined.HasFamilyCooked(familyId);
+    }
+
+    private void RefreshGlobalWarning(string? focusFamilyId = null)
+    {
+        if (schedule == null)
+        {
+            warningMessage = null;
+            return;
+        }
+
+        var eatersWithoutCooking = BuildDraftCombinedState().GetFamiliesEatingWithoutCooking();
         if (eatersWithoutCooking.Count == 0)
         {
             warningMessage = null;
             return;
         }
 
+        // Inline checkbox warnings are primary; keep a short page banner when relevant.
         if (!string.IsNullOrWhiteSpace(focusFamilyId)
             && eatersWithoutCooking.Contains(FamilyMealScheduleState.GetFamilyLabel(focusFamilyId)))
         {
             warningMessage =
-                $"{ShortFamilyLabel(FamilyMealScheduleState.GetFamilyLabel(focusFamilyId))} is signed up to eat but has not signed up to cook yet. You can still save.";
+                $"{ShortFamilyLabel(FamilyMealScheduleState.GetFamilyLabel(focusFamilyId))} hasn’t cooked yet — see the note beside their checkbox. You can still save.";
             return;
         }
 
         warningMessage =
-            $"These families are signed up to eat but have not signed up to cook yet: {string.Join(", ", eatersWithoutCooking.Select(ShortFamilyLabel))}. You can still save.";
+            $"Some families are set to eat but haven’t cooked yet — see notes beside their checkboxes. You can still save.";
     }
 
     private static string ShortFamilyLabel(string label)
