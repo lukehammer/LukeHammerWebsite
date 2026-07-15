@@ -1,0 +1,361 @@
+@page "/Hammers"
+@using BlazorApp.Shared
+@inject HttpClient Http
+
+<PageTitle>Hammer Family Notes</PageTitle>
+
+<main class="family-notes-page">
+    <header class="family-notes-header">
+        <h1>Hammer Family Notes</h1>
+        <p class="family-notes-intro">Weekend meal sharing · Fri 7/17 – Sun 7/19</p>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="family-notes-error">@errorMessage</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <p class="family-notes-success">@successMessage</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(warningMessage))
+    {
+        <p class="family-notes-warning">@warningMessage</p>
+    }
+
+    <section class="family-notes-summary" aria-label="Meal summary">
+        <h2>What’s covered</h2>
+        @if (schedule == null)
+        {
+            <p class="family-notes-muted">Loading...</p>
+        }
+        else
+        {
+            <ul class="family-notes-summary-list">
+                @foreach (var item in SummaryRows)
+                {
+                    <li class="@(item.HasCook ? "is-covered" : "is-open")">
+                        <span class="family-notes-summary-when">@item.When</span>
+                        @if (item.HasCook)
+                        {
+                            <span class="family-notes-summary-detail">
+                                <strong>@item.Cook</strong>
+                                @if (!string.IsNullOrWhiteSpace(item.Dish))
+                                {
+                                    <text> · @item.Dish</text>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.CookFor))
+                                {
+                                    <text> · for @item.CookFor</text>
+                                }
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="family-notes-summary-detail family-notes-on-own">You are on your own</span>
+                        }
+                    </li>
+                }
+            </ul>
+            <a class="family-notes-jump" href="#edit-meals">Scroll down to edit signups ↓</a>
+        }
+    </section>
+
+    <section id="edit-meals" class="family-notes-card family-notes-edit">
+        <h2>Edit signups</h2>
+        <p class="family-notes-hint">
+            Choose who’s cooking, what they’re making, and who it’s for.
+            Signing up is optional. If someone is set to eat but hasn’t cooked yet, you’ll get a warning — you can still save.
+        </p>
+
+        <details class="family-notes-families">
+            <summary>Families (@FamilyMealScheduleState.Families.Count)</summary>
+            <ul class="family-notes-list">
+                @foreach (var family in FamilyMealScheduleState.Families)
+                {
+                    <li>@family.Label</li>
+                }
+            </ul>
+        </details>
+
+        @if (schedule == null)
+        {
+            <p>Loading schedule...</p>
+        }
+        else
+        {
+            <div class="family-notes-editor">
+                @foreach (var slot in FamilyMealScheduleState.MealSlots)
+                {
+                    var draft = GetDraft(slot.Id);
+                    <article class="family-notes-slot-card">
+                        <h3>@slot.DateLabel · @slot.MealLabel</h3>
+
+                        <label class="family-notes-field-label" for="cook-@slot.Id">Who’s cooking</label>
+                        <select id="cook-@slot.Id"
+                                class="form-select family-notes-select"
+                                value="@draft.CookFamilyId"
+                                @onchange="e => OnCookChanged(slot.Id, e)">
+                            <option value="">You are on your own</option>
+                            @foreach (var family in FamilyMealScheduleState.Families)
+                            {
+                                <option value="@family.Id">@family.Label</option>
+                            }
+                        </select>
+
+                        <label class="family-notes-field-label" for="dish-@slot.Id">What are you cooking?</label>
+                        <input id="dish-@slot.Id"
+                               class="form-control family-notes-input"
+                               value="@draft.Dish"
+                               @oninput="e => OnDishChanged(slot.Id, e)"
+                               placeholder="e.g. breakfast burritos"
+                               disabled="@string.IsNullOrWhiteSpace(draft.CookFamilyId)"
+                               autocomplete="off" />
+
+                        <label class="family-notes-field-label">Who you’re cooking for</label>
+                        <div class="family-notes-checks">
+                            @foreach (var family in FamilyMealScheduleState.Families)
+                            {
+                                var isChecked = draft.CookForFamilyIds.Contains(family.Id, StringComparer.OrdinalIgnoreCase);
+                                <label class="family-notes-check">
+                                    <input type="checkbox"
+                                           checked="@isChecked"
+                                           disabled="@string.IsNullOrWhiteSpace(draft.CookFamilyId)"
+                                           @onchange="e => OnCookForChanged(slot.Id, family.Id, e)" />
+                                    <span>@ShortFamilyLabel(family.Label)</span>
+                                </label>
+                            }
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-primary family-notes-save-btn"
+                                disabled="@(savingSlotId == slot.Id)"
+                                @onclick="() => SaveSlot(slot.Id)">
+                            @(savingSlotId == slot.Id ? "Saving..." : "Save")
+                        </button>
+                    </article>
+                }
+            </div>
+        }
+    </section>
+</main>
+
+@code {
+    private FamilyMealScheduleState? schedule;
+    private readonly Dictionary<string, MealAssignment> drafts = new(StringComparer.OrdinalIgnoreCase);
+    private string? savingSlotId;
+    private string? errorMessage;
+    private string? successMessage;
+    private string? warningMessage;
+
+    private IEnumerable<SummaryRow> SummaryRows =>
+        FamilyMealScheduleState.MealSlots.Select(slot =>
+        {
+            var assignment = schedule?.Assignments.FirstOrDefault(a =>
+                string.Equals(a.SlotId, slot.Id, StringComparison.OrdinalIgnoreCase))
+                ?? new MealAssignment { SlotId = slot.Id };
+
+            return new SummaryRow(
+                When: $"{slot.DateLabel} {slot.MealLabel}",
+                HasCook: assignment.HasCook,
+                Cook: assignment.HasCook ? ShortFamilyLabel(FamilyMealScheduleState.GetFamilyLabel(assignment.CookFamilyId)) : "",
+                Dish: assignment.Dish ?? "",
+                CookFor: string.Join(", ",
+                    (assignment.CookForFamilyIds ?? new List<string>())
+                        .Select(id => ShortFamilyLabel(FamilyMealScheduleState.GetFamilyLabel(id))))
+            );
+        });
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadScheduleAsync();
+    }
+
+    private async Task LoadScheduleAsync()
+    {
+        try
+        {
+            schedule = await Http.GetFromJsonAsync<FamilyMealScheduleState>("/api/family/meals")
+                ?? FamilyMealScheduleState.CreateDefault();
+            schedule.Normalize();
+            SyncDraftsFromSchedule();
+            errorMessage = null;
+            RefreshGlobalWarning();
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not load the meal schedule. Make sure the API is running.";
+            schedule = FamilyMealScheduleState.CreateDefault();
+            SyncDraftsFromSchedule();
+        }
+    }
+
+    private void SyncDraftsFromSchedule()
+    {
+        drafts.Clear();
+        if (schedule == null)
+        {
+            return;
+        }
+
+        foreach (var slot in FamilyMealScheduleState.MealSlots)
+        {
+            var assignment = schedule.GetOrCreateAssignment(slot.Id);
+            drafts[slot.Id] = new MealAssignment
+            {
+                SlotId = slot.Id,
+                CookFamilyId = assignment.CookFamilyId ?? "",
+                Dish = assignment.Dish ?? "",
+                CookForFamilyIds = assignment.CookForFamilyIds?.ToList() ?? new List<string>(),
+                UpdatedAt = assignment.UpdatedAt
+            };
+        }
+    }
+
+    private MealAssignment GetDraft(string slotId)
+    {
+        if (!drafts.TryGetValue(slotId, out var draft))
+        {
+            draft = new MealAssignment { SlotId = slotId };
+            drafts[slotId] = draft;
+        }
+
+        return draft;
+    }
+
+    private void OnCookChanged(string slotId, ChangeEventArgs e)
+    {
+        var draft = GetDraft(slotId);
+        draft.CookFamilyId = e.Value?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(draft.CookFamilyId))
+        {
+            draft.Dish = "";
+            draft.CookForFamilyIds = new List<string>();
+        }
+
+        RefreshGlobalWarning();
+    }
+
+    private void OnDishChanged(string slotId, ChangeEventArgs e)
+    {
+        GetDraft(slotId).Dish = e.Value?.ToString() ?? "";
+    }
+
+    private void OnCookForChanged(string slotId, string familyId, ChangeEventArgs e)
+    {
+        var draft = GetDraft(slotId);
+        var isChecked = e.Value is bool b && b
+            || string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+
+        draft.CookForFamilyIds ??= new List<string>();
+        draft.CookForFamilyIds.RemoveAll(id => string.Equals(id, familyId, StringComparison.OrdinalIgnoreCase));
+        if (isChecked)
+        {
+            draft.CookForFamilyIds.Add(familyId);
+        }
+
+        RefreshGlobalWarning(focusFamilyId: isChecked ? familyId : null);
+    }
+
+    private async Task SaveSlot(string slotId)
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        var draft = GetDraft(slotId);
+        RefreshGlobalWarning();
+
+        savingSlotId = slotId;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/family/meals/assignment", new FamilyMealAssignmentRequest
+            {
+                SlotId = slotId,
+                CookFamilyId = draft.CookFamilyId ?? "",
+                Dish = draft.Dish ?? "",
+                CookForFamilyIds = draft.CookForFamilyIds?.ToList() ?? new List<string>()
+            });
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "Could not save that meal. Please try again.";
+                return;
+            }
+
+            schedule = await response.Content.ReadFromJsonAsync<FamilyMealScheduleState>()
+                ?? FamilyMealScheduleState.CreateDefault();
+            schedule.Normalize();
+            SyncDraftsFromSchedule();
+            RefreshGlobalWarning();
+
+            var slot = FamilyMealScheduleState.MealSlots.First(s => s.Id == slotId);
+            successMessage = $"Saved {slot.DisplayLabel}.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not save that meal. Make sure the API is running.";
+        }
+        finally
+        {
+            savingSlotId = null;
+        }
+    }
+
+    private void RefreshGlobalWarning(string? focusFamilyId = null)
+    {
+        if (schedule == null)
+        {
+            warningMessage = null;
+            return;
+        }
+
+        var combined = FamilyMealScheduleState.CreateDefault();
+        foreach (var slot in FamilyMealScheduleState.MealSlots)
+        {
+            var draft = GetDraft(slot.Id);
+            var assignment = combined.GetOrCreateAssignment(slot.Id);
+            assignment.CookFamilyId = draft.CookFamilyId ?? "";
+            assignment.Dish = draft.Dish ?? "";
+            assignment.CookForFamilyIds = draft.CookForFamilyIds?.ToList() ?? new List<string>();
+        }
+
+        var eatersWithoutCooking = combined.GetFamiliesEatingWithoutCooking();
+        if (eatersWithoutCooking.Count == 0)
+        {
+            warningMessage = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(focusFamilyId)
+            && eatersWithoutCooking.Contains(FamilyMealScheduleState.GetFamilyLabel(focusFamilyId)))
+        {
+            warningMessage =
+                $"{ShortFamilyLabel(FamilyMealScheduleState.GetFamilyLabel(focusFamilyId))} is signed up to eat but has not signed up to cook yet. You can still save.";
+            return;
+        }
+
+        warningMessage =
+            $"These families are signed up to eat but have not signed up to cook yet: {string.Join(", ", eatersWithoutCooking.Select(ShortFamilyLabel))}. You can still save.";
+    }
+
+    private static string ShortFamilyLabel(string label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return label;
+        }
+
+        // Keep the page readable on small screens.
+        return label
+            .Replace("Steve & Laura Hammer (Parents)", "Steve & Laura")
+            .Replace("Luke & Toni Hammer", "Luke & Toni")
+            .Replace("Lenigh & Casey Holt", "Lenigh & Casey")
+            .Replace("Alaina Bott", "Alaina")
+            .Replace("Stevie Hammer", "Stevie");
+    }
+
+    private sealed record SummaryRow(string When, bool HasCook, string Cook, string Dish, string CookFor);
+}
