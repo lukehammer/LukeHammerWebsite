@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Azure;
@@ -33,7 +34,50 @@ namespace ApiIsolated
         public static async Task<FamilyMealScheduleState> LoadAsync()
         {
             var stored = await LoadStoredAsync();
+
+            // New trip dates use new slot IDs — drop leftover signups from a prior weekend.
+            if (HasStaleSchedule(stored.State))
+            {
+                var fresh = FamilyMealScheduleState.CreateDefault();
+                await TrySaveAsync(fresh, stored.ETag);
+                return fresh;
+            }
+
             return stored.State.Normalize();
+        }
+
+        public static async Task<FamilyMealScheduleState> ResetAsync()
+        {
+            for (var attempt = 0; attempt < MaxSaveAttempts; attempt++)
+            {
+                var stored = await LoadStoredAsync();
+                var fresh = FamilyMealScheduleState.CreateDefault();
+                if (await TrySaveAsync(fresh, stored.ETag))
+                {
+                    return fresh;
+                }
+            }
+
+            throw new InvalidOperationException("Could not reset meal schedule because of concurrent updates. Please try again.");
+        }
+
+        private static bool HasStaleSchedule(FamilyMealScheduleState state)
+        {
+            var storedSlotIds = (state.Assignments ?? new System.Collections.Generic.List<MealAssignment>())
+                .Where(a => !string.IsNullOrWhiteSpace(a.SlotId))
+                .Select(a => a.SlotId.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (storedSlotIds.Count == 0)
+            {
+                return false;
+            }
+
+            var currentSlotIds = FamilyMealScheduleState.MealSlots
+                .Select(slot => slot.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return !storedSlotIds.Overlaps(currentSlotIds);
         }
 
         public static async Task<FamilyMealScheduleState> UpdateAsync(Func<FamilyMealScheduleState, FamilyMealScheduleState> mutate)

@@ -92,6 +92,25 @@ namespace ApiIsolated
             }
         }
 
+        [Function("ResetFamilyMealSchedule")]
+        public async Task<HttpResponseData> Reset(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family/meals/reset")] HttpRequestData req)
+        {
+            try
+            {
+                var state = await FamilyMealStorage.ResetAsync();
+                _logger.LogInformation("Family meal schedule reset to empty defaults.");
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                await response.WriteAsJsonAsync(state);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reset family meal schedule.");
+                return await ServerError(req, ex.Message);
+            }
+        }
+
         private static async Task<HttpResponseData> BadRequest(HttpRequestData req, string message)
         {
             var response = req.CreateResponse(HttpStatusCode.BadRequest);

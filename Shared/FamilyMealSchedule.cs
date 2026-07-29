@@ -23,9 +23,10 @@ namespace BlazorApp.Shared
 
     public static class MealDates
     {
-        public const string Friday = "2026-07-17";
-        public const string Saturday = "2026-07-18";
-        public const string Sunday = "2026-07-19";
+        public const string Friday = "2026-08-07";
+        public const string Saturday = "2026-08-08";
+        public const string Sunday = "2026-08-09";
+        public const string Monday = "2026-08-10";
     }
 
     public class FamilyDefinition
@@ -172,11 +173,11 @@ namespace BlazorApp.Shared
 
         private static List<MealSlotDefinition> BuildMealSlots()
         {
-            var dates = new[]
+            var fullDays = new[]
             {
-                (MealDates.Friday, "Fri 7/17"),
-                (MealDates.Saturday, "Sat 7/18"),
-                (MealDates.Sunday, "Sun 7/19")
+                (MealDates.Friday, "Fri 8/7"),
+                (MealDates.Saturday, "Sat 8/8"),
+                (MealDates.Sunday, "Sun 8/9")
             };
 
             var meals = new[]
@@ -188,7 +189,7 @@ namespace BlazorApp.Shared
             };
 
             var slots = new List<MealSlotDefinition>();
-            foreach (var (date, dateLabel) in dates)
+            foreach (var (date, dateLabel) in fullDays)
             {
                 foreach (var (mealType, mealLabel) in meals)
                 {
@@ -202,6 +203,16 @@ namespace BlazorApp.Shared
                     });
                 }
             }
+
+            // Monday morning only — weekend wraps up AM.
+            slots.Add(new MealSlotDefinition
+            {
+                Id = $"{MealDates.Monday}:{MealTypes.Breakfast}",
+                Date = MealDates.Monday,
+                DateLabel = "Mon 8/10",
+                MealType = MealTypes.Breakfast,
+                MealLabel = "Breakfast"
+            });
 
             return slots;
         }
