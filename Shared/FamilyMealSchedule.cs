@@ -23,7 +23,6 @@ namespace BlazorApp.Shared
 
     public static class MealDates
     {
-        public const string Friday = "2026-08-07";
         public const string Saturday = "2026-08-08";
         public const string Sunday = "2026-08-09";
         public const string Monday = "2026-08-10";
@@ -173,46 +172,37 @@ namespace BlazorApp.Shared
 
         private static List<MealSlotDefinition> BuildMealSlots()
         {
-            var fullDays = new[]
-            {
-                (MealDates.Friday, "Fri 8/7"),
-                (MealDates.Saturday, "Sat 8/8"),
-                (MealDates.Sunday, "Sun 8/9")
-            };
+            var slots = new List<MealSlotDefinition>();
 
-            var meals = new[]
+            void AddSlot(string date, string dateLabel, string mealType, string mealLabel)
+            {
+                slots.Add(new MealSlotDefinition
+                {
+                    Id = $"{date}:{mealType}",
+                    Date = date,
+                    DateLabel = dateLabel,
+                    MealType = mealType,
+                    MealLabel = mealLabel
+                });
+            }
+
+            // Arrive Saturday — first shared meal is dinner.
+            AddSlot(MealDates.Saturday, "Sat 8/8", MealTypes.Dinner, "Dinner");
+            AddSlot(MealDates.Saturday, "Sat 8/8", MealTypes.SpecialTreat, "Dessert");
+
+            foreach (var (mealType, mealLabel) in new[]
             {
                 (MealTypes.Breakfast, "Breakfast"),
                 (MealTypes.Lunch, "Lunch"),
                 (MealTypes.Dinner, "Dinner"),
                 (MealTypes.SpecialTreat, "Dessert")
-            };
-
-            var slots = new List<MealSlotDefinition>();
-            foreach (var (date, dateLabel) in fullDays)
+            })
             {
-                foreach (var (mealType, mealLabel) in meals)
-                {
-                    slots.Add(new MealSlotDefinition
-                    {
-                        Id = $"{date}:{mealType}",
-                        Date = date,
-                        DateLabel = dateLabel,
-                        MealType = mealType,
-                        MealLabel = mealLabel
-                    });
-                }
+                AddSlot(MealDates.Sunday, "Sun 8/9", mealType, mealLabel);
             }
 
             // Monday morning only — weekend wraps up AM.
-            slots.Add(new MealSlotDefinition
-            {
-                Id = $"{MealDates.Monday}:{MealTypes.Breakfast}",
-                Date = MealDates.Monday,
-                DateLabel = "Mon 8/10",
-                MealType = MealTypes.Breakfast,
-                MealLabel = "Breakfast"
-            });
+            AddSlot(MealDates.Monday, "Mon 8/10", MealTypes.Breakfast, "Breakfast");
 
             return slots;
         }
