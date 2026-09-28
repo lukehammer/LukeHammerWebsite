@@ -111,11 +111,11 @@ namespace ApiIsolated
                     var legacyDownload = await legacyBlob.DownloadContentAsync();
                     var legacyJson = legacyDownload.Value.Content.ToString();
                     await blob.UploadAsync(BinaryData.FromString(legacyJson), overwrite: true);
-                    var legacyDownload = await blob.DownloadContentAsync();
+                    var uploadedDownload = await blob.DownloadContentAsync();
                     return await NormalizeStoredJsonAndMaybePersistBlobAsync(
                         blob,
-                        legacyDownload.Value.Content.ToString(),
-                        legacyDownload.Value.Details.ETag.ToString());
+                        uploadedDownload.Value.Content.ToString(),
+                        uploadedDownload.Value.Details.ETag.ToString());
                 }
 
                 return await SeedAndPersistToBlobAsync(blob);
