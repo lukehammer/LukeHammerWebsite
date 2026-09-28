@@ -1154,8 +1154,17 @@ a, .btn-link {
 .schedule-table-responsive .schedule-location {
     line-height: 1.4;
     font-size: 0.9375rem;
-    flex: 1 1 auto;
+    flex: 1 1 8rem;
     min-width: 0;
+}
+
+.schedule-table-responsive .schedule-location-actions {
+    display: inline-flex;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--schedule-space-2);
+    max-width: 100%;
 }
 
 .schedule-table-responsive .schedule-map-btn {
@@ -1184,6 +1193,35 @@ a, .btn-link {
 }
 
 .schedule-table-responsive .schedule-map-btn:hover {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.35);
+}
+
+.schedule-table-responsive .schedule-going-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--schedule-space-2);
+    min-height: 44px;
+    padding: var(--schedule-control-padding-y) var(--schedule-control-padding-x);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border-radius: var(--schedule-space-2);
+    border: var(--schedule-control-border) solid rgba(0, 0, 0, 0.22);
+    background: var(--schedule-map-surface);
+    color: inherit;
+    cursor: pointer;
+}
+
+.schedule-table-responsive .schedule-going-btn-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.schedule-table-responsive .schedule-going-btn:hover {
     background: rgba(255, 255, 255, 0.92);
     border-color: rgba(0, 0, 0, 0.35);
 }
@@ -1421,7 +1459,8 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-cell-kids {
-        width: 7.5rem;
+        width: 10.5rem;
+        min-width: 8.5rem;
     }
 
     .schedule-table-responsive .schedule-cell-location {
@@ -1450,10 +1489,6 @@ a, .btn-link {
         overflow-wrap: break-word;
     }
 
-    .schedule-table-responsive .schedule-location-row {
-        flex-wrap: wrap;
-    }
-
     .schedule-table-responsive .schedule-cell-location,
     .schedule-table-responsive .schedule-location {
         overflow-wrap: normal;
@@ -1465,8 +1500,21 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-kid-badges {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-start;
         gap: var(--schedule-space-2);
         padding: var(--schedule-space-1) 0;
+    }
+
+    .schedule-table-responsive .schedule-kid-badges:has(.schedule-kid-badge:nth-child(3)) {
+        flex-wrap: wrap;
+    }
+
+    .schedule-table-responsive .schedule-kid-badge {
+        flex: 0 0 auto;
+        max-width: 100%;
     }
 
     /* 4px grid: transparent border shows row stripes; kid-color outer ring. */
@@ -1500,7 +1548,12 @@ a, .btn-link {
         align-items: center;
     }
 
-    .schedule-table-responsive .schedule-map-btn {
+    .schedule-table-responsive .schedule-location-actions {
+        flex-shrink: 0;
+    }
+
+    .schedule-table-responsive .schedule-map-btn,
+    .schedule-table-responsive .schedule-going-btn {
         min-height: 0;
         padding: var(--schedule-space-1) var(--schedule-space-2);
         font-size: 0.8125rem;
@@ -1561,6 +1614,155 @@ a, .btn-link {
 }
 
 .schedule-pwa-install-dismiss {
+    border: 2px solid #9CA3AF;
+    background: #FFFFFF;
+    color: #374151;
+}
+
+.schedule-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(17, 24, 39, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.schedule-modal-panel {
+    width: 100%;
+    max-width: 28rem;
+    max-height: min(90vh, 640px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+    background: #FFFFFF;
+    color: #1F2937;
+    padding: var(--schedule-space-3, 12px);
+    box-sizing: border-box;
+}
+
+.schedule-going-header h4 {
+    margin: 0 0 var(--schedule-space-2, 8px);
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.schedule-going-hint {
+    margin: 0 0 var(--schedule-space-2, 8px);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: #4B5563;
+}
+
+.schedule-going-preview {
+    margin: 0 0 var(--schedule-space-2, 8px);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    font-weight: 600;
+    color: #374151;
+}
+
+.schedule-going-status {
+    margin: 0 0 var(--schedule-space-2, 8px);
+    font-size: 0.875rem;
+    color: #047857;
+    font-weight: 600;
+}
+
+.schedule-going-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--schedule-space-2, 8px);
+    margin: var(--schedule-space-2, 8px) 0;
+    max-height: 14rem;
+    overflow-y: auto;
+}
+
+.schedule-going-option {
+    display: flex;
+    align-items: center;
+    gap: var(--schedule-space-2, 8px);
+    font-size: 1rem;
+    font-weight: 600;
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.schedule-going-option input {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+}
+
+.schedule-going-add label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-bottom: var(--schedule-space-1, 4px);
+}
+
+.schedule-going-add-row {
+    display: flex;
+    gap: var(--schedule-space-2, 8px);
+}
+
+.schedule-going-add-row input {
+    flex: 1 1 auto;
+    min-height: 44px;
+    padding: var(--schedule-space-2, 8px);
+    font-size: 1rem;
+    border: 2px solid #9CA3AF;
+    border-radius: var(--schedule-space-2, 8px);
+}
+
+.schedule-going-add-btn {
+    min-height: 44px;
+    padding: 0 var(--schedule-space-3, 12px);
+    font-weight: 700;
+    border-radius: var(--schedule-space-2, 8px);
+    border: 2px solid #374151;
+    background: #F3F4F6;
+    cursor: pointer;
+}
+
+.schedule-going-add-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.schedule-going-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--schedule-space-2, 8px);
+    margin-top: var(--schedule-space-3, 12px);
+}
+
+.schedule-going-share-btn,
+.schedule-going-cancel-btn {
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--schedule-space-2, 8px);
+    cursor: pointer;
+}
+
+.schedule-going-share-btn {
+    border: 2px solid #374151;
+    background: #4B5563;
+    color: #F9FAFB;
+}
+
+.schedule-going-share-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.schedule-going-cancel-btn {
     border: 2px solid #9CA3AF;
     background: #FFFFFF;
     color: #374151;

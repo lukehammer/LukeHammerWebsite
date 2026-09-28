@@ -29,6 +29,7 @@ namespace BlazorApp.Shared
                 ["Cael"] = "#FEF3C7",
                 ["Lily"] = "#CFFAFE",
                 ["Silas"] = "#E9D5FF",
+                ["Skylar"] = "#FFE4E6",
             };
 
         public static IReadOnlyDictionary<string, string> DefaultBorderByKid { get; } =
@@ -40,6 +41,7 @@ namespace BlazorApp.Shared
                 ["Cael"] = "#D97706",
                 ["Lily"] = "#0D9488",
                 ["Silas"] = "#6366F1",
+                ["Skylar"] = "#E11D48",
             };
 
         public static IReadOnlyDictionary<string, string> DefaultTextByKid { get; } =
@@ -51,6 +53,7 @@ namespace BlazorApp.Shared
                 ["Cael"] = "#78350F",
                 ["Lily"] = "#134E4A",
                 ["Silas"] = "#312E81",
+                ["Skylar"] = "#881337",
             };
 
         public static void ApplyLoaded(KidThemeColorsData? data)

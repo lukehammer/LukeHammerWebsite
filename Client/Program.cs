@@ -6,6 +6,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+builder.Services.AddScoped<ScheduleSpectatorsClient>();
+
 builder.Services.AddScoped(sp =>
 {
     var apiPrefix = builder.Configuration["API_Prefix"];

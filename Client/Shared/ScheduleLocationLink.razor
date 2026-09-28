@@ -2,18 +2,21 @@
 
 <div class="schedule-location-row">
     <span class="schedule-location">@_display</span>
-    @if (!string.IsNullOrWhiteSpace(_mapsUrl))
-    {
-        <a class="schedule-map-btn"
-           href="@_mapsUrl"
-           target="_blank"
-           rel="noopener noreferrer"
-           title="Open @_display on Google Maps (Vancouver, WA area)"
-           aria-label="@($"Map {_display} near Vancouver, WA")">
-            <span class="schedule-map-btn-icon" aria-hidden="true">🗺️</span>
-            <span>Map</span>
-        </a>
-    }
+    <div class="schedule-location-actions">
+        @if (!string.IsNullOrWhiteSpace(_mapsUrl))
+        {
+            <a class="schedule-map-btn"
+               href="@_mapsUrl"
+               target="_blank"
+               rel="noopener noreferrer"
+               title="Open @_display on Google Maps (Vancouver, WA area)"
+               aria-label="@($"Map {_display} near Vancouver, WA")">
+                <span class="schedule-map-btn-icon" aria-hidden="true">🗺️</span>
+                <span>Map</span>
+            </a>
+        }
+        <ScheduleShareAttendance ScheduleEvent="ScheduleEvent" />
+    </div>
 </div>
 
 @code {

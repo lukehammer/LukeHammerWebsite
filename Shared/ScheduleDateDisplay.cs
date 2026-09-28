@@ -47,5 +47,20 @@ namespace BlazorApp.Shared
             startTime.HasValue
                 ? DateTime.Today.Add(startTime.Value).ToString("h:mm tt", DisplayCulture)
                 : "unscheduled";
+
+        /// <summary>e.g. Saturday October 10th at 1:00 PM (for share messages).</summary>
+        public static string FormatShareWhen(DateTime date, TimeSpan? startTime)
+        {
+            var dayName = date.ToString("dddd", DisplayCulture);
+            var month = date.ToString("MMMM", DisplayCulture);
+            var dayOrdinal = FormatOrdinalDay(date.Day);
+            if (startTime.HasValue)
+            {
+                var time = FormatStartTime(startTime);
+                return $"{dayName} {month} {dayOrdinal} at {time}";
+            }
+
+            return $"{dayName} {month} {dayOrdinal}";
+        }
     }
 }

@@ -14,7 +14,8 @@ public class ScheduleKidsSpellingTests
         "Juniper",
         "Levi",
         "Lily",
-        "Silas"
+        "Silas",
+        "Skylar"
     };
 
     private static readonly string[] KnownMisspellings = { "Choen", "June" };

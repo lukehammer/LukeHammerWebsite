@@ -1,0 +1,306 @@
+@using BlazorApp.Shared
+@inject ScheduleSpectatorsClient SpectatorsClient
+@inject IJSRuntime JS
+
+@if (ScheduleEvent != null)
+{
+    <button type="button"
+            class="schedule-going-btn"
+            title="Share who is coming to this game"
+            aria-haspopup="dialog"
+            aria-expanded="@_dialogOpen"
+            @onclick="OpenDialogAsync">
+        <span class="schedule-going-btn-icon" aria-hidden="true">📣</span>
+        <span>Going</span>
+    </button>
+}
+
+@if (_dialogOpen && ScheduleEvent != null)
+{
+    <div class="schedule-modal-backdrop schedule-going-backdrop" @onclick="CloseDialog">
+        <div class="schedule-modal-panel schedule-going-panel"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="@_dialogTitleId"
+             @onclick:stopPropagation="true">
+            <div class="schedule-going-header">
+                <h4 id="@_dialogTitleId">Who is coming?</h4>
+                <p class="schedule-going-hint">
+                    When you share, your phone opens its usual share menu — pick Text Messages, WhatsApp, or any app. This website does not send anything for you.
+                </p>
+                <p class="schedule-going-preview">@_previewMessage</p>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_statusMessage))
+            {
+                <p class="schedule-going-status">@_statusMessage</p>
+            }
+
+            <div class="schedule-going-options">
+                <label class="schedule-going-option">
+                    <input type="checkbox"
+                           checked="@_includeMe"
+                           @onchange="OnIncludeMeChanged" />
+                    <span>Me (I)</span>
+                </label>
+                @foreach (var name in _spectatorNames)
+                {
+                    <label class="schedule-going-option">
+                        <input type="checkbox"
+                               checked="@IsSelected(name)"
+                               @onchange="e => OnNameToggled(name, e)" />
+                        <span>@name</span>
+                    </label>
+                }
+            </div>
+
+            <div class="schedule-going-add">
+                <label for="@_customNameId">Add someone</label>
+                <div class="schedule-going-add-row">
+                    <input id="@_customNameId"
+                           type="text"
+                           maxlength="@ScheduleSpectators.MaxNameLength"
+                           placeholder="Grandpa"
+                           @bind="_customName"
+                           @bind:event="oninput" />
+                    <button type="button"
+                            class="schedule-going-add-btn"
+                            disabled="@(!CanAddCustomName)"
+                            @onclick="AddCustomNameAsync">
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <div class="schedule-going-actions">
+                <button type="button"
+                        class="schedule-going-share-btn"
+                        disabled="@(!CanShare)"
+                        @onclick="ShareAsync">
+                    Share…
+                </button>
+                <button type="button"
+                        class="schedule-going-cancel-btn"
+                        @onclick="CloseDialog">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Event? ScheduleEvent { get; set; }
+
+    private readonly string _dialogTitleId = $"schedule-going-title-{Guid.NewGuid():N}";
+    private readonly string _customNameId = $"schedule-going-custom-{Guid.NewGuid():N}";
+
+    private bool _dialogOpen;
+    private bool _includeMe = true;
+    private readonly HashSet<string> _selectedNames = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<string> _spectatorNames = Array.Empty<string>();
+    private string _customName = string.Empty;
+    private string _previewMessage = string.Empty;
+    private string _statusMessage = string.Empty;
+    private bool _loading;
+    private bool _nativeShareAvailable;
+    private string _signedInScope = string.Empty;
+
+    private bool CanAddCustomName =>
+        ScheduleSpectators.TryNormalizeName(_customName, out _);
+
+    private bool CanShare => !_loading && BuildAttendeeLabels().Count > 0;
+
+    protected override void OnParametersSet() => UpdatePreview();
+
+    private async Task OpenDialogAsync()
+    {
+        _statusMessage = string.Empty;
+        _dialogOpen = true;
+        _loading = true;
+        StateHasChanged();
+
+        _spectatorNames = await SpectatorsClient.GetNamesAsync();
+        _nativeShareAvailable = await JS.InvokeAsync<bool>("scheduleAttendanceShare.canUseNativeShare");
+        await ApplyStoredSelectionAsync();
+        _loading = false;
+        _statusMessage = _nativeShareAvailable
+            ? string.Empty
+            : "Share menu not available here — Share will copy the message so you can paste into Text Messages or any app.";
+
+        UpdatePreview();
+    }
+
+    private void CloseDialog()
+    {
+        _ = PersistSelectionAsync();
+        _dialogOpen = false;
+        _statusMessage = string.Empty;
+    }
+
+    private bool IsSelected(string name) => _selectedNames.Contains(name);
+
+    private void OnIncludeMeChanged(ChangeEventArgs e)
+    {
+        _includeMe = e.Value is bool b && b;
+        UpdatePreview();
+        _ = PersistSelectionAsync();
+    }
+
+    private void OnNameToggled(string name, ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+        if (isChecked)
+        {
+            _selectedNames.Add(name);
+        }
+        else
+        {
+            _selectedNames.Remove(name);
+        }
+
+        UpdatePreview();
+        _ = PersistSelectionAsync();
+    }
+
+    private async Task AddCustomNameAsync()
+    {
+        if (!ScheduleSpectators.TryNormalizeName(_customName, out var normalized))
+        {
+            return;
+        }
+
+        _selectedNames.Add(normalized);
+        _customName = string.Empty;
+
+        if (!_spectatorNames.Any(n => string.Equals(n, normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            _spectatorNames = await SpectatorsClient.AppendNamesAsync(new[] { normalized });
+        }
+
+        UpdatePreview();
+        await PersistSelectionAsync();
+    }
+
+    private async Task ShareAsync()
+    {
+        if (ScheduleEvent == null)
+        {
+            return;
+        }
+
+        var labels = BuildAttendeeLabels();
+        if (labels.Count == 0)
+        {
+            return;
+        }
+
+        var message = ScheduleAttendanceShare.BuildMessage(ScheduleEvent, labels);
+        var namesToPersist = _selectedNames
+            .Where(n => !_spectatorNames.Any(s =>
+                string.Equals(s, n, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (namesToPersist.Count > 0)
+        {
+            _spectatorNames = await SpectatorsClient.AppendNamesAsync(namesToPersist);
+        }
+
+        var result = await JS.InvokeAsync<string>("scheduleAttendanceShare.shareText", message);
+        _statusMessage = result switch
+        {
+            "shared" => string.Empty,
+            "copied" => "Copied — open Messages (or any app) and paste.",
+            "cancelled" => string.Empty,
+            _ => "Could not share or copy. Select the message above and copy it yourself."
+        };
+
+        await PersistSelectionAsync();
+
+        if (result is "shared" or "copied")
+        {
+            _dialogOpen = false;
+        }
+
+        UpdatePreview();
+    }
+
+    private async Task ApplyStoredSelectionAsync()
+    {
+        _signedInScope = await JS.InvokeAsync<string>("scheduleAuth.getName") ?? string.Empty;
+        ScheduleGoingSelectionPrefs? stored = null;
+        try
+        {
+            stored = await JS.InvokeAsync<ScheduleGoingSelectionPrefs?>(
+                "scheduleGoingPrefs.load",
+                _signedInScope);
+        }
+        catch (JSException)
+        {
+            stored = null;
+        }
+
+        var applied = ScheduleGoingSelectionDefaults.Normalize(stored, _spectatorNames);
+        _includeMe = applied.IncludeMe;
+        _selectedNames.Clear();
+        foreach (var name in applied.SelectedNames)
+        {
+            _selectedNames.Add(name);
+        }
+    }
+
+    private async Task PersistSelectionAsync()
+    {
+        if (!_dialogOpen && _selectedNames.Count == 0 && !_includeMe)
+        {
+            return;
+        }
+
+        var prefs = new ScheduleGoingSelectionPrefs
+        {
+            IncludeMe = _includeMe,
+            SelectedNames = _selectedNames
+                .OrderBy(n => n, StringComparer.Ordinal)
+                .ToList()
+        };
+
+        try
+        {
+            await JS.InvokeVoidAsync("scheduleGoingPrefs.save", _signedInScope, prefs);
+        }
+        catch (JSException)
+        {
+            // localStorage unavailable
+        }
+    }
+
+    private List<string> BuildAttendeeLabels()
+    {
+        var labels = new List<string>();
+        if (_includeMe)
+        {
+            labels.Add("I");
+        }
+
+        foreach (var name in _selectedNames.OrderBy(n => n, StringComparer.Ordinal))
+        {
+            labels.Add(name);
+        }
+
+        return labels;
+    }
+
+    private void UpdatePreview()
+    {
+        if (ScheduleEvent == null)
+        {
+            _previewMessage = string.Empty;
+            return;
+        }
+
+        var labels = BuildAttendeeLabels();
+        _previewMessage = labels.Count == 0
+            ? "Select who is coming to preview the message."
+            : ScheduleAttendanceShare.BuildMessage(ScheduleEvent, labels);
+    }
+}

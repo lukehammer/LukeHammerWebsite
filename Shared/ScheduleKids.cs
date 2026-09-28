@@ -13,7 +13,8 @@ namespace BlazorApp.Shared
             "Juniper",
             "Levi",
             "Lily",
-            "Silas"
+            "Silas",
+            "Skylar"
         };
 
         public static bool IsAllowed(string kid)
