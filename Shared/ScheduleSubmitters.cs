@@ -37,7 +37,7 @@ namespace BlazorApp.Shared
         /// <summary>
         /// Trims input, rejects multi-word names, and returns the canonical allowlist spelling when valid.
         /// </summary>
-        public static string NormalizeFirstName(string submittedBy)
+        public static string? NormalizeFirstName(string submittedBy)
         {
             return TryResolveSubmitterForWrite(submittedBy, out var normalized, out _)
                 ? normalized

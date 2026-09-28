@@ -1,0 +1,41 @@
+@using BlazorApp.Shared
+
+@if (_kids.Count > 0)
+{
+    <div class="schedule-kid-badges" aria-label="Kids">
+        @foreach (var kid in _kids)
+        {
+            <span class="schedule-kid-badge" style="@ScheduleKidThemes.GetKidBadgeInlineStyle(kid)">@kid</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Event? ScheduleEvent { get; set; }
+
+    [Parameter] public IEnumerable<string>? Kids { get; set; }
+
+    /// <summary>Shown when the event has no kids (e.g. sport-specific schedule pages).</summary>
+    [Parameter] public string? DefaultKidWhenEmpty { get; set; }
+
+    private IReadOnlyList<string> _kids = Array.Empty<string>();
+
+    protected override void OnParametersSet()
+    {
+        if (Kids != null)
+        {
+            _kids = ScheduleKids.NormalizeKidsList(Kids);
+        }
+        else
+        {
+            _kids = ScheduleKidThemes.ThemeKidsInOrder(ScheduleEvent);
+        }
+
+        if (_kids.Count == 0
+            && !string.IsNullOrWhiteSpace(DefaultKidWhenEmpty)
+            && ScheduleKids.IsAllowed(DefaultKidWhenEmpty))
+        {
+            _kids = new[] { DefaultKidWhenEmpty.Trim() };
+        }
+    }
+}

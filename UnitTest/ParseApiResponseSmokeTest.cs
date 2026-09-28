@@ -17,7 +17,7 @@ public class ParseApiResponseSmokeTest
                   "StartTime": "14:30:00",
                   "Name": "vs La Center Blue",
                   "Location": "Woodland HS",
-                  "Sport": 1,
+                  "Sport": "Football",
                   "Kids": null
                 }
               ]
@@ -61,7 +61,7 @@ public class ParseApiResponseSmokeTest
               "Events": [
                 {
                   "Date": "2099-01-01T00:00:00",
-                  "Sport": 0,
+                  "Sport": "Baseball",
                   "Kids": null
                 }
               ]
@@ -69,7 +69,7 @@ public class ParseApiResponseSmokeTest
             """;
 
         var data = SportsSchedules.ParseJson(json);
-        var act = () => SportsSchedules.GetUpcoming(data.Events, Sport.Baseball, "Levi");
+        var act = () => SportsSchedules.GetUpcoming(data.Events, SportNames.Baseball, "Levi");
         act.Should().NotThrow();
     }
 }

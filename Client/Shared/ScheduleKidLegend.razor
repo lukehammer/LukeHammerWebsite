@@ -1,0 +1,9 @@
+@using BlazorApp.Shared
+
+<div class="schedule-kid-legend" aria-label="Kid row colors">
+    <span class="schedule-kid-legend-label">Kids:</span>
+    @foreach (var kid in ScheduleKids.AllowedKids)
+    {
+        <span class="schedule-kid-badge" style="@ScheduleKidThemes.GetKidBadgeInlineStyle(kid)">@kid</span>
+    }
+</div>

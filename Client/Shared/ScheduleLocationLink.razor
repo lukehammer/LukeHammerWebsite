@@ -1,0 +1,29 @@
+@using BlazorApp.Shared
+
+<div class="schedule-location-row">
+    <span class="schedule-location">@_display</span>
+    @if (!string.IsNullOrWhiteSpace(_mapsUrl))
+    {
+        <a class="schedule-map-btn"
+           href="@_mapsUrl"
+           target="_blank"
+           rel="noopener noreferrer"
+           title="Open @_display on Google Maps (Vancouver, WA area)"
+           aria-label="@($"Map {_display} near Vancouver, WA")">
+            Map
+        </a>
+    }
+</div>
+
+@code {
+    [Parameter] public Event? ScheduleEvent { get; set; }
+
+    private string _display = "—";
+    private string? _mapsUrl;
+
+    protected override void OnParametersSet()
+    {
+        _display = ScheduleEvent?.LocationDisplay ?? "—";
+        _mapsUrl = ScheduleEvent?.GoogleMapsSearchUrl;
+    }
+}

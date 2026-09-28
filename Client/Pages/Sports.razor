@@ -4,7 +4,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 <PageTitle>Sports — All Upcoming Games</PageTitle>
-<div class="schedule-theme-combined">
+<div class="schedule-theme-combined schedule-page">
 <h1>Sports</h1>
 <p>All upcoming baseball, football, and soccer games in one list.</p>
 <style>
@@ -20,15 +20,20 @@
     .schedule-theme-combined h3 {
       color: #374151;
     }
-    .schedule-theme-combined .schedule-table-scroll {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+    .schedule-theme-combined.schedule-page {
+      max-width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
-    .schedule-theme-combined .schedule-table-scroll .schedule-table {
-      border-collapse: collapse;
+    .schedule-theme-combined .schedule-table-wrap .schedule-table {
       margin: 0 auto;
       border: 2px solid #6B7280;
+    }
+    .schedule-theme-combined .schedule-table-responsive .schedule-meta {
+      color: #374151;
+    }
+    .schedule-theme-combined .schedule-table-responsive .schedule-cell-matchup .schedule-matchup {
+      margin-top: 0;
     }
     .schedule-theme-combined table {
       border-collapse: collapse;
@@ -105,6 +110,51 @@
       padding: 8px 10px;
       box-sizing: border-box;
     }
+    .schedule-theme-combined .event-date-picker {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .schedule-theme-combined .event-date-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .schedule-theme-combined .event-date-quick-btn {
+      min-height: 36px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .event-date-quick-btn:hover:not(:disabled) {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+    }
+    .schedule-theme-combined .event-date-quick-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .schedule-theme-combined .event-date-hint {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #64748b;
+      font-family: ui-monospace, "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .schedule-theme-combined .event-time-select {
+      font-size: 1rem;
+    }
+    .schedule-theme-combined .event-date-select {
+      font-family: ui-monospace, "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.9375rem;
+      letter-spacing: 0;
+    }
     .schedule-theme-combined .event-form-fields .event-form-span-full {
       grid-column: 1 / -1;
     }
@@ -125,6 +175,69 @@
       font-weight: normal;
       margin: 0;
     }
+    .schedule-theme-combined .event-form-datetime-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem 1rem;
+      align-items: start;
+    }
+    .schedule-theme-combined .event-form-datetime-row .event-form-field-date,
+    .schedule-theme-combined .event-form-datetime-row .event-form-field-time {
+      min-width: 0;
+    }
+    .schedule-theme-combined .event-sport-select,
+    .schedule-theme-combined .event-sport-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .event-sport-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .schedule-theme-combined .event-sport-custom .event-sport-input {
+      flex: 1 1 12rem;
+    }
+    .schedule-theme-combined .event-sport-back-btn {
+      min-height: 44px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .event-location-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.5rem;
+    }
+    .schedule-theme-combined .event-location-chip {
+      max-width: 100%;
+      text-align: left;
+      min-height: 36px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.25;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .event-location-chip[aria-pressed="true"] {
+      border-color: #4b5563;
+      background: #e5e7eb;
+    }
+    .schedule-theme-combined .event-location-chip:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
     .schedule-theme-combined .event-form-error {
       margin: 0 0 0.5rem;
     }
@@ -133,6 +246,16 @@
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+      align-items: center;
+    }
+    .schedule-theme-combined .event-form-saving {
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    @@media (max-width: 639px) {
+      .schedule-theme-combined .event-form-datetime-row {
+        grid-template-columns: 1fr;
+      }
     }
     @@media (min-width: 640px) {
       .schedule-theme-combined .event-form-fields {
@@ -234,8 +357,8 @@
       cursor: not-allowed;
     }
     .schedule-theme-combined .manage-events-table-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
+      overflow-x: hidden;
+      max-width: 100%;
     }
     .schedule-theme-combined .event-form-dialog {
       margin: 0.35rem 0;
@@ -314,7 +437,6 @@
     }
     .schedule-theme-combined .schedule-row-actions {
       vertical-align: middle;
-      white-space: nowrap;
     }
     .schedule-theme-combined .schedule-action-buttons {
       display: inline-flex;
@@ -416,7 +538,8 @@
       width: 100%;
       max-width: 640px;
       max-height: min(90vh, 720px);
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
       border-radius: 12px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
     }
@@ -602,10 +725,13 @@ else
                                Saving="@_saving"
                                ErrorMessage="@_adminError"
                                Sport="@_formSport"
-                               SportChanged="v => _formSport = v"
+                               SportChanged="OnFormSportChangedAsync"
+                               SportOptions="@FormSportOptions"
+                               LocationSuggestions="@FormLocationSuggestions"
+                               LocationAutocomplete="@FormLocationAutocomplete"
                                SelectedKids="@_formKids"
                                Date="@_formDate"
-                               DateChanged="v => _formDate = v"
+                               DateChanged="OnFormDateChangedAsync"
                                StartTimeString="@FormStartTimeString"
                                StartTimeChanged="OnStartTimeChanged"
                                Name="@_formName"
@@ -613,26 +739,31 @@ else
                                Location="@_formLocation"
                                LocationChanged="v => _formLocation = v"
                                OnKidToggled="OnKidToggledAsync"
-                               OnSubmit="AddEventAsync"
+                               OnFieldCommitted="AutoSaveFormAsync"
+                               ShowUndoAll="true"
+                               OnUndoAll="UndoAllFormChangesAsync"
                                OnCancel="CloseDialog" />
         </div>
     </div>
 }
+@if (!_loading && _upcoming.Count > 0)
+{
+    <ScheduleKidLegend />
+}
 @if (!_loading)
 {
-<div class="schedule-table-scroll">
-<table class="schedule-table">
+<div class="schedule-table-wrap">
+<table class="schedule-table schedule-table-responsive">
     <thead>
         <tr>
-            <th scope="col">Day of week</th>
-            <th scope="col">Date</th>
-            <th scope="col">Time</th>
-            <th scope="col">Sport</th>
-            <th scope="col">Matchup</th>
+            <th scope="col" class="schedule-cell-when">When</th>
+            <th scope="col" class="schedule-cell-matchup">Event</th>
+            <th scope="col" class="schedule-cell-kids">Kids</th>
+            <th scope="col" class="schedule-cell-location">Location</th>
             @if (_isLoggedIn)
             {
-                <th scope="col">Last updated</th>
-                <th scope="col" class="schedule-row-actions">Actions</th>
+                <th scope="col" class="schedule-cell-updated">Last updated</th>
+                <th scope="col" class="schedule-cell-actions schedule-row-actions">Actions</th>
             }
         </tr>
     </thead>
@@ -640,17 +771,29 @@ else
     @foreach (var game in _upcoming)
     {
         <tr id="@GetEventRowId(game)"
-            class="@GetScheduleRowClass(game)"
+            class="schedule-data-row @GetScheduleRowClass(game)"
             style="@ScheduleKidThemes.GetRowStyle(game)">
-            <td>@game.Date.DayOfWeek</td>
-            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
-            <td>@game.TimeDisplay</td>
-            <td>@game.SportLabel</td>
-            <td>@game.MatchupDisplay</td>
+            <td class="schedule-cell-when">
+                <div class="schedule-meta" aria-label="When">
+                    @foreach (var part in game.ScheduleMetaParts)
+                    {
+                        <span class="schedule-meta-part">@part</span>
+                    }
+                </div>
+            </td>
+            <td class="schedule-cell-matchup">
+                <div class="schedule-matchup">@game.MatchupTitle</div>
+            </td>
+            <td class="schedule-cell-kids">
+                <ScheduleKidBadges ScheduleEvent="game" />
+            </td>
+            <td class="schedule-cell-location">
+                <ScheduleLocationLink ScheduleEvent="game" />
+            </td>
             @if (_isLoggedIn)
             {
-                <td class="last-updated">@game.LastModifiedSummary</td>
-                <td class="schedule-row-actions">
+                <td class="schedule-cell-updated last-updated">@game.LastModifiedSummary</td>
+                <td class="schedule-cell-actions schedule-row-actions">
                     <div class="schedule-action-buttons">
                         <button type="button"
                                 class="btn-schedule-action btn-schedule-edit"
@@ -672,7 +815,7 @@ else
         @if (IsEditingGame(game))
         {
             <tr class="event-form-dialog-row">
-                <td colspan="7">
+                <td colspan="@ScheduleTableColumnCount">
                     <div class="event-form-dialog" @ref="_dialogAnchorRef">
                         <ScheduleEventForm @ref="_eventFormRef"
                                            IsEdit="true"
@@ -680,10 +823,13 @@ else
                                            Saving="@_saving"
                                            ErrorMessage="@_adminError"
                                            Sport="@_formSport"
-                                           SportChanged="v => _formSport = v"
+                                           SportChanged="OnFormSportChangedAsync"
+                                           SportOptions="@FormSportOptions"
+                                           LocationSuggestions="@FormLocationSuggestions"
+                               LocationAutocomplete="@FormLocationAutocomplete"
                                            SelectedKids="@_formKids"
                                            Date="@_formDate"
-                                           DateChanged="v => _formDate = v"
+                                           DateChanged="OnFormDateChangedAsync"
                                            StartTimeString="@FormStartTimeString"
                                            StartTimeChanged="OnStartTimeChanged"
                                            Name="@_formName"
@@ -691,7 +837,9 @@ else
                                            Location="@_formLocation"
                                            LocationChanged="v => _formLocation = v"
                                            OnKidToggled="OnKidToggledAsync"
-                                           OnSubmit="SaveEditAsync"
+                                           OnFieldCommitted="AutoSaveFormAsync"
+                                           ShowUndoAll="true"
+                                           OnUndoAll="UndoAllFormChangesAsync"
                                            OnCancel="CloseDialog" />
                     </div>
                 </td>
@@ -713,9 +861,10 @@ else
             {
                 <div class="kid-color-row">
                     <label class="kid-color-option">
-                        @kid
+                        <span class="schedule-kid-badge" style="@ScheduleKidThemes.GetKidBadgeInlineStyle(kid)">@kid</span>
                         <input type="color"
                                value="@GetThemeColor(kid)"
+                               aria-label="@($"{kid} row background color")"
                                @onchange="e => OnKidColorChanged(kid, e.Value?.ToString())" />
                     </label>
                     @if (_themeIssuesByKid.TryGetValue(kid, out var themeIssue))
@@ -766,14 +915,16 @@ else
     private string? _loginError;
     private bool _loggingIn;
     private string? _editingId;
+    private Event? _editSnapshot;
+    private string? _addDraftEventId;
     private bool _dialogOpen;
     private bool _isEditDialog;
     private bool _pendingDialogFocus;
     private ScheduleEventForm? _eventFormRef;
     private ElementReference _dialogAnchorRef;
-    private Sport _formSport = Sport.Football;
+    private string _formSport = SportNames.Football;
     private readonly HashSet<string> _formKids = new(StringComparer.Ordinal);
-    private DateTime _formDate = DateTime.Today;
+    private DateTime _formDate = WashingtonScheduleTime.PacificToday;
     private string? _formStartTime;
     private string _formName = string.Empty;
     private string _formLocation = string.Empty;
@@ -887,6 +1038,8 @@ else
     }
     private static string GetEventRowId(Event evt) => $"event-row-{evt.Id}";
 
+    private int ScheduleTableColumnCount => _isLoggedIn ? 6 : 4;
+
     private bool IsEditingGame(Event game) =>
         _isLoggedIn && _dialogOpen && _isEditDialog && _editingId == game.Id;
 
@@ -906,6 +1059,8 @@ else
 
         _isEditDialog = false;
         _editingId = null;
+        _editSnapshot = null;
+        _addDraftEventId = null;
         ClearForm();
         _adminError = null;
         _dialogOpen = true;
@@ -932,6 +1087,8 @@ else
         }
         _editingId = evt.Id;
         _isEditDialog = true;
+        _editSnapshot = SnapshotEvent(evt);
+        _addDraftEventId = null;
         _formSport = evt.Sport;
         _formKids.Clear();
         foreach (var kid in evt.Kids ?? new List<string>())
@@ -955,6 +1112,8 @@ else
         _dialogOpen = false;
         _isEditDialog = false;
         _editingId = null;
+        _editSnapshot = null;
+        _addDraftEventId = null;
         _eventFormRef = null;
         ClearForm();
     }
@@ -1115,14 +1274,31 @@ else
     }
     private string FormStartTimeString =>
         _formStartTime ?? (_formDate.TimeOfDay == TimeSpan.Zero ? string.Empty : _formDate.ToString("HH:mm"));
-    private void OnStartTimeChanged(ChangeEventArgs e)
+    private IReadOnlyList<string> FormSportOptions =>
+        _allEvents
+            .Select(e => e.Sport)
+            .Concat(SportNames.Defaults)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private IReadOnlyList<string> FormLocationSuggestions =>
+        ScheduleLocationSuggestions.Build(_allEvents);
+
+    private IReadOnlyList<string> FormLocationAutocomplete =>
+        ScheduleLocationSuggestions.BuildAutocompleteList(_allEvents);
+
+    private Task OnFormSportChangedAsync(string sport)
     {
-        _formStartTime = e.Value?.ToString();
+        _formSport = sport;
+        return Task.CompletedTask;
     }
+
     private Event BuildFormEvent() =>
         new Event
         {
-            Sport = _formSport,
+            Sport = SportNames.NormalizeOrDefault(_formSport),
             Kids = ScheduleKids.NormalizeKidsList(_formKids),
             Date = _formDate.Date,
             Name = _formName,
@@ -1135,87 +1311,288 @@ else
         {
             return null;
         }
-        return TimeSpan.TryParse(value, out var ts) ? ts : null;
+
+        return ScheduleEventPickers.TryParseTimeFromStorage(value, out var ts) ? ts : null;
     }
-    private async Task AddEventAsync()
+    private async Task AutoSaveFormAsync()
     {
-        _adminError = null;
-        _adminMessage = null;
+        if (!_dialogOpen || _saving)
+        {
+            return;
+        }
+
+        if (!FormIsValidForSave())
+        {
+            if (FormHasRequiredFields()
+                && WashingtonScheduleTime.IsEventInPast(_formDate, ParseStartTime(_formStartTime)))
+            {
+                _adminError = WashingtonScheduleTime.PastEventMessage;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            return;
+        }
+
         if (!TryGetValidatedSubmitter(out var submittedBy))
         {
             return;
         }
-        if (string.IsNullOrWhiteSpace(_formName))
-        {
-            _adminError = "Matchup name is required.";
-            return;
-        }
-        if (_formKids.Count == 0)
-        {
-            _adminError = "Select at least one kid.";
-            return;
-        }
+
+        ClearPastEventErrorIfResolved();
         _saving = true;
         try
         {
-            var (_, error) = await SportsScheduleApiClient.AddEventAsync(Http, submittedBy, BuildFormEvent());
-            if (error != null)
+            if (_isEditDialog)
             {
-                _adminError = SanitizeAdminError(error);
+                if (_editingId == null)
+                {
+                    return;
+                }
+
+                var (_, error) = await SportsScheduleApiClient.UpdateEventAsync(
+                    Http,
+                    _editingId,
+                    submittedBy,
+                    BuildFormEvent());
+                if (error != null)
+                {
+                    _adminError = SanitizeAdminError(error);
+                    return;
+                }
+
+                await ReloadAsync();
                 return;
             }
-            _adminMessage = "Event added.";
-            CloseDialog();
-            await ReloadAsync();
-        }
-        finally
-        {
-            _saving = false;
-        }
-    }
-    private async Task SaveEditAsync()
-    {
-        if (_editingId == null)
-        {
-            return;
-        }
-        _adminError = null;
-        _adminMessage = null;
-        if (!TryGetValidatedSubmitter(out var submittedBy))
-        {
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(_formName))
-        {
-            _adminError = "Matchup name is required.";
-            return;
-        }
-        if (_formKids.Count == 0)
-        {
-            _adminError = "Select at least one kid.";
-            return;
-        }
-        _saving = true;
-        try
-        {
-            var (_, error) = await SportsScheduleApiClient.UpdateEventAsync(
+
+            var payload = BuildFormEvent();
+            if (_addDraftEventId == null)
+            {
+                var existingIds = _allEvents.Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var (data, error) = await SportsScheduleApiClient.AddEventAsync(Http, submittedBy, payload);
+                if (error != null)
+                {
+                    _adminError = SanitizeAdminError(error);
+                    return;
+                }
+
+                _addDraftEventId = FindNewEventId(data, payload, existingIds);
+                _adminMessage = "Event added.";
+                await ReloadAsync();
+                return;
+            }
+
+            var (_, updateError) = await SportsScheduleApiClient.UpdateEventAsync(
                 Http,
-                _editingId,
+                _addDraftEventId,
                 submittedBy,
-                BuildFormEvent());
-            if (error != null)
+                payload);
+            if (updateError != null)
             {
-                _adminError = SanitizeAdminError(error);
+                _adminError = SanitizeAdminError(updateError);
                 return;
             }
-            _adminMessage = "Event updated.";
-            CloseDialog();
+
             await ReloadAsync();
         }
         finally
         {
             _saving = false;
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task UndoAllFormChangesAsync()
+    {
+        if (_saving || !_dialogOpen)
+        {
+            return;
+        }
+
+        if (!TryGetValidatedSubmitter(out var submittedBy))
+        {
+            return;
+        }
+
+        _adminError = null;
+        _adminMessage = null;
+        _saving = true;
+        try
+        {
+            if (_isEditDialog && _editSnapshot != null && _editingId != null)
+            {
+                ApplyEventToForm(_editSnapshot);
+                var (_, error) = await SportsScheduleApiClient.UpdateEventAsync(
+                    Http,
+                    _editingId,
+                    submittedBy,
+                    BuildFormEvent());
+                if (error != null)
+                {
+                    _adminError = SanitizeAdminError(error);
+                    return;
+                }
+
+                _adminMessage = "Changes undone.";
+                await ReloadAsync();
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_addDraftEventId))
+            {
+                var (_, deleteError) = await SportsScheduleApiClient.DeleteEventAsync(
+                    Http,
+                    _addDraftEventId,
+                    submittedBy);
+                if (deleteError != null)
+                {
+                    _adminError = SanitizeAdminError(deleteError);
+                    return;
+                }
+
+                _addDraftEventId = null;
+            }
+
+            ClearForm();
+            _adminMessage = "Changes undone.";
+            await ReloadAsync();
+        }
+        finally
+        {
+            _saving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private bool FormIsValidForSave() =>
+        !string.IsNullOrWhiteSpace(_formName)
+        && _formKids.Count > 0
+        && SportNames.TryNormalize(_formSport, out _)
+        && !WashingtonScheduleTime.IsEventInPast(_formDate, ParseStartTime(_formStartTime));
+
+    private bool FormHasRequiredFields() =>
+        !string.IsNullOrWhiteSpace(_formName)
+        && _formKids.Count > 0
+        && SportNames.TryNormalize(_formSport, out _);
+
+    private Task OnFormDateChangedAsync(DateTime date)
+    {
+        if (date.Date < WashingtonScheduleTime.PacificToday)
+        {
+            _adminError = WashingtonScheduleTime.PastEventMessage;
+            return InvokeAsync(StateHasChanged);
+        }
+
+        _formDate = date.Date;
+        if (WashingtonScheduleTime.IsEventInPast(_formDate, ParseStartTime(_formStartTime)))
+        {
+            _adminError = WashingtonScheduleTime.PastEventMessage;
+        }
+        else
+        {
+            ClearPastEventErrorIfResolved();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OnStartTimeChanged(ChangeEventArgs e)
+    {
+        _formStartTime = e.Value?.ToString();
+        ClearPastEventErrorIfResolved();
+        if (FormHasRequiredFields()
+            && WashingtonScheduleTime.IsEventInPast(_formDate, ParseStartTime(_formStartTime)))
+        {
+            _adminError = WashingtonScheduleTime.PastEventMessage;
+        }
+    }
+
+    private void ClearPastEventErrorIfResolved()
+    {
+        if (_adminError == WashingtonScheduleTime.PastEventMessage
+            && !WashingtonScheduleTime.IsEventInPast(_formDate, ParseStartTime(_formStartTime)))
+        {
+            _adminError = null;
+        }
+    }
+
+    private static Event SnapshotEvent(Event source) =>
+        new Event
+        {
+            Id = source.Id,
+            Sport = source.Sport,
+            Date = source.Date,
+            StartTime = source.StartTime,
+            Name = source.Name ?? string.Empty,
+            Location = source.Location ?? string.Empty,
+            Kids = source.Kids?.ToList() ?? new List<string>()
+        };
+
+    private void ApplyEventToForm(Event source)
+    {
+        _formSport = source.Sport;
+        _formKids.Clear();
+        foreach (var kid in source.Kids ?? new List<string>())
+        {
+            _formKids.Add(kid);
+        }
+
+        _formDate = ScheduleEventPickers.NormalizeSelectableDate(source.Date);
+        _formName = source.Name ?? string.Empty;
+        _formLocation = source.Location ?? string.Empty;
+        if (source.StartTime.HasValue
+            && !WashingtonScheduleTime.IsEventInPast(_formDate, source.StartTime))
+        {
+            _formStartTime = ScheduleEventPickers.FormatTimeForStorage(source.StartTime.Value);
+        }
+        else
+        {
+            _formStartTime = null;
+        }
+    }
+
+    private static string? FindNewEventId(
+        SportsSchedulesData? data,
+        Event template,
+        HashSet<string> existingIds)
+    {
+        if (data?.Events == null)
+        {
+            return null;
+        }
+
+        foreach (var candidate in data.Events)
+        {
+            if (existingIds.Contains(candidate.Id))
+            {
+                continue;
+            }
+
+            if (EventsMatchForDraft(candidate, template))
+            {
+                return candidate.Id;
+            }
+        }
+
+        return data.Events
+            .Select(e => e.Id)
+            .FirstOrDefault(id => !existingIds.Contains(id));
+    }
+
+    private static bool EventsMatchForDraft(Event left, Event right)
+    {
+        if (left.Sport != right.Sport || left.Date.Date != right.Date.Date)
+        {
+            return false;
+        }
+
+        if (!string.Equals(left.Name?.Trim(), right.Name?.Trim(), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var leftKids = ScheduleKids.NormalizeKidsList(left.Kids);
+        var rightKids = ScheduleKids.NormalizeKidsList(right.Kids);
+        return leftKids.SequenceEqual(rightKids, StringComparer.Ordinal);
     }
     private async Task DeleteEventAsync(Event evt)
     {
@@ -1258,9 +1635,9 @@ else
     }
     private void ClearForm()
     {
-        _formSport = Sport.Football;
+        _formSport = SportNames.Football;
         _formKids.Clear();
-        _formDate = DateTime.Today;
+        _formDate = WashingtonScheduleTime.PacificToday;
         _formStartTime = null;
         _formName = string.Empty;
         _formLocation = string.Empty;

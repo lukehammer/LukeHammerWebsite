@@ -139,7 +139,7 @@ public class SportsScheduleCrudTests
                 new Event
                 {
                     Id = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-                    Sport = Sport.Baseball,
+                    Sport = SportNames.Baseball,
                     Kids = new List<string> { "Levi" },
                     Date = DateTime.Today,
                     Name = "Game",
@@ -189,7 +189,7 @@ public class SportsScheduleCrudTests
     }
 
     [Fact]
-    public void Write_request_requires_sports_json_options_for_string_sport()
+    public void Write_request_deserializes_string_sport()
     {
         const string json = """
             {
@@ -206,11 +206,22 @@ public class SportsScheduleCrudTests
             """;
 
         var webOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        Action withWeb = () => JsonSerializer.Deserialize<SportsEventWriteRequest>(json, webOptions);
-        withWeb.Should().Throw<JsonException>();
+        var fromWeb = JsonSerializer.Deserialize<SportsEventWriteRequest>(json, webOptions);
+        fromWeb!.Event.Sport.Should().Be(SportNames.Football);
 
         var request = JsonSerializer.Deserialize<SportsEventWriteRequest>(json, SportsSchedules.JsonOptions);
-        request!.Event.Sport.Should().Be(Sport.Football);
+        request!.Event.Sport.Should().Be(SportNames.Football);
+    }
+
+    [Fact]
+    public void SportNames_accepts_custom_sport_labels()
+    {
+        SportNames.TryNormalize("basketball", out var known).Should().BeTrue();
+        known.Should().Be(SportNames.Basketball);
+        SportNames.TryNormalize("Volleyball", out var custom).Should().BeTrue();
+        custom.Should().Be("Volleyball");
+        SportNames.TryNormalize("football", out var football).Should().BeTrue();
+        football.Should().Be(SportNames.Football);
     }
 
     [Fact]

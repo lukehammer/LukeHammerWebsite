@@ -100,7 +100,19 @@ namespace BlazorApp.Shared
 
         public static string GetBackgroundHex(string kid) => KidThemeColors.GetBackgroundHex(kid);
 
+        /// <summary>Inline style for a kid name pill using assigned row background, text, and border colors.</summary>
+        public static string GetKidBadgeInlineStyle(string kid)
+        {
+            if (string.IsNullOrWhiteSpace(kid) || !ScheduleKids.IsAllowed(kid))
+            {
+                return string.Empty;
+            }
 
+            var bg = GetBackgroundHex(kid);
+            var text = KidThemeColors.GetTextHex(kid);
+            var border = KidThemeColors.GetBorderHex(kid);
+            return $"background-color:{bg};color:{text};border:1px solid {border};";
+        }
 
         /// <summary>
 
@@ -117,15 +129,13 @@ namespace BlazorApp.Shared
             var kids = ThemeKidsInOrder(evt);
 
             if (kids.Count == 0)
-
             {
+                if (defaultKidWhenNoKids is not { } fallback || string.IsNullOrWhiteSpace(fallback))
+                {
+                    return string.Empty;
+                }
 
-                return string.IsNullOrWhiteSpace(defaultKidWhenNoKids)
-
-                    ? string.Empty
-
-                    : RowThemeClass(defaultKidWhenNoKids);
-
+                return RowThemeClass(fallback.Trim());
             }
 
 
@@ -134,7 +144,7 @@ namespace BlazorApp.Shared
 
             {
 
-                return RowThemeClass(kids[0]);
+                return RowThemeClass(kids[0]!);
 
             }
 
