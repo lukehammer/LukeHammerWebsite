@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hammer Sports">
+  <rect width="512" height="512" rx="96" fill="#4B5563"/>
+  <g fill="#F9FAFB">
+    <rect x="118" y="132" width="200" height="52" rx="12"/>
+    <rect x="198" y="168" width="48" height="188" rx="12"/>
+    <rect x="268" y="148" width="72" height="36" rx="8" transform="rotate(32 304 166)"/>
+  </g>
+  <circle cx="392" cy="392" r="56" fill="#D8F3DC"/>
+  <path d="M368 392h48M392 368v48" stroke="#1B4332" stroke-width="10" stroke-linecap="round"/>
+</svg>

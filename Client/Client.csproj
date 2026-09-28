@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BlazorApp.Client</RootNamespace>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -23,6 +24,10 @@
 	<!-- CSS is served from wwwroot at runtime; rebuilding WASM on every app.css save breaks dev. -->
 	<ItemGroup>
 		<Watch Remove="wwwroot\css\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
 	</ItemGroup>
 
 	<!-- Workaround SDK 9.0.300 static web assets cache duplicates (dotnet/sdk#49180). -->

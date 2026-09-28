@@ -77,16 +77,13 @@ namespace BlazorApp.Shared
                 return true;
             }
 
-            var match = AllowedFirstNames.FirstOrDefault(allowed =>
-                string.Equals(trimmed, allowed, StringComparison.OrdinalIgnoreCase));
-
-            if (match == null)
+            if (!TryMatchAllowedFirstName(trimmed, out var loginMatch))
             {
                 errorMessage = FormatNameNotAllowedMessage(trimmed);
                 return false;
             }
 
-            normalized = match;
+            normalized = loginMatch;
             errorMessage = string.Empty;
             return true;
         }
@@ -125,16 +122,13 @@ namespace BlazorApp.Shared
                 return true;
             }
 
-            var match = AllowedFirstNames.FirstOrDefault(allowed =>
-                string.Equals(trimmed, allowed, StringComparison.OrdinalIgnoreCase));
-
-            if (match == null)
+            if (!TryMatchAllowedFirstName(trimmed, out var writeMatch))
             {
                 errorMessage = InvalidSessionMessage;
                 return false;
             }
 
-            normalized = match;
+            normalized = writeMatch;
             errorMessage = string.Empty;
             return true;
         }
@@ -144,6 +138,25 @@ namespace BlazorApp.Shared
             out string normalized,
             out string errorMessage) =>
             TryValidateLoginFirstName(submittedBy, out normalized, out errorMessage);
+
+        private static bool TryMatchAllowedFirstName(string trimmed, out string match)
+        {
+            match = AllowedFirstNames.FirstOrDefault(allowed =>
+                string.Equals(trimmed, allowed, StringComparison.OrdinalIgnoreCase))
+                ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(match))
+            {
+                return true;
+            }
+
+            var canonicalKid = ScheduleKids.CanonicalizeKidName(trimmed);
+            match = AllowedFirstNames.FirstOrDefault(allowed =>
+                string.Equals(canonicalKid, allowed, StringComparison.Ordinal))
+                ?? string.Empty;
+
+            return !string.IsNullOrEmpty(match);
+        }
 
         private static bool ContainsWhitespace(string value) =>
             value.Any(char.IsWhiteSpace);

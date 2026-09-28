@@ -25,7 +25,7 @@ namespace BlazorApp.Shared
             {
                 ["Levi"] = "#DBEAFE",
                 ["Cohen"] = "#D8F3DC",
-                ["June"] = "#FBCFE8",
+                ["Juniper"] = "#FBCFE8",
                 ["Cael"] = "#FEF3C7",
                 ["Lily"] = "#CFFAFE",
                 ["Silas"] = "#E9D5FF",
@@ -36,7 +36,7 @@ namespace BlazorApp.Shared
             {
                 ["Levi"] = "#94A3B8",
                 ["Cohen"] = "#52796F",
-                ["June"] = "#C4A8BD",
+                ["Juniper"] = "#C4A8BD",
                 ["Cael"] = "#D97706",
                 ["Lily"] = "#0D9488",
                 ["Silas"] = "#6366F1",
@@ -47,7 +47,7 @@ namespace BlazorApp.Shared
             {
                 ["Levi"] = "#1E3A8A",
                 ["Cohen"] = "#1B4332",
-                ["June"] = "#3D2A35",
+                ["Juniper"] = "#3D2A35",
                 ["Cael"] = "#78350F",
                 ["Lily"] = "#134E4A",
                 ["Silas"] = "#312E81",
@@ -248,18 +248,30 @@ namespace BlazorApp.Shared
 
         private static Dictionary<string, string>? RemapLegacyKidThemeKeys(Dictionary<string, string>? incoming)
         {
-            if (incoming == null || !incoming.TryGetValue("Choen", out var legacyHex))
+            if (incoming == null)
             {
-                return incoming;
+                return null;
             }
 
             var copy = new Dictionary<string, string>(incoming, StringComparer.OrdinalIgnoreCase);
-            if (!copy.ContainsKey("Cohen") && !string.IsNullOrWhiteSpace(legacyHex))
+
+            if (copy.TryGetValue("Choen", out var choenHex)
+                && !copy.ContainsKey("Cohen")
+                && !string.IsNullOrWhiteSpace(choenHex))
             {
-                copy["Cohen"] = legacyHex.Trim();
+                copy["Cohen"] = choenHex.Trim();
             }
 
             copy.Remove("Choen");
+
+            if (copy.TryGetValue("June", out var juneHex)
+                && !copy.ContainsKey("Juniper")
+                && !string.IsNullOrWhiteSpace(juneHex))
+            {
+                copy["Juniper"] = juneHex.Trim();
+            }
+
+            copy.Remove("June");
             return copy;
         }
     }

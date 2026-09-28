@@ -17,7 +17,7 @@ public class SportsScheduleCrudTests
     [Theory]
     [InlineData("Luke Hammer")]
     [InlineData("LUKE HAMMER")]
-    [InlineData("June")]
+    [InlineData("Juniper")]
     [InlineData("Cohen")]
     [InlineData("")]
     [InlineData("   ")]
@@ -27,7 +27,7 @@ public class SportsScheduleCrudTests
     }
 
     [Theory]
-    [InlineData("JUNE", "June")]
+    [InlineData("JUNE", "Juniper")]
     [InlineData("Alaina", "Alaina")]
     [InlineData("1123", "Luke")]
     public void Schedule_submitters_normalizes_allowed_first_names(string input, string expected)
@@ -58,7 +58,7 @@ public class SportsScheduleCrudTests
     [InlineData("1123", "Luke")]
     [InlineData("Luke", "Luke")]
     [InlineData("luke", "Luke")]
-    [InlineData("June", "June")]
+    [InlineData("Juniper", "Juniper")]
     public void Write_resolver_accepts_signed_in_submitters_without_fake_message(string input, string expected)
     {
         ScheduleSubmitters.TryResolveSubmitterForWrite(input, out var normalized, out var error)
@@ -102,7 +102,7 @@ public class SportsScheduleCrudTests
     public void Notification_policy_skips_luke_only()
     {
         ScheduleChangeNotificationPolicy.ShouldNotify("Luke").Should().BeFalse();
-        ScheduleChangeNotificationPolicy.ShouldNotify("June").Should().BeTrue();
+        ScheduleChangeNotificationPolicy.ShouldNotify("Juniper").Should().BeTrue();
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class SportsScheduleCrudTests
               "events": [
                 {
                   "sport": "Soccer",
-                  "kids": ["June"],
+                  "kids": ["Juniper"],
                   "date": "2026-10-01",
                   "name": "vs Test",
                   "location": "Field"
@@ -158,12 +158,40 @@ public class SportsScheduleCrudTests
         var evt = new Event { Name = "Game", Location = "Field" };
         var before = WashingtonScheduleTime.Now;
 
-        evt.ApplyLastModified("June");
+        evt.ApplyLastModified("Juniper");
 
-        evt.LastModifiedBy.Should().Be("June");
+        evt.LastModifiedBy.Should().Be("Juniper");
         evt.LastModifiedAt.Should().NotBeNull();
         evt.LastModifiedAt!.Value.Should().BeOnOrAfter(before);
         evt.LastModifiedAt!.Value.Offset.Should().Be(WashingtonScheduleTime.Now.Offset);
+    }
+
+    [Fact]
+    public void ToJson_upgrades_legacy_kid_names_in_stored_events()
+    {
+        const string json = """
+            {
+              "events": [
+                {
+                  "sport": "Soccer",
+                  "kids": ["June", "Choen"],
+                  "date": "2026-10-01",
+                  "name": "vs Test",
+                  "location": "Field",
+                  "lastModifiedBy": "June"
+                }
+              ]
+            }
+            """;
+
+        var data = SportsSchedules.ParseJson(json);
+        data.Events[0].Kids.Should().Equal("Cohen", "Juniper");
+        data.Events[0].LastModifiedBy.Should().Be("Juniper");
+
+        var roundTrip = SportsSchedules.ParseJson(SportsSchedules.ToJson(data));
+        roundTrip.Events[0].Kids.Should().Equal("Cohen", "Juniper");
+        roundTrip.Events[0].LastModifiedBy.Should().Be("Juniper");
+        SportsSchedules.ToJson(data).Should().NotContain("June").And.NotContain("Choen");
     }
 
     [Fact]
@@ -185,7 +213,7 @@ public class SportsScheduleCrudTests
 
         var data = SportsSchedules.ParseJson(json);
         data.Events.Should().ContainSingle();
-        data.Events[0].Kids.Should().Equal("June");
+        data.Events[0].Kids.Should().Equal("Juniper");
     }
 
     [Fact]
@@ -233,7 +261,7 @@ public class SportsScheduleCrudTests
                 {
                   "id": "11111111-2222-3333-4444-555555555555",
                   "sport": "Soccer",
-                  "kids": ["June"],
+                  "kids": ["Juniper"],
                   "date": "2026-10-01",
                   "name": "vs Test",
                   "location": "Field",

@@ -10,7 +10,7 @@ namespace BlazorApp.Shared
         {
             "Cael",
             "Cohen",
-            "June",
+            "Juniper",
             "Levi",
             "Lily",
             "Silas"
@@ -28,6 +28,24 @@ namespace BlazorApp.Shared
                 string.Equals(canonical, allowed, StringComparison.Ordinal));
         }
 
+        /// <summary>Maps legacy kid names and submitter spellings to canonical allowlist names when stored in JSON.</summary>
+        public static string NormalizeStoredPersonName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = name.Trim();
+            if (ScheduleSubmitters.NormalizeFirstName(trimmed) is { } submitter)
+            {
+                return submitter;
+            }
+
+            var canonicalKid = CanonicalizeKidName(trimmed);
+            return IsAllowed(canonicalKid) ? canonicalKid : trimmed;
+        }
+
         /// <summary>Maps legacy misspellings to the canonical kid name.</summary>
         public static string CanonicalizeKidName(string kid)
         {
@@ -35,6 +53,11 @@ namespace BlazorApp.Shared
             if (string.Equals(trimmed, "Choen", StringComparison.Ordinal))
             {
                 return "Cohen";
+            }
+
+            if (string.Equals(trimmed, "June", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Juniper";
             }
 
             return trimmed;

@@ -11,13 +11,13 @@ public class ScheduleKidsSpellingTests
     {
         "Cael",
         "Cohen",
-        "June",
+        "Juniper",
         "Levi",
         "Lily",
         "Silas"
     };
 
-    private static readonly string[] KnownMisspellings = { "Choen" };
+    private static readonly string[] KnownMisspellings = { "Choen", "June" };
 
     [Fact]
     public void AllowedKids_matches_expected_canonical_spellings()
@@ -44,6 +44,8 @@ public class ScheduleKidsSpellingTests
 
         yield return new object[] { "Choen", "Cohen" };
         yield return new object[] { " Choen ", "Cohen" };
+        yield return new object[] { "June", "Juniper" };
+        yield return new object[] { " JUNE ", "Juniper" };
     }
 
     [Fact]

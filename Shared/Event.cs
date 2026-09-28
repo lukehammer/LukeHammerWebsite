@@ -116,15 +116,8 @@ namespace BlazorApp.Shared
             : $"{MatchupTitle} at {LocationDisplay}";
 
         [JsonIgnore]
-        public string ScheduleMetaLine
-        {
-            get
-            {
-                var day = Date.ToString("ddd", System.Globalization.CultureInfo.CurrentCulture);
-                var datePart = Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-                return $"{day} · {datePart} · {TimeDisplay}";
-            }
-        }
+        public string ScheduleMetaLine =>
+            ScheduleDateDisplay.FormatScheduleWhen(Date, StartTime);
 
         [JsonIgnore]
         public string ScheduleMetaLineWithSport
@@ -150,10 +143,7 @@ namespace BlazorApp.Shared
             (line ?? string.Empty).Split(new[] { " · " }, StringSplitOptions.None);
 
         [JsonIgnore]
-        public string TimeDisplay =>
-            StartTime.HasValue
-                ? DateTime.Today.Add(StartTime.Value).ToString("h:mm tt")
-                : "unscheduled";
+        public string TimeDisplay => ScheduleDateDisplay.FormatStartTime(StartTime);
 
         public static Event CreateBaseBallGame(string dateTime, string name)
         {

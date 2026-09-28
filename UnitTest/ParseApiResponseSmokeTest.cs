@@ -40,7 +40,7 @@ public class ParseApiResponseSmokeTest
               "Events": [
                 {
                   "sport": "Soccer",
-                  "kid": "June",
+                  "kid": "Juniper",
                   "date": "2026-10-01",
                   "name": "vs Test",
                   "location": "Field"
@@ -50,7 +50,7 @@ public class ParseApiResponseSmokeTest
             """;
 
         var data = SportsSchedules.ParseJson(json);
-        data.Events[0].Kids.Should().Equal("June");
+        data.Events[0].Kids.Should().Equal("Juniper");
     }
 
     [Fact]

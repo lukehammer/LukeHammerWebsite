@@ -28,7 +28,7 @@ namespace BlazorApp.Shared
 
         // Cohen — football green (bg #D8F3DC, border #52796F, text #1B4332)
 
-        // June — soccer plum/pink (bg #FCE7F3, border #C4A8BD, text #3D2A35)
+        // Juniper — soccer plum/pink (bg #FCE7F3, border #C4A8BD, text #3D2A35)
 
         // Cael — amber (bg #FEF3C7, border #D97706, text #78350F)
 

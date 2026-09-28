@@ -4,8 +4,15 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B1020" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Sports" />
     <title>Luke Hammmer</title>
     <base href="/" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="icons/hammer-sports.png" />
+    <link rel="apple-touch-icon" href="icons/hammer-sports.png" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
     <link href="css/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
@@ -22,6 +29,7 @@
     </div>
     <script src="/js/sports-admin.js"></script>
     <script src="/js/schedule-auth.js"></script>
+    <script src="/js/install-pwa.js"></script>
     <script src="/_framework/blazor.webassembly.js" autostart="false"></script>
     <script>
         (function () {
@@ -53,6 +61,10 @@
 
             startBlazor();
         })();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
     </script>
 </body>
 

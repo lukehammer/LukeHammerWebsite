@@ -131,6 +131,8 @@ namespace BlazorApp.Shared
                     evt.LastModifiedAt = WashingtonScheduleTime.NormalizeStoredTime(evt.LastModifiedAt.Value);
                 }
 
+                evt.LastModifiedBy = ScheduleKids.NormalizeStoredPersonName(evt.LastModifiedBy);
+
                 evt.Sport = MigrateLegacySportValue(evt.Sport);
                 evt.Sport = SportNames.NormalizeOrDefault(evt.Sport);
             }

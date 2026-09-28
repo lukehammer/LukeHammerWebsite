@@ -89,7 +89,7 @@ namespace BlazorApp.Shared
         /// </summary>
         private static void AppendMobileUnifiedRowBackgroundCss(StringBuilder sb, string scopeSelector)
         {
-            sb.Append("@media (max-width: 640px) { ");
+            sb.Append("@media (max-width: 991.98px) { ");
 
             sb.Append(scopeSelector)
                 .Append(" .schedule-table-responsive tbody tr.schedule-data-row td.schedule-cell-when,")

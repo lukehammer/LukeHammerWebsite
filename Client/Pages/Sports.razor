@@ -5,9 +5,14 @@
 @inject IJSRuntime JS
 @implements IDisposable
 <PageTitle>Sports — All Upcoming Games</PageTitle>
+<HeadContent>
+    <link rel="icon" type="image/png" href="icons/hammer-sports.png" />
+    <link rel="apple-touch-icon" href="icons/hammer-sports.png" />
+</HeadContent>
 <div class="schedule-theme-combined schedule-page">
 <h1>Sports</h1>
 <p>All the sports happening with the cousins, simplified for you.</p>
+<SchedulePwaInstallPrompt />
 <style>
     .schedule-theme-combined h1 {
       color: #374151;
@@ -629,7 +634,7 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
-    @@media (max-width: 640px) {
+    @@media (max-width: 991.98px) {
       .schedule-theme-combined .schedule-table-wrap .schedule-table,
       .schedule-theme-combined table.schedule-table {
         border: none;

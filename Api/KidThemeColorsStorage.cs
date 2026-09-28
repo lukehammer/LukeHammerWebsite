@@ -18,7 +18,14 @@ namespace ApiIsolated
         public static async Task<KidThemeColorsData> LoadAsync()
         {
             var json = await LoadRawAsync();
-            return KidThemeColors.ParseJson(json);
+            var data = KidThemeColors.ParseJson(json);
+            var upgraded = KidThemeColors.ToJson(data);
+            if (!string.Equals(json.Trim(), upgraded.Trim(), StringComparison.Ordinal))
+            {
+                await PersistAsync(upgraded);
+            }
+
+            return data;
         }
 
         public static async Task<KidThemeColorsData> SaveAsync(KidThemeColorsData colors)

@@ -110,7 +110,7 @@ public class SportsSchedulesMergeTests
             Date = date,
             Name = name,
             Location = "Field",
-            Kids = new List<string> { "June" },
+            Kids = new List<string> { "Juniper" },
             LastModifiedAt = lastModifiedAt,
             LastModifiedBy = lastModifiedBy
         };

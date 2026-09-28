@@ -1,0 +1,31 @@
+<div id="schedule-pwa-install-banner" class="schedule-pwa-install-banner" hidden>
+    <p class="schedule-pwa-install-text">
+        Add this schedule to your home screen for one-tap access.
+    </p>
+    <div class="schedule-pwa-install-actions">
+        <button type="button" class="schedule-pwa-install-btn" @onclick="InstallAsync">
+            Add shortcut
+        </button>
+        <button type="button" class="schedule-pwa-install-dismiss" @onclick="Dismiss">
+            Not now
+        </button>
+    </div>
+</div>
+
+@code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("schedulePwaTryShowBanner");
+        }
+    }
+
+    private async Task InstallAsync() =>
+        await JS.InvokeVoidAsync("schedulePwaInstallClick");
+
+    private async Task Dismiss() =>
+        await JS.InvokeVoidAsync("schedulePwaInstallDismiss");
+}

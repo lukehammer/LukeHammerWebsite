@@ -7,7 +7,7 @@
 
 
 
-<div class="schedule-theme-kid-june">
+<div class="schedule-theme-kid-juniper">
 
 <h1>PSCN G20 Bain (W)</h1>
 
@@ -17,13 +17,13 @@
 
 <style>
 
-    .schedule-theme-kid-june h1 {
+    .schedule-theme-kid-juniper h1 {
 
       color: #5C2D4A;
 
     }
 
-    .schedule-theme-kid-june > p {
+    .schedule-theme-kid-juniper > p {
 
       color: #6B3A5C;
 
@@ -35,13 +35,13 @@
 
     }
 
-    .schedule-theme-kid-june h3 {
+    .schedule-theme-kid-juniper h3 {
 
       color: #5C2D4A;
 
     }
 
-    .schedule-theme-kid-june table {
+    .schedule-theme-kid-juniper table {
 
       border-collapse: collapse;
 
@@ -51,9 +51,9 @@
 
     }
 
-    .schedule-theme-kid-june th,
+    .schedule-theme-kid-juniper th,
 
-    .schedule-theme-kid-june td {
+    .schedule-theme-kid-juniper td {
 
       border: 1px solid #C4A8BD;
 
@@ -65,7 +65,7 @@
 
     }
 
-    .schedule-theme-kid-june th {
+    .schedule-theme-kid-juniper th {
 
       background-color: #6B3A5C;
 
@@ -73,18 +73,18 @@
 
     }
 
-    .schedule-theme-kid-june footer {
+    .schedule-theme-kid-juniper footer {
 
       color: #6B5B73;
 
     }
 
-    .schedule-theme-kid-june .schedule-error {
+    .schedule-theme-kid-juniper .schedule-error {
       color: #B91C1C;
     }
 
   </style>
-<style>@((MarkupString)KidThemeColorsLoader.SportPageCss(".schedule-theme-kid-june", "June"))</style>
+<style>@((MarkupString)KidThemeColorsLoader.SportPageCss(".schedule-theme-kid-juniper", "Juniper"))</style>
 
 @if (_loadRetry.IsRetryWaiting)
 {
@@ -132,7 +132,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage) && !_l
     @foreach (var game in _upcoming)
     {
 
-        <tr class="schedule-data-row @ScheduleKidThemes.GetRowClass(game, "June")" style="@ScheduleKidThemes.GetRowStyle(game)">
+        <tr class="schedule-data-row @ScheduleKidThemes.GetRowClass(game, "Juniper")" style="@ScheduleKidThemes.GetRowStyle(game)">
 
             <td class="schedule-cell-when">
                 <div class="schedule-meta" aria-label="When">
@@ -148,7 +148,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage) && !_l
             </td>
 
             <td class="schedule-cell-kids">
-                <ScheduleKidBadges ScheduleEvent="game" DefaultKidWhenEmpty="June" />
+                <ScheduleKidBadges ScheduleEvent="game" DefaultKidWhenEmpty="Juniper" />
             </td>
 
             <td class="schedule-cell-location">

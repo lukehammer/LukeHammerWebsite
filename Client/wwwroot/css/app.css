@@ -971,7 +971,7 @@ a, .btn-link {
 
 /* Schedule API retry countdown (Sports + kid schedule pages) */
 .schedule-main-column {
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -1091,7 +1091,8 @@ a, .btn-link {
 .schedule-table-wrap {
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
 }
 
@@ -1117,7 +1118,7 @@ a, .btn-link {
 .schedule-table-responsive th,
 .schedule-table-responsive td {
     word-wrap: break-word;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
     vertical-align: top;
     box-sizing: border-box;
 }
@@ -1226,7 +1227,8 @@ a, .btn-link {
     gap: 0.35rem;
 }
 
-@media (max-width: 640px) {
+/* Card layout when main column is too narrow for a 4–6 column table (sidebar + mid-width windows). */
+@media (max-width: 991.98px) {
     .schedule-table-wrap .schedule-table.schedule-table-responsive,
     .schedule-theme-combined .schedule-table-wrap .schedule-table,
     .schedule-theme-combined table.schedule-table {
@@ -1407,25 +1409,36 @@ a, .btn-link {
     }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 992px) {
     .schedule-table.schedule-table-responsive {
-        width: max-content;
+        width: 100%;
         max-width: 100%;
-        table-layout: auto;
+        table-layout: fixed;
     }
 
-    .schedule-table-responsive .schedule-cell-when,
-    .schedule-table-responsive .schedule-cell-matchup,
-    .schedule-table-responsive .schedule-cell-kids,
-    .schedule-table-responsive .schedule-cell-location,
-    .schedule-table-responsive .schedule-cell-updated,
+    .schedule-table-responsive .schedule-cell-when {
+        width: 12rem;
+    }
+
+    .schedule-table-responsive .schedule-cell-kids {
+        width: 7.5rem;
+    }
+
+    .schedule-table-responsive .schedule-cell-location {
+        width: 28%;
+        min-width: 11rem;
+    }
+
+    .schedule-table-responsive .schedule-cell-updated {
+        width: 9rem;
+    }
+
     .schedule-table-responsive .schedule-cell-actions {
-        width: auto;
+        width: 8.5rem;
     }
 
-    .schedule-table-responsive .schedule-cell-when,
     .schedule-table-responsive .schedule-cell-matchup {
-        white-space: nowrap;
+        white-space: normal;
     }
 
     .schedule-table-responsive .schedule-meta-part {
@@ -1433,15 +1446,18 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-matchup {
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: break-word;
     }
 
     .schedule-table-responsive .schedule-location-row {
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
     }
 
-    .schedule-table-responsive .schedule-cell-location {
-        max-width: 28rem;
+    .schedule-table-responsive .schedule-cell-location,
+    .schedule-table-responsive .schedule-location {
+        overflow-wrap: normal;
+        word-break: normal;
     }
 
     .schedule-table-responsive .schedule-cell-kids {
@@ -1503,5 +1519,50 @@ a, .btn-link {
         background-clip: padding-box;
         -webkit-background-clip: padding-box;
     }
+}
+
+.schedule-pwa-install-banner {
+    margin: var(--schedule-space-2, 8px) 0 var(--schedule-space-3, 12px);
+    padding: var(--schedule-space-3, 12px);
+    border: var(--schedule-space-1, 4px) solid #4B5563;
+    border-radius: var(--schedule-space-3, 12px);
+    background: #F3F4F6;
+    color: #1F2937;
+    max-width: 28rem;
+}
+
+.schedule-pwa-install-text {
+    margin: 0 0 var(--schedule-space-2, 8px);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.schedule-pwa-install-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--schedule-space-2, 8px);
+}
+
+.schedule-pwa-install-btn,
+.schedule-pwa-install-dismiss {
+    min-height: 48px;
+    padding: var(--schedule-space-2, 8px) var(--schedule-space-3, 12px);
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--schedule-space-2, 8px);
+    cursor: pointer;
+}
+
+.schedule-pwa-install-btn {
+    border: 2px solid #374151;
+    background: #4B5563;
+    color: #F9FAFB;
+}
+
+.schedule-pwa-install-dismiss {
+    border: 2px solid #9CA3AF;
+    background: #FFFFFF;
+    color: #374151;
 }
 

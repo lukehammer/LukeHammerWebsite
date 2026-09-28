@@ -111,22 +111,21 @@ namespace ApiIsolated
                     var legacyDownload = await legacyBlob.DownloadContentAsync();
                     var legacyJson = legacyDownload.Value.Content.ToString();
                     await blob.UploadAsync(BinaryData.FromString(legacyJson), overwrite: true);
-                    return new StoredSportsSchedules
-                    {
-                        Data = Deserialize(legacyJson),
-                        BlobSaveVersion = (await blob.DownloadContentAsync()).Value.Details.ETag.ToString()
-                    };
+                    var legacyDownload = await blob.DownloadContentAsync();
+                    return await NormalizeStoredJsonAndMaybePersistBlobAsync(
+                        blob,
+                        legacyDownload.Value.Content.ToString(),
+                        legacyDownload.Value.Details.ETag.ToString());
                 }
 
                 return await SeedAndPersistToBlobAsync(blob);
             }
 
             var download = await blob.DownloadContentAsync();
-            return new StoredSportsSchedules
-            {
-                Data = Deserialize(download.Value.Content.ToString()),
-                BlobSaveVersion = download.Value.Details.ETag.ToString()
-            };
+            return await NormalizeStoredJsonAndMaybePersistBlobAsync(
+                blob,
+                download.Value.Content.ToString(),
+                download.Value.Details.ETag.ToString());
         }
 
         /// <summary>
@@ -190,7 +189,8 @@ namespace ApiIsolated
 
             var json = await File.ReadAllTextAsync(SeedFilePath);
             var data = Deserialize(json);
-            await blob.UploadAsync(BinaryData.FromString(json), overwrite: true);
+            var normalizedJson = SportsSchedules.ToJson(data);
+            await blob.UploadAsync(BinaryData.FromString(normalizedJson), overwrite: true);
 
             var connectionString = GetStorageConnectionString();
             if (!string.IsNullOrWhiteSpace(connectionString))
@@ -298,7 +298,8 @@ namespace ApiIsolated
 
             var json = await File.ReadAllTextAsync(SeedFilePath);
             var data = Deserialize(json);
-            await File.WriteAllTextAsync(LocalFilePath, json);
+            var normalizedJson = SportsSchedules.ToJson(data);
+            await File.WriteAllTextAsync(LocalFilePath, normalizedJson);
             await File.WriteAllTextAsync(LocalSeedHashPath, ComputeSha256Hex(json));
             return new StoredSportsSchedules { Data = data };
         }
@@ -356,6 +357,27 @@ namespace ApiIsolated
 
         private static SportsSchedulesData Deserialize(string json) =>
             SportsSchedules.ParseJson(json);
+
+        private static async Task<StoredSportsSchedules> NormalizeStoredJsonAndMaybePersistBlobAsync(
+            BlobClient blob,
+            string rawJson,
+            string blobVersion)
+        {
+            var data = Deserialize(rawJson);
+            var normalizedJson = SportsSchedules.ToJson(data);
+            if (!string.Equals(rawJson, normalizedJson, StringComparison.Ordinal))
+            {
+                await blob.UploadAsync(BinaryData.FromString(normalizedJson), overwrite: true);
+                var download = await blob.DownloadContentAsync();
+                blobVersion = download.Value.Details.ETag.ToString();
+            }
+
+            return new StoredSportsSchedules
+            {
+                Data = data,
+                BlobSaveVersion = blobVersion
+            };
+        }
 
         private static async Task UpgradeLocalFileIfNeededAsync(string rawJson, SportsSchedulesData data)
         {
