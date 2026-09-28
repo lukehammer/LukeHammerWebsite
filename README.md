@@ -68,7 +68,11 @@ The **Sports** page (`/Sports`) lists upcoming games and includes a **Manage sch
 | PUT | `/api/sports/schedules/events/{id}` | Update event |
 | DELETE | `/api/sports/schedules/events/{id}?submittedBy=` | Delete event |
 
-Events use a stable `id` (GUID). Data is stored in blob/local temp (same as before) via `SportsSchedulesStorage`.
+Events use a stable `id` (GUID). Data is stored in shared blob storage (`camping-potluck/sports-schedules.json`, same account as potluck) via `SportsSchedulesStorage`. Family edits on the live site read/write that blob (optimistic concurrency, like potluck).
+
+**Deploy / merge:** When you ship a new `Api/data/sports-schedules.json`, the first API load in Azure compares a hash of the deployed seed file to `sports-schedules.seed-hash` in storage. If the seed changed, the blob is **merged** with the repo seed (not overwritten): events added on the site are kept; events only in the seed are added; when the same `id` exists in both, the copy with the newer `lastModifiedAt` wins (live edits beat an older seed row; seed updates rows that were never modified on the site). After sync, runtime edits stay in the blob until the next seed change is deployed.
+
+Local dev uses `%TEMP%\lukehammer-sports-schedules.json` with the same merge when the deployed seed hash changes.
 
 ### Blazor client dev (`Loading…` / `_framework` 404 / SRI errors)
 

@@ -118,19 +118,18 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
 
 
 
-<table class="schedule-table">
+<div class="schedule-table-wrap">
+<table class="schedule-table schedule-table-responsive">
 
     <thead>
 
         <tr>
 
-            <th scope="col">Day of week</th>
+            <th scope="col" class="schedule-cell-when">When</th>
 
-            <th scope="col">Date</th>
+            <th scope="col" class="schedule-cell-matchup">Event</th>
 
-            <th scope="col">Time</th>
-
-            <th scope="col">Matchup</th>
+            <th scope="col" class="schedule-cell-location">Location</th>
 
         </tr>
 
@@ -141,15 +140,24 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
     @foreach (var game in _upcoming)
     {
 
-        <tr class="@ScheduleKidThemes.GetRowClass(game, "June")" style="@ScheduleKidThemes.GetRowStyle(game)">
+        <tr class="schedule-data-row @ScheduleKidThemes.GetRowClass(game, "June")" style="@ScheduleKidThemes.GetRowStyle(game)">
 
-            <td>@game.Date.DayOfWeek</td>
+            <td class="schedule-cell-when">
+                <div class="schedule-meta" aria-label="When">
+                    @foreach (var part in game.ScheduleMetaParts)
+                    {
+                        <span class="schedule-meta-part">@part</span>
+                    }
+                </div>
+            </td>
 
-            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+            <td class="schedule-cell-matchup">
+                <div class="schedule-matchup">@game.MatchupTitle</div>
+            </td>
 
-            <td>@game.TimeDisplay</td>
-
-            <td>Bain @game.Name at @game.Location</td>
+            <td class="schedule-cell-location">
+                <div class="schedule-location">@game.LocationDisplay</div>
+            </td>
 
         </tr>
 
@@ -158,6 +166,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
     </tbody>
 
 </table>
+</div>
 
 
 
@@ -180,7 +189,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
     {
         try
         {
-            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(Http, Sport.Soccer);
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(Http, SportNames.Soccer);
         }
         finally
         {

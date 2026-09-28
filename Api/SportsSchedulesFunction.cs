@@ -32,7 +32,9 @@ namespace ApiIsolated
 
                 if (TryGetSportQuery(req.Url.Query, out var sport))
                 {
-                    events = events.Where(e => e.Sport == sport).ToList();
+                    events = events
+                        .Where(e => string.Equals(e.Sport, sport, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
                 }
 
                 return await OkEvents(req, new SportsSchedulesData { Events = events });
@@ -74,6 +76,19 @@ namespace ApiIsolated
                 return await BadRequest(req, kidError);
             }
 
+            if (!SportNames.TryNormalize(request.Event.Sport, out var sportAdd))
+            {
+                return await BadRequest(req, "event.sport is required.");
+            }
+
+            if (!WashingtonScheduleTime.TryValidateEventNotInPast(
+                    request.Event.Date,
+                    request.Event.StartTime,
+                    out var pastErrorAdd))
+            {
+                return await BadRequest(req, pastErrorAdd);
+            }
+
             try
             {
                 var submittedBy = submittedByAdd;
@@ -85,7 +100,7 @@ namespace ApiIsolated
                     created = new Event
                     {
                         Id = Guid.NewGuid().ToString("D"),
-                        Sport = request.Event.Sport,
+                        Sport = sportAdd,
                         Kids = kids,
                         Date = request.Event.Date.Date,
                         Name = request.Event.Name.Trim(),
@@ -138,10 +153,26 @@ namespace ApiIsolated
                 return await BadRequest(req, kidError);
             }
 
+            var sportUpdate = string.Empty;
+            if (request.Event != null && !SportNames.TryNormalize(request.Event.Sport, out sportUpdate))
+            {
+                return await BadRequest(req, "event.sport is required.");
+            }
+
+            if (request.Event != null
+                && !WashingtonScheduleTime.TryValidateEventNotInPast(
+                    request.Event.Date,
+                    request.Event.StartTime,
+                    out var pastErrorUpdate))
+            {
+                return await BadRequest(req, pastErrorUpdate);
+            }
+
             try
             {
                 var submittedBy = submittedByUpdate;
                 Event? updatedEvent = null;
+                var sportToApply = sportUpdate;
 
                 var data = await SportsSchedulesStorage.MutateAsync(current =>
                 {
@@ -155,7 +186,7 @@ namespace ApiIsolated
 
                     if (request.Event != null)
                     {
-                        existing.Sport = request.Event.Sport;
+                        existing.Sport = sportToApply;
                         existing.Kids = ScheduleKids.NormalizeKidsList(request.Event.Kids);
                         existing.Date = request.Event.Date.Date;
                         existing.Name = request.Event.Name?.Trim() ?? existing.Name;
@@ -306,12 +337,12 @@ namespace ApiIsolated
             }
         }
 
-        private static bool TryGetSportQuery(string? queryString, out Sport sport)
+        private static bool TryGetSportQuery(string? queryString, out string sport)
         {
-            sport = default;
+            sport = string.Empty;
             var value = TryGetQuery(queryString, "sport");
             return !string.IsNullOrWhiteSpace(value)
-                && Enum.TryParse<Sport>(value, ignoreCase: true, out sport);
+                && SportNames.TryNormalize(value, out sport);
         }
 
         private static string? TryGetQuery(string? queryString, string key)

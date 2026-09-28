@@ -31,7 +31,7 @@ namespace UnitTest
         {
 
             var contests = BlazorApp.Shared.SportsSchedules.GetUpcoming(
-                SeedEvents(), BlazorApp.Shared.Sport.Baseball, "Levi");
+                SeedEvents(), BlazorApp.Shared.SportNames.Baseball, "Levi");
 
 
 
@@ -39,7 +39,7 @@ namespace UnitTest
 
             contests.Should().OnlyContain(e => e.Date >= DateTime.Today);
 
-            contests.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.Sport.Baseball);
+            contests.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Baseball);
 
             contests.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "Levi");
 
@@ -55,13 +55,13 @@ namespace UnitTest
 
         {
 
-            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.Sport.Football);
+            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.SportNames.Football);
 
 
 
             games.Should().OnlyContain(e => e.Date >= DateTime.Today);
 
-            games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.Sport.Football);
+            games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Football);
 
             games.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "Choen");
 
@@ -79,13 +79,13 @@ namespace UnitTest
 
         {
 
-            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.Sport.Soccer);
+            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.SportNames.Soccer);
 
 
 
             games.Should().OnlyContain(e => e.Date >= DateTime.Today);
 
-            games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.Sport.Soccer);
+            games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Soccer);
 
             games.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "June");
 
@@ -145,13 +145,7 @@ namespace UnitTest
 
             all.Should().NotBeEmpty();
 
-            all.Should().OnlyContain(e =>
-
-                e.Sport == BlazorApp.Shared.Sport.Baseball
-
-                || e.Sport == BlazorApp.Shared.Sport.Football
-
-                || e.Sport == BlazorApp.Shared.Sport.Soccer);
+            all.Should().OnlyContain(e => !string.IsNullOrWhiteSpace(e.Sport));
 
             all.Should().OnlyContain(e => e.Kids.Count > 0);
 

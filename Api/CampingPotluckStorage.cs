@@ -12,7 +12,8 @@ namespace ApiIsolated
     internal sealed class StoredSurvey
     {
         public PotluckSurveyState State { get; init; } = new PotluckSurveyState();
-        public string? ETag { get; init; }
+        /// <summary>Azure blob version token from the last read; required for safe concurrent saves.</summary>
+        public string? BlobSaveVersion { get; init; }
     }
 
     internal static class CampingPotluckStorage
@@ -44,7 +45,7 @@ namespace ApiIsolated
                 var current = CampingPotluckMigration.Normalize(stored.State);
                 var updated = CampingPotluckMigration.Normalize(mutate(current));
 
-                if (await TrySaveAsync(updated, stored.ETag))
+                if (await TrySaveAsync(updated, stored.BlobSaveVersion))
                 {
                     return updated;
                 }
@@ -83,11 +84,11 @@ namespace ApiIsolated
             return new StoredSurvey
             {
                 State = state,
-                ETag = download.Value.Details.ETag.ToString()
+                BlobSaveVersion = download.Value.Details.ETag.ToString()
             };
         }
 
-        private static async Task<bool> TrySaveAsync(PotluckSurveyState state, string? etag)
+        private static async Task<bool> TrySaveAsync(PotluckSurveyState state, string? savedBlobVersion)
         {
             var json = JsonSerializer.Serialize(state, JsonOptions);
             var connectionString = GetStorageConnectionString();
@@ -103,9 +104,9 @@ namespace ApiIsolated
 
             var uploadOptions = new BlobUploadOptions
             {
-                Conditions = string.IsNullOrWhiteSpace(etag)
+                Conditions = string.IsNullOrWhiteSpace(savedBlobVersion)
                     ? null
-                    : new BlobRequestConditions { IfMatch = new ETag(etag) }
+                    : new BlobRequestConditions { IfMatch = new ETag(savedBlobVersion) }
             };
 
             try

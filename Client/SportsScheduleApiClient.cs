@@ -11,7 +11,7 @@ namespace BlazorApp.Client
 
         public static async Task<(IReadOnlyList<Event> Upcoming, string? Error)> LoadUpcomingAsync(
             HttpClient http,
-            Sport? sport = null,
+            string? sport = null,
             string? kid = null)
         {
             var (data, error) = await LoadAllAsync(http, sport);
@@ -25,13 +25,13 @@ namespace BlazorApp.Client
 
         public static async Task<(SportsSchedulesData Data, string? Error)> LoadAllAsync(
             HttpClient http,
-            Sport? sport = null)
+            string? sport = null)
         {
             try
             {
-                var url = sport.HasValue
-                    ? $"/api/sports/schedules?sport={sport.Value}"
-                    : "/api/sports/schedules";
+                var url = string.IsNullOrWhiteSpace(sport)
+                    ? "/api/sports/schedules"
+                    : $"/api/sports/schedules?sport={Uri.EscapeDataString(sport.Trim())}";
 
                 using var cts = new CancellationTokenSource(RequestTimeout);
                 var response = await http.GetAsync(url, cts.Token);

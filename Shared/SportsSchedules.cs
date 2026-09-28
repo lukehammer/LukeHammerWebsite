@@ -130,7 +130,27 @@ namespace BlazorApp.Shared
                 {
                     evt.LastModifiedAt = WashingtonScheduleTime.NormalizeStoredTime(evt.LastModifiedAt.Value);
                 }
+
+                evt.Sport = MigrateLegacySportValue(evt.Sport);
+                evt.Sport = SportNames.NormalizeOrDefault(evt.Sport);
             }
+        }
+
+        private static string MigrateLegacySportValue(string? sport)
+        {
+            if (string.IsNullOrWhiteSpace(sport))
+            {
+                return SportNames.Football;
+            }
+
+            if (int.TryParse(sport.Trim(), out var index)
+                && index >= 0
+                && index < SportNames.Defaults.Length)
+            {
+                return SportNames.Defaults[index];
+            }
+
+            return sport;
         }
 
         private static bool TryGetEventsArray(JsonNode root, out JsonArray eventsArray)
@@ -175,7 +195,76 @@ namespace BlazorApp.Shared
             return changed;
         }
 
-        public static IReadOnlyList<Event> GetUpcoming(IEnumerable<Event> events, Sport? sport = null, string? kid = null)
+        /// <summary>
+        /// Combines deployed repo seed with live storage on deploy/sync.
+        /// Events only on live are kept; only on seed are added; same id uses live when it has a newer lastModifiedAt.
+        /// </summary>
+        public static SportsSchedulesData MergeDeployedSeed(SportsSchedulesData seed, SportsSchedulesData live)
+        {
+            seed ??= new SportsSchedulesData();
+            live ??= new SportsSchedulesData();
+            NormalizeEvents(seed);
+            NormalizeEvents(live);
+
+            var merged = new Dictionary<string, Event>(StringComparer.OrdinalIgnoreCase);
+            foreach (var evt in live.Events ?? new List<Event>())
+            {
+                if (evt == null || string.IsNullOrWhiteSpace(evt.Id))
+                {
+                    continue;
+                }
+
+                merged[evt.Id] = evt;
+            }
+
+            foreach (var seedEvt in seed.Events ?? new List<Event>())
+            {
+                if (seedEvt == null || string.IsNullOrWhiteSpace(seedEvt.Id))
+                {
+                    continue;
+                }
+
+                if (merged.TryGetValue(seedEvt.Id, out var liveEvt))
+                {
+                    merged[seedEvt.Id] = ShouldKeepLiveEvent(liveEvt, seedEvt) ? liveEvt : seedEvt;
+                }
+                else
+                {
+                    merged[seedEvt.Id] = seedEvt;
+                }
+            }
+
+            var data = new SportsSchedulesData
+            {
+                Events = merged.Values
+                    .OrderBy(e => e.Date)
+                    .ThenBy(e => e.StartTime ?? TimeSpan.MaxValue)
+                    .ThenBy(e => e.Id, StringComparer.OrdinalIgnoreCase)
+                    .ToList()
+            };
+            NormalizeEvents(data);
+            EnsureEventIds(data);
+            return data;
+        }
+
+        private static bool ShouldKeepLiveEvent(Event live, Event seed)
+        {
+            if (!live.LastModifiedAt.HasValue)
+            {
+                return false;
+            }
+
+            if (!seed.LastModifiedAt.HasValue)
+            {
+                return true;
+            }
+
+            var liveAt = WashingtonScheduleTime.NormalizeStoredTime(live.LastModifiedAt.Value);
+            var seedAt = WashingtonScheduleTime.NormalizeStoredTime(seed.LastModifiedAt.Value);
+            return liveAt > seedAt;
+        }
+
+        public static IReadOnlyList<Event> GetUpcoming(IEnumerable<Event> events, string? sport = null, string? kid = null)
         {
             if (events == null)
             {
@@ -184,9 +273,10 @@ namespace BlazorApp.Shared
 
             IEnumerable<Event> query = events.Where(x => x != null && x.Date >= DateTime.Today);
 
-            if (sport.HasValue)
+            if (!string.IsNullOrWhiteSpace(sport))
             {
-                query = query.Where(x => x!.Sport == sport.Value);
+                query = query.Where(x =>
+                    string.Equals(x!.Sport, sport.Trim(), StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrWhiteSpace(kid))

@@ -1,7 +1,34 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
+/* Site-wide: vertical scroll OK; horizontal scroll never. */
+html {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-width: 100%;
+    margin: 0;
+}
+
+#app {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+img,
+video,
+svg,
+canvas,
+iframe {
+    max-width: 100%;
+    height: auto;
 }
 
 h1:focus {
@@ -20,6 +47,10 @@ a, .btn-link {
 
 .content {
     padding-top: 1.1rem;
+    max-width: 100%;
+    overflow-x: hidden;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .lucky-luke-links a .bi {
@@ -485,8 +516,20 @@ a, .btn-link {
 }
 
 .camping-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+.camping-table-wrap .camping-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+}
+
+.camping-table-wrap .camping-table th,
+.camping-table-wrap .camping-table td {
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
 }
 
 .camping-bring-card {
@@ -923,6 +966,162 @@ a, .btn-link {
         text-transform: uppercase;
         letter-spacing: 0.03em;
         color: #c9d4e3;
+    }
+}
+
+/* Shared responsive sports schedules (Sports + kid pages) */
+.schedule-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.schedule-table.schedule-table-responsive {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.schedule-table-responsive th,
+.schedule-table-responsive td {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+    box-sizing: border-box;
+}
+
+.schedule-table-responsive .schedule-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.45rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.schedule-table-responsive .schedule-meta-part {
+    white-space: nowrap;
+}
+
+.schedule-table-responsive .schedule-matchup {
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 0.15rem;
+}
+
+.schedule-table-responsive .schedule-location {
+    line-height: 1.4;
+    font-size: 0.9375rem;
+}
+
+.schedule-table-responsive .schedule-row-actions .schedule-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+@media (max-width: 640px) {
+    .schedule-table-responsive thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .schedule-table-responsive tbody tr.schedule-data-row {
+        display: block;
+        margin-bottom: 0.75rem;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .schedule-table-responsive tbody tr.schedule-data-row td {
+        display: block;
+        width: 100% !important;
+        border-left: none;
+        border-right: none;
+    }
+
+    .schedule-table-responsive tbody tr.schedule-data-row td::before {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        opacity: 0.75;
+        margin-bottom: 0.15rem;
+    }
+
+    .schedule-table-responsive .schedule-cell-when::before {
+        content: "When";
+    }
+
+    .schedule-table-responsive .schedule-cell-matchup::before {
+        content: "Event";
+    }
+
+    .schedule-table-responsive .schedule-cell-location::before {
+        content: "Location";
+    }
+
+    .schedule-table-responsive .schedule-cell-updated::before {
+        content: "Last updated";
+    }
+
+    .schedule-table-responsive .schedule-cell-actions::before {
+        content: "Actions";
+    }
+
+    .schedule-table-responsive .schedule-meta {
+        font-size: 0.875rem;
+    }
+
+    .schedule-table-responsive .schedule-row-actions .schedule-action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .schedule-table-responsive .schedule-row-actions .btn-schedule-action {
+        width: 100%;
+    }
+
+    .schedule-table-responsive tbody tr.event-form-dialog-row {
+        display: block;
+    }
+
+    .schedule-table-responsive tbody tr.event-form-dialog-row > td {
+        display: block;
+        width: 100% !important;
+    }
+}
+
+@media (min-width: 641px) {
+    .schedule-table-responsive .schedule-cell-when {
+        width: 34%;
+    }
+
+    .schedule-table-responsive .schedule-cell-matchup {
+        width: 26%;
+    }
+
+    .schedule-table-responsive .schedule-cell-location {
+        width: 18%;
+    }
+
+    .schedule-table-responsive .schedule-cell-updated {
+        width: 14%;
+    }
+
+    .schedule-table-responsive .schedule-cell-actions {
+        width: 8%;
     }
 }
 

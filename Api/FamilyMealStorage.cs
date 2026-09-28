@@ -13,7 +13,8 @@ namespace ApiIsolated
     internal sealed class StoredFamilyMealSchedule
     {
         public FamilyMealScheduleState State { get; init; } = new FamilyMealScheduleState();
-        public string? ETag { get; init; }
+        /// <summary>Azure blob version token from the last read; required for safe concurrent saves.</summary>
+        public string? BlobSaveVersion { get; init; }
     }
 
     internal static class FamilyMealStorage
@@ -39,7 +40,7 @@ namespace ApiIsolated
             if (HasStaleSchedule(stored.State))
             {
                 var fresh = FamilyMealScheduleState.CreateDefault();
-                await TrySaveAsync(fresh, stored.ETag);
+                await TrySaveAsync(fresh, stored.BlobSaveVersion);
                 return fresh;
             }
 
@@ -52,7 +53,7 @@ namespace ApiIsolated
             {
                 var stored = await LoadStoredAsync();
                 var fresh = FamilyMealScheduleState.CreateDefault();
-                if (await TrySaveAsync(fresh, stored.ETag))
+                if (await TrySaveAsync(fresh, stored.BlobSaveVersion))
                 {
                     return fresh;
                 }
@@ -88,7 +89,7 @@ namespace ApiIsolated
                 var current = stored.State.Normalize();
                 var updated = mutate(current).Normalize();
 
-                if (await TrySaveAsync(updated, stored.ETag))
+                if (await TrySaveAsync(updated, stored.BlobSaveVersion))
                 {
                     return updated;
                 }
@@ -130,11 +131,11 @@ namespace ApiIsolated
             return new StoredFamilyMealSchedule
             {
                 State = state,
-                ETag = download.Value.Details.ETag.ToString()
+                BlobSaveVersion = download.Value.Details.ETag.ToString()
             };
         }
 
-        private static async Task<bool> TrySaveAsync(FamilyMealScheduleState state, string? etag)
+        private static async Task<bool> TrySaveAsync(FamilyMealScheduleState state, string? savedBlobVersion)
         {
             var json = JsonSerializer.Serialize(state, JsonOptions);
             var connectionString = GetStorageConnectionString();
@@ -150,9 +151,9 @@ namespace ApiIsolated
 
             var uploadOptions = new BlobUploadOptions
             {
-                Conditions = string.IsNullOrWhiteSpace(etag)
+                Conditions = string.IsNullOrWhiteSpace(savedBlobVersion)
                     ? null
-                    : new BlobRequestConditions { IfMatch = new ETag(etag) }
+                    : new BlobRequestConditions { IfMatch = new ETag(savedBlobVersion) }
             };
 
             try

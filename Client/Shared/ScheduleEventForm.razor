@@ -25,17 +25,22 @@
                        autocomplete="given-name" />
             </div>
         }
-        <div class="event-form-field-sport">
+        <div class="event-form-field-sport event-form-span-full">
             <label for="@_sportId">Sport</label>
-            <select id="@_sportId"
-                    @ref="_sportFieldRef"
-                    @bind="_model.Sport"
-                    @bind:after="OnSportChangedAsync">
-                @foreach (var s in Enum.GetValues<Sport>())
+            <input id="@_sportId"
+                   @ref="_sportFieldRef"
+                   class="event-sport-input"
+                   list="@_sportListId"
+                   value="@_model.Sport"
+                   placeholder="Pick or type a sport"
+                   @oninput="OnSportInputAsync"
+                   @onchange="OnFieldCommittedAsync" />
+            <datalist id="@_sportListId">
+                @foreach (var s in SportOptions)
                 {
-                    <option value="@s">@s</option>
+                    <option value="@s"></option>
                 }
-            </select>
+            </datalist>
         </div>
         <div class="kid-checkboxes event-form-span-full">
             <span class="field-label">Kids</span>
@@ -44,54 +49,107 @@
                 <label class="kid-option">
                     <input type="checkbox"
                            checked="@SelectedKids.Contains(kid)"
-                           @onchange="e => OnKidToggled.InvokeAsync((kid, (bool)e.Value!))" />
+                           @onchange="e => OnKidToggledAsync(kid, (bool)e.Value!)" />
                     @kid
                 </label>
             }
         </div>
-        <div class="event-form-field-date">
-            <label>Date</label>
-            <InputDate TValue="DateTime"
-                       class="event-date-input"
-                       @bind-Value="_model.Date"
-                       @bind-Value:after="OnDateChangedAsync" />
+        <div class="event-form-field-date event-form-span-full">
+            <label for="@_dateId">Date</label>
+            <div class="event-date-picker">
+                <select id="@_dateId"
+                        class="event-date-input event-date-select"
+                        value="@_dateInputValue"
+                        @onchange="OnDateSelectAsync">
+                    @foreach (var month in _dateOptionGroups)
+                    {
+                        <optgroup label="@month.Label">
+                            @foreach (var day in month.Options)
+                            {
+                                <option value="@day.Value">@day.Label</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+                <div class="event-date-quick" role="group" aria-label="Quick date">
+                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(0)">Today</button>
+                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(1)">Tomorrow</button>
+                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="SetNextSaturdayAsync">Next Sat</button>
+                </div>
+                <p class="event-date-hint" aria-live="polite">@_dateHint</p>
+            </div>
         </div>
-        <div class="event-form-field-time">
+        <div class="event-form-field-time event-form-span-full">
             <label for="@_timeId">Start time (optional)</label>
-            <input id="@_timeId"
-                   type="time"
-                   class="event-time-input"
-                   value="@FormatStartTime(_model.StartTime)"
-                   @onchange="OnStartTimeInputAsync" />
+            <select id="@_timeId"
+                    class="event-time-select"
+                    value="@_selectedTimeValue"
+                    @onchange="OnStartTimeSelectAsync">
+                <option value="">No start time</option>
+                @foreach (var group in _timeSlotGroups)
+                {
+                    <optgroup label="@group.Label">
+                        @foreach (var slot in group.Slots)
+                        {
+                            <option value="@slot.Value">@slot.Label</option>
+                        }
+                    </optgroup>
+                }
+            </select>
         </div>
         <div class="event-form-field-name event-form-span-full">
             <label for="@_nameId">Name / matchup</label>
-            <input id="@_nameId" value="@_model.Name" @oninput="OnNameInput" />
+            <input id="@_nameId" value="@_model.Name" @oninput="OnNameInput" @onchange="OnFieldCommittedAsync" />
         </div>
         <div class="event-form-field-location event-form-span-full">
             <label for="@_locationId">Location</label>
-            <input id="@_locationId" value="@_model.Location" @oninput="OnLocationInput" />
+            <input id="@_locationId" value="@_model.Location" @oninput="OnLocationInput" @onchange="OnFieldCommittedAsync" />
         </div>
     </EditForm>
 
-    <div class="admin-actions event-form-actions">
-        @if (IsEdit)
-        {
-            <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Save changes</button>
-        }
-        else
-        {
-            <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Add event</button>
-        }
-        <button type="button" disabled="@Saving" @onclick="OnCancel">Cancel</button>
-    </div>
+    @if (UseAutoSave)
+    {
+        <div class="admin-actions event-form-actions">
+            @if (Saving)
+            {
+                <span class="event-form-saving" aria-live="polite">Saving…</span>
+            }
+            @if (ShowUndoAll)
+            {
+                <button type="button" class="btn-schedule-action" disabled="@Saving" @onclick="OnUndoAll">
+                    Undo all changes
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="admin-actions event-form-actions">
+            @if (IsEdit)
+            {
+                <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Save changes</button>
+            }
+            else
+            {
+                <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Add event</button>
+            }
+            <button type="button" disabled="@Saving" @onclick="OnCancel">Cancel</button>
+        </div>
+    }
 </div>
 
 @code {
     private readonly string _titleId = $"event-form-title-{Guid.NewGuid():N}";
     private readonly string _firstNameId = $"event-first-{Guid.NewGuid():N}";
     private readonly string _sportId = $"event-sport-{Guid.NewGuid():N}";
+    private readonly string _sportListId = $"event-sport-list-{Guid.NewGuid():N}";
+    private readonly string _dateId = $"event-date-{Guid.NewGuid():N}";
     private readonly string _timeId = $"event-time-{Guid.NewGuid():N}";
+    private string _dateInputValue = string.Empty;
+    private IReadOnlyList<ScheduleDateOptionGroup> _dateOptionGroups = Array.Empty<ScheduleDateOptionGroup>();
+    private string _dateHint = string.Empty;
+    private string _selectedTimeValue = string.Empty;
+    private IReadOnlyList<ScheduleTimeSlotGroup> _timeSlotGroups = Array.Empty<ScheduleTimeSlotGroup>();
     private readonly string _nameId = $"event-name-{Guid.NewGuid():N}";
     private readonly string _locationId = $"event-loc-{Guid.NewGuid():N}";
 
@@ -105,8 +163,9 @@
     [Parameter] public bool Saving { get; set; }
     [Parameter] public string SubmittedBy { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> SubmittedByChanged { get; set; }
-    [Parameter] public Sport Sport { get; set; }
-    [Parameter] public EventCallback<Sport> SportChanged { get; set; }
+    [Parameter] public IReadOnlyList<string> SportOptions { get; set; } = SportNames.Defaults;
+    [Parameter] public string Sport { get; set; } = SportNames.Football;
+    [Parameter] public EventCallback<string> SportChanged { get; set; }
     [Parameter] public HashSet<string> SelectedKids { get; set; } = new(StringComparer.Ordinal);
     [Parameter] public DateTime Date { get; set; }
     [Parameter] public EventCallback<DateTime> DateChanged { get; set; }
@@ -117,17 +176,24 @@
     [Parameter] public string Location { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> LocationChanged { get; set; }
     [Parameter] public EventCallback<(string Kid, bool Selected)> OnKidToggled { get; set; }
+    [Parameter] public bool UseAutoSave { get; set; } = true;
+    [Parameter] public bool ShowUndoAll { get; set; }
+    [Parameter] public EventCallback OnFieldCommitted { get; set; }
     [Parameter] public EventCallback OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnUndoAll { get; set; }
 
     protected override void OnParametersSet()
     {
         _model.SubmittedBy = SubmittedBy;
         _model.Sport = Sport;
-        _model.Date = Date.Date;
+        _model.Date = ScheduleEventPickers.NormalizeSelectableDate(Date.Date);
         _model.Name = Name;
         _model.Location = Location;
         _model.StartTime = ParseStartTime(StartTimeString);
+        _dateOptionGroups = ScheduleEventPickers.BuildDateOptionGroups();
+        SyncDateDisplay();
+        RefreshTimeSelectionForDate();
     }
 
     private Task OnSubmittedByInput(ChangeEventArgs e)
@@ -136,15 +202,105 @@
         return SubmittedByChanged.InvokeAsync(_model.SubmittedBy);
     }
 
-    private Task OnSportChangedAsync() => SportChanged.InvokeAsync(_model.Sport);
-
-    private Task OnDateChangedAsync() => DateChanged.InvokeAsync(_model.Date);
-
-    private Task OnStartTimeInputAsync(ChangeEventArgs e)
+    private async Task OnSportInputAsync(ChangeEventArgs e)
     {
-        _model.StartTime = ParseStartTime(e.Value?.ToString());
-        return StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = FormatStartTime(_model.StartTime) });
+        _model.Sport = e.Value?.ToString() ?? string.Empty;
+        await SportChanged.InvokeAsync(_model.Sport);
     }
+
+    private async Task OnDateSelectAsync(ChangeEventArgs e)
+    {
+        if (!ScheduleEventPickers.TryParseDateFromInput(e.Value?.ToString(), out var parsed)
+            || !ScheduleEventPickers.IsSelectableDate(parsed))
+        {
+            SyncDateDisplay();
+            return;
+        }
+
+        _model.Date = parsed;
+        SyncDateDisplay();
+        await ApplyDateChangeAsync();
+    }
+
+    private async Task SetQuickDateAsync(int daysFromToday)
+    {
+        _model.Date = ScheduleEventPickers.AddDaysFromToday(daysFromToday);
+        SyncDateDisplay();
+        await ApplyDateChangeAsync();
+    }
+
+    private async Task SetNextSaturdayAsync()
+    {
+        _model.Date = ScheduleEventPickers.NextSaturdayFrom();
+        SyncDateDisplay();
+        await ApplyDateChangeAsync();
+    }
+
+    private async Task ApplyDateChangeAsync()
+    {
+        var clearedTime = RefreshTimeSelectionForDate();
+        await DateChanged.InvokeAsync(_model.Date);
+        if (clearedTime)
+        {
+            await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = string.Empty });
+        }
+
+        await OnFieldCommittedAsync();
+    }
+
+    private void SyncDateDisplay()
+    {
+        _dateInputValue = ScheduleEventPickers.FormatDateForInput(_model.Date);
+        _dateHint = ScheduleEventPickers.FormatDateHint(_model.Date);
+    }
+
+    private async Task OnStartTimeSelectAsync(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            _selectedTimeValue = string.Empty;
+            _model.StartTime = null;
+            await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = string.Empty });
+            await OnFieldCommittedAsync();
+            return;
+        }
+
+        if (!ScheduleEventPickers.TryParseTimeFromStorage(raw, out var parsed)
+            || WashingtonScheduleTime.IsEventInPast(_model.Date, parsed))
+        {
+            _selectedTimeValue = ScheduleEventPickers.FormatTimeForSelect(_model.StartTime);
+            return;
+        }
+
+        _selectedTimeValue = raw;
+        _model.StartTime = parsed;
+        await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = FormatStartTimeForParent(_model.StartTime) });
+        await OnFieldCommittedAsync();
+    }
+
+    private bool RefreshTimeSelectionForDate()
+    {
+        _timeSlotGroups = ScheduleEventPickers.BuildTimeSlotGroups(_model.StartTime, _model.Date);
+        if (!WashingtonScheduleTime.IsEventInPast(_model.Date, _model.StartTime))
+        {
+            _selectedTimeValue = ScheduleEventPickers.FormatTimeForSelect(_model.StartTime);
+            return false;
+        }
+
+        _model.StartTime = null;
+        _selectedTimeValue = string.Empty;
+        return true;
+    }
+
+    private async Task OnKidToggledAsync(string kid, bool selected)
+    {
+        await OnKidToggled.InvokeAsync((kid, selected));
+        await OnFieldCommittedAsync();
+    }
+
+    private Task OnFieldCommittedAsync() =>
+        UseAutoSave ? OnFieldCommitted.InvokeAsync() : Task.CompletedTask;
 
     private Task OnNameInput(ChangeEventArgs e)
     {
@@ -173,25 +329,37 @@
 
     private Task SubmitAsync() => OnSubmit.InvokeAsync();
 
-    private static TimeOnly? ParseStartTime(string? value)
+    private static TimeSpan? ParseStartTime(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             return null;
         }
 
-        return TimeOnly.TryParse(value, out var time) ? time : null;
+        return ScheduleEventPickers.TryParseTimeFromStorage(value, out var time) ? time : null;
     }
 
-    private static string FormatStartTime(TimeOnly? time) =>
-        time?.ToString("HH:mm") ?? string.Empty;
+    private static string FormatStartTimeForParent(TimeSpan? time)
+    {
+        if (!time.HasValue)
+        {
+            return string.Empty;
+        }
+
+        if (time.Value >= TimeSpan.FromDays(1))
+        {
+            return "24:00";
+        }
+
+        return ScheduleEventPickers.FormatTimeForStorage(time.Value);
+    }
 
     private sealed class EventFormModel
     {
         public string SubmittedBy { get; set; } = string.Empty;
-        public Sport Sport { get; set; }
+        public string Sport { get; set; } = SportNames.Football;
         public DateTime Date { get; set; }
-        public TimeOnly? StartTime { get; set; }
+        public TimeSpan? StartTime { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
     }
