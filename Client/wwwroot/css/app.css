@@ -1159,9 +1159,10 @@ a, .btn-link {
 }
 
 .schedule-table-responsive .schedule-location-actions {
-    display: inline-flex;
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
+    display: flex;
+    flex: 1 1 100%;
+    width: 100%;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--schedule-space-2);
     max-width: 100%;
@@ -1545,7 +1546,7 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-location-row {
-        align-items: center;
+        align-items: flex-start;
     }
 
     .schedule-table-responsive .schedule-location-actions {
