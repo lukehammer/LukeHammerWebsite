@@ -1,4 +1,5 @@
 @page "/BainSoccer"
+@using BlazorApp.Client
 @using BlazorApp.Shared
 @inject HttpClient Http
 
@@ -72,24 +73,6 @@
 
     }
 
-    .schedule-theme-kid-june .schedule-table tbody tr td {
-
-      background-color: #FCE7F3;
-
-      color: #3D2A35;
-
-    }
-
-    .schedule-theme-kid-june .schedule-table tbody tr.row-theme-kids-multi td {
-
-      background-color: transparent;
-
-      background-image: var(--row-stripe-bg);
-
-      color: #1F2937;
-
-    }
-
     .schedule-theme-kid-june footer {
 
       color: #6B5B73;
@@ -101,6 +84,7 @@
     }
 
   </style>
+<style>@((MarkupString)KidThemeColorsLoader.SportPageCss(".schedule-theme-kid-june", "June"))</style>
 
 @if (_loadRetry.IsRetryWaiting)
 {

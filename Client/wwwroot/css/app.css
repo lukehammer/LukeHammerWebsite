@@ -976,6 +976,11 @@ a, .btn-link {
     margin-left: auto;
     margin-right: auto;
     box-sizing: border-box;
+    --schedule-space-1: 4px;
+    --schedule-space-2: 8px;
+    --schedule-space-3: 12px;
+    --schedule-chip-padding-y: 4px;
+    --schedule-chip-padding-x: 8px;
 }
 
 .schedule-main-column .schedule-table-wrap {
@@ -1001,11 +1006,11 @@ a, .btn-link {
 }
 
 .schedule-load-retry-banner {
-    margin: 1rem 0 1.25rem;
-    padding: 1rem 1.25rem 1.15rem;
+    margin: var(--schedule-space-3, 12px) 0;
+    padding: var(--schedule-space-2, 8px) var(--schedule-space-3, 12px);
     max-width: 22rem;
-    border: 2px solid #B91C1C;
-    border-radius: 12px;
+    border: var(--schedule-space-1, 4px) solid #B91C1C;
+    border-radius: var(--schedule-space-3, 12px);
     background: #FEF2F2;
     color: #7F1D1D;
     box-sizing: border-box;
@@ -1096,6 +1101,17 @@ a, .btn-link {
     table-layout: fixed;
     border-collapse: collapse;
     --schedule-map-surface: rgba(255, 255, 255, 0.65);
+    --schedule-space-1: 4px;
+    --schedule-space-2: 8px;
+    --schedule-space-3: 12px;
+    --schedule-chip-border: 4px;
+    --schedule-chip-margin: 4px;
+    --schedule-chip-gutter: 4px;
+    --schedule-chip-padding-y: 1px;
+    --schedule-chip-padding-x: 1px;
+    --schedule-control-border: 2px;
+    --schedule-control-padding-y: 8px;
+    --schedule-control-padding-x: 12px;
 }
 
 .schedule-table-responsive th,
@@ -1131,7 +1147,7 @@ a, .btn-link {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem 0.5rem;
+    gap: var(--schedule-space-2);
 }
 
 .schedule-table-responsive .schedule-location {
@@ -1146,16 +1162,16 @@ a, .btn-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: var(--schedule-space-2);
     min-height: 44px;
-    padding: 0.45rem 1rem;
+    padding: var(--schedule-control-padding-y) var(--schedule-control-padding-x);
     font-size: 0.9375rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     text-transform: uppercase;
     text-decoration: none;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.22);
+    border-radius: var(--schedule-space-2);
+    border: var(--schedule-control-border) solid rgba(0, 0, 0, 0.22);
     background: var(--schedule-map-surface);
     color: inherit;
     cursor: pointer;
@@ -1174,7 +1190,8 @@ a, .btn-link {
 .schedule-kid-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    align-items: center;
+    gap: var(--schedule-space-2, 8px);
     margin-top: 0;
 }
 
@@ -1183,8 +1200,8 @@ a, .btn-link {
     font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.25;
-    padding: 0.2rem 0.55rem;
-    border-radius: 4px;
+    padding: var(--schedule-chip-padding-y, 8px) var(--schedule-chip-padding-x, 12px);
+    border-radius: var(--schedule-space-2, 8px);
     white-space: nowrap;
 }
 
@@ -1192,8 +1209,9 @@ a, .btn-link {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 0.65rem;
-    margin: 0.75rem 0 1rem;
+    gap: var(--schedule-space-2, 8px) var(--schedule-space-3, 12px);
+    margin: var(--schedule-space-3, 12px) 0 var(--schedule-space-2, 8px);
+    padding: var(--schedule-space-1, 4px) 0;
     max-width: 100%;
 }
 
@@ -1321,17 +1339,20 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-kid-badges {
-        gap: 0.4rem;
+        gap: var(--schedule-space-2);
     }
 
     .schedule-table-responsive .schedule-kid-badge {
         font-size: 1.45rem;
         font-weight: 700;
         line-height: 1.2;
-        padding: 0.55rem 0.9rem;
-        border-radius: 8px;
-        border: 1px solid rgba(0, 0, 0, 0.18);
-        box-shadow: none;
+        padding: 1px;
+        border-radius: calc(var(--schedule-space-3) / 2);
+        border: var(--schedule-chip-border) solid transparent !important;
+        box-shadow: 0 0 0 var(--schedule-chip-gutter) var(--schedule-kid-gutter);
+        margin: 0;
+        background-clip: padding-box;
+        -webkit-background-clip: padding-box;
     }
 
     .schedule-table-responsive .schedule-cell-when::before {
@@ -1424,19 +1445,63 @@ a, .btn-link {
     }
 
     .schedule-table-responsive .schedule-cell-kids {
-        padding: 0.5rem 0.85rem;
+        padding: var(--schedule-space-2) var(--schedule-space-3);
     }
 
     .schedule-table-responsive .schedule-kid-badges {
-        gap: 0.5rem;
-        padding: 0.2rem 0.15rem;
+        gap: var(--schedule-space-2);
+        padding: var(--schedule-space-1) 0;
     }
 
-    /* Gutter uses kid theme border; pill border uses Map button frosted surface. */
+    /* 4px grid: transparent border shows row stripes; kid-color outer ring. */
+    .schedule-table.schedule-table-responsive thead th {
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+    .schedule-table-responsive tbody tr.schedule-data-row td {
+        vertical-align: middle;
+        background-color: transparent !important;
+        background-image: none !important;
+        border: none !important;
+        box-shadow: inset 0 -1px 0 rgba(55, 65, 81, 0.28);
+    }
+
+    .schedule-table-responsive .schedule-meta,
+    .schedule-table-responsive .schedule-location {
+        font-size: 0.8125rem;
+        line-height: 1.35;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+
+    .schedule-table-responsive .schedule-matchup {
+        margin-top: 0;
+        line-height: 1.35;
+    }
+
+    .schedule-table-responsive .schedule-location-row {
+        align-items: center;
+    }
+
+    .schedule-table-responsive .schedule-map-btn {
+        min-height: 0;
+        padding: var(--schedule-space-1) var(--schedule-space-2);
+        font-size: 0.8125rem;
+    }
+
+    .schedule-table-responsive tbody tr.schedule-data-row:last-child td {
+        box-shadow: none;
+    }
+
     .schedule-table-responsive .schedule-kid-badge {
-        margin: 5px;
-        border: 1px solid var(--schedule-map-surface) !important;
-        box-shadow: 0 0 0 5px var(--schedule-kid-gutter);
+        margin: var(--schedule-chip-margin);
+        padding: 1px;
+        border-radius: calc(var(--schedule-space-3) / 2);
+        border: var(--schedule-chip-border) solid transparent !important;
+        box-shadow: 0 0 0 var(--schedule-chip-gutter) var(--schedule-kid-gutter);
+        background-clip: padding-box;
+        -webkit-background-clip: padding-box;
     }
 }
 

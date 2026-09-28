@@ -12,10 +12,7 @@ namespace BlazorApp.Shared
                 AppendRowThemeRule(sb, scopeSelector, kid);
             }
 
-            sb.Append(scopeSelector)
-                .Append(" .")
-                .Append(ScheduleKidThemes.MultiRowClass)
-                .Append(" td { background-color: transparent; background-image: var(--row-stripe-bg); border: 1px solid #94A3B8; color: #1F2937; }");
+            AppendMultiRowThemeRule(sb, scopeSelector);
 
             AppendMobileUnifiedRowBackgroundCss(sb, scopeSelector);
 
@@ -30,20 +27,18 @@ namespace BlazorApp.Shared
                 AppendRowThemeRule(sb, scopeSelector, kid);
             }
 
+            AppendMultiRowThemeRule(sb, scopeSelector);
+
             var bg = KidThemeColors.GetBackgroundHex(defaultKid);
             var text = KidThemeColors.GetTextHex(defaultKid);
-
             sb.Append(scopeSelector)
-                .Append(" .schedule-table tbody tr td { background-color: ")
+                .Append(" .schedule-table-responsive tbody tr.schedule-data-row:not([class*=\"row-theme-kid-\"]):not(.")
+                .Append(ScheduleKidThemes.MultiRowClass)
+                .Append(") { background-color: ")
                 .Append(bg)
                 .Append("; color: ")
                 .Append(text)
                 .Append("; }");
-
-            sb.Append(scopeSelector)
-                .Append(" .schedule-table tbody tr.")
-                .Append(ScheduleKidThemes.MultiRowClass)
-                .Append(" td { background-color: transparent; background-image: var(--row-stripe-bg); color: #1F2937; }");
 
             AppendMobileUnifiedRowBackgroundCss(sb, scopeSelector);
 
@@ -58,48 +53,43 @@ namespace BlazorApp.Shared
                 return;
             }
 
+            var bg = KidThemeColors.GetBackgroundHex(kid);
+            var text = KidThemeColors.GetTextHex(kid);
+
+            sb.Append(scopeSelector)
+                .Append(" .schedule-table-responsive tbody tr.schedule-data-row.")
+                .Append(className)
+                .Append(" { background-color: ")
+                .Append(bg)
+                .Append("; color: ")
+                .Append(text)
+                .Append("; }");
+
             sb.Append(scopeSelector)
                 .Append(" .")
                 .Append(className)
-                .Append(" td { background-color: ")
-                .Append(KidThemeColors.GetBackgroundHex(kid))
-                .Append("; border: 1px solid ")
-                .Append(KidThemeColors.GetBorderHex(kid))
-                .Append("; color: ")
-                .Append(KidThemeColors.GetTextHex(kid))
-                .Append("; }");
+                .Append(" td { background-color: transparent; background-image: none; }");
+        }
+
+        private static void AppendMultiRowThemeRule(StringBuilder sb, string scopeSelector)
+        {
+            sb.Append(scopeSelector)
+                .Append(" .schedule-table-responsive tbody tr.schedule-data-row.")
+                .Append(ScheduleKidThemes.MultiRowClass)
+                .Append(" { background-color: transparent; background-image: var(--row-stripe-bg); color: #1F2937; }");
+
+            sb.Append(scopeSelector)
+                .Append(" .")
+                .Append(ScheduleKidThemes.MultiRowClass)
+                .Append(" td { background-color: transparent; background-image: none; }");
         }
 
         /// <summary>
-        /// Mobile card layout: one continuous row background behind When / Event / Location
-        /// so multi-kid stripes are not restarted on each cell.
+        /// Mobile card layout: keep content cells clear so the row-level stripe shows through.
         /// </summary>
         private static void AppendMobileUnifiedRowBackgroundCss(StringBuilder sb, string scopeSelector)
         {
             sb.Append("@media (max-width: 640px) { ");
-
-            foreach (var kid in ScheduleKids.AllowedKids)
-            {
-                var className = ScheduleKidThemes.RowThemeClass(kid);
-                if (string.IsNullOrEmpty(className))
-                {
-                    continue;
-                }
-
-                sb.Append(scopeSelector)
-                    .Append(" .schedule-table-responsive tbody tr.schedule-data-row.")
-                    .Append(className)
-                    .Append(" { background-color: ")
-                    .Append(KidThemeColors.GetBackgroundHex(kid))
-                    .Append("; color: ")
-                    .Append(KidThemeColors.GetTextHex(kid))
-                    .Append("; } ");
-            }
-
-            sb.Append(scopeSelector)
-                .Append(" .schedule-table-responsive tbody tr.schedule-data-row.")
-                .Append(ScheduleKidThemes.MultiRowClass)
-                .Append(" { background-color: transparent; background-image: var(--row-stripe-bg); color: #1F2937; } ");
 
             sb.Append(scopeSelector)
                 .Append(" .schedule-table-responsive tbody tr.schedule-data-row td.schedule-cell-when,")

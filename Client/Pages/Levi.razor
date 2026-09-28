@@ -1,4 +1,5 @@
 @page "/Levi"
+@using BlazorApp.Client
 @using BlazorApp.Shared
 @inject HttpClient Http
 
@@ -70,24 +71,6 @@
 
     }
 
-    .schedule-theme-kid-levi .schedule-table tbody tr td {
-
-      background-color: #DBEAFE;
-
-      color: #1E3A8A;
-
-    }
-
-    .schedule-theme-kid-levi .schedule-table tbody tr.row-theme-kids-multi td {
-
-      background-color: transparent;
-
-      background-image: var(--row-stripe-bg);
-
-      color: #1F2937;
-
-    }
-
     .schedule-theme-kid-levi footer {
 
       color: #64748B;
@@ -99,8 +82,9 @@
     }
 
   </style>
+<style>@((MarkupString)KidThemeColorsLoader.SportPageCss(".schedule-theme-kid-levi", "Levi"))</style>
 
-  @if (_loadRetry.IsRetryWaiting)
+@if (_loadRetry.IsRetryWaiting)
   {
     <ScheduleLoadRetryBanner Message="@(_loadRetry.RetryMessage ?? string.Empty)"
                              SecondsRemaining="@(_loadRetry.RetrySecondsRemaining ?? 0)"

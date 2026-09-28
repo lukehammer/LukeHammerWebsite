@@ -20,6 +20,11 @@
 		<ProjectReference Include="..\Shared\Shared.csproj" />
 	</ItemGroup>
 
+	<!-- CSS is served from wwwroot at runtime; rebuilding WASM on every app.css save breaks dev. -->
+	<ItemGroup>
+		<Watch Remove="wwwroot\css\**\*" />
+	</ItemGroup>
+
 	<!-- Workaround SDK 9.0.300 static web assets cache duplicates (dotnet/sdk#49180). -->
 	<Target Name="_CleanupStaticWebAssetsCache" BeforeTargets="Build">
 		<PropertyGroup>

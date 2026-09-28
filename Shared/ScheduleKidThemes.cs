@@ -111,7 +111,7 @@ namespace BlazorApp.Shared
             var bg = GetBackgroundHex(kid);
             var text = KidThemeColors.GetTextHex(kid);
             var border = KidThemeColors.GetBorderHex(kid);
-            return $"background-color:{bg};color:{text};border:1px solid {border};--schedule-kid-gutter:{border};";
+            return $"background-color:{bg};color:{text};border:1px solid transparent;--schedule-kid-gutter:{border};";
         }
 
         /// <summary>
