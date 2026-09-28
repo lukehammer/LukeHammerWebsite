@@ -26,7 +26,7 @@ namespace BlazorApp.Shared
 
         // Levi — baseball blue (bg #DBEAFE, border #94A3B8, text #1E3A8A)
 
-        // Choen — football green (bg #D8F3DC, border #52796F, text #1B4332)
+        // Cohen — football green (bg #D8F3DC, border #52796F, text #1B4332)
 
         // June — soccer plum/pink (bg #FCE7F3, border #C4A8BD, text #3D2A35)
 
@@ -111,7 +111,7 @@ namespace BlazorApp.Shared
             var bg = GetBackgroundHex(kid);
             var text = KidThemeColors.GetTextHex(kid);
             var border = KidThemeColors.GetBorderHex(kid);
-            return $"background-color:{bg};color:{text};border:1px solid {border};";
+            return $"background-color:{bg};color:{text};border:1px solid {border};--schedule-kid-gutter:{border};";
         }
 
         /// <summary>

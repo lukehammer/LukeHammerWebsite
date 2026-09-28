@@ -18,7 +18,7 @@ public class SportsScheduleCrudTests
     [InlineData("Luke Hammer")]
     [InlineData("LUKE HAMMER")]
     [InlineData("June")]
-    [InlineData("Choen")]
+    [InlineData("Cohen")]
     [InlineData("")]
     [InlineData("   ")]
     public void Luke_name_matcher_rejects_non_luke(string name)
@@ -196,7 +196,7 @@ public class SportsScheduleCrudTests
               "submittedBy": "Luke",
               "event": {
                 "sport": "Football",
-                "kids": ["Choen"],
+                "kids": ["Cohen"],
                 "date": "2026-10-03T00:00:00",
                 "name": "Test Game",
                 "location": "Field",

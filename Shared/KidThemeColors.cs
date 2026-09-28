@@ -24,7 +24,7 @@ namespace BlazorApp.Shared
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Levi"] = "#DBEAFE",
-                ["Choen"] = "#D8F3DC",
+                ["Cohen"] = "#D8F3DC",
                 ["June"] = "#FBCFE8",
                 ["Cael"] = "#FEF3C7",
                 ["Lily"] = "#CFFAFE",
@@ -35,7 +35,7 @@ namespace BlazorApp.Shared
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Levi"] = "#94A3B8",
-                ["Choen"] = "#52796F",
+                ["Cohen"] = "#52796F",
                 ["June"] = "#C4A8BD",
                 ["Cael"] = "#D97706",
                 ["Lily"] = "#0D9488",
@@ -46,7 +46,7 @@ namespace BlazorApp.Shared
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Levi"] = "#1E3A8A",
-                ["Choen"] = "#1B4332",
+                ["Cohen"] = "#1B4332",
                 ["June"] = "#3D2A35",
                 ["Cael"] = "#78350F",
                 ["Lily"] = "#134E4A",
@@ -226,6 +226,7 @@ namespace BlazorApp.Shared
 
         private static Dictionary<string, string> MergeWithDefaults(Dictionary<string, string>? incoming)
         {
+            incoming = RemapLegacyKidThemeKeys(incoming);
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var kid in ScheduleKids.AllowedKids)
             {
@@ -243,6 +244,23 @@ namespace BlazorApp.Shared
             }
 
             return result;
+        }
+
+        private static Dictionary<string, string>? RemapLegacyKidThemeKeys(Dictionary<string, string>? incoming)
+        {
+            if (incoming == null || !incoming.TryGetValue("Choen", out var legacyHex))
+            {
+                return incoming;
+            }
+
+            var copy = new Dictionary<string, string>(incoming, StringComparer.OrdinalIgnoreCase);
+            if (!copy.ContainsKey("Cohen") && !string.IsNullOrWhiteSpace(legacyHex))
+            {
+                copy["Cohen"] = legacyHex.Trim();
+            }
+
+            copy.Remove("Choen");
+            return copy;
         }
     }
 }

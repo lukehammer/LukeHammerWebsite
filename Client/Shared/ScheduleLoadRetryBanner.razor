@@ -1,0 +1,31 @@
+<div class="schedule-load-retry-banner" role="status" aria-live="polite">
+    <p class="schedule-load-retry-banner__message">@Message</p>
+    <div class="schedule-load-retry-banner__countdown" aria-label="@($"Retrying in {SecondsRemaining} seconds")">
+        <div class="schedule-load-retry-banner__ring"
+             style="--retry-progress: @ProgressPercent.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+            <span class="schedule-load-retry-banner__seconds">@SecondsRemaining</span>
+        </div>
+        <p class="schedule-load-retry-banner__hint">
+            Retrying in <strong>@SecondsRemaining</strong> @(SecondsRemaining == 1 ? "second" : "seconds")…
+        </p>
+        <div class="schedule-load-retry-banner__bar-track" aria-hidden="true">
+            <div class="schedule-load-retry-banner__bar-fill" style="width: @($"{ProgressPercent:0.#}%")"></div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public int SecondsRemaining { get; set; }
+
+    [Parameter]
+    public int TotalSeconds { get; set; }
+
+    private double ProgressPercent =>
+        TotalSeconds <= 0
+            ? 0
+            : (TotalSeconds - SecondsRemaining) * 100.0 / TotalSeconds;
+}

@@ -9,7 +9,7 @@ namespace BlazorApp.Shared
         public static readonly IReadOnlyList<string> AllowedKids = new[]
         {
             "Cael",
-            "Choen",
+            "Cohen",
             "June",
             "Levi",
             "Lily",
@@ -23,9 +23,21 @@ namespace BlazorApp.Shared
                 return false;
             }
 
-            var trimmed = kid.Trim();
+            var canonical = CanonicalizeKidName(kid);
             return AllowedKids.Any(allowed =>
-                string.Equals(trimmed, allowed, StringComparison.Ordinal));
+                string.Equals(canonical, allowed, StringComparison.Ordinal));
+        }
+
+        /// <summary>Maps legacy misspellings to the canonical kid name.</summary>
+        public static string CanonicalizeKidName(string kid)
+        {
+            var trimmed = kid?.Trim() ?? string.Empty;
+            if (string.Equals(trimmed, "Choen", StringComparison.Ordinal))
+            {
+                return "Cohen";
+            }
+
+            return trimmed;
         }
 
         public static List<string> NormalizeKidsList(IEnumerable<string> kids)
@@ -37,7 +49,7 @@ namespace BlazorApp.Shared
 
             return kids
                 .Where(k => !string.IsNullOrWhiteSpace(k))
-                .Select(k => k.Trim())
+                .Select(CanonicalizeKidName)
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(k => k, StringComparer.Ordinal)
                 .ToList();

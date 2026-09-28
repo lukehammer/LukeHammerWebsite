@@ -29,6 +29,9 @@
     <None Include="..\Api\data\sports-schedules.json" Link="data\sports-schedules.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\Api\data\kid-theme-colors.json" Link="data\kid-theme-colors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

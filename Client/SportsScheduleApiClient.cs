@@ -5,6 +5,26 @@ using BlazorApp.Shared;
 
 namespace BlazorApp.Client
 {
+    public readonly struct ScheduleLoadRetryUpdate
+    {
+        public ScheduleLoadRetryUpdate(
+            string errorMessage,
+            int consecutiveFailures,
+            int secondsRemaining,
+            int totalDelaySeconds)
+        {
+            ErrorMessage = errorMessage;
+            ConsecutiveFailures = consecutiveFailures;
+            SecondsRemaining = secondsRemaining;
+            TotalDelaySeconds = totalDelaySeconds;
+        }
+
+        public string ErrorMessage { get; }
+        public int ConsecutiveFailures { get; }
+        public int SecondsRemaining { get; }
+        public int TotalDelaySeconds { get; }
+    }
+
     public static class SportsScheduleApiClient
     {
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
@@ -23,7 +43,65 @@ namespace BlazorApp.Client
             return (SportsSchedules.GetUpcoming(data.Events, sport, kid), null);
         }
 
+        public static async Task<(IReadOnlyList<Event> Upcoming, string? Error)> LoadUpcomingWithRetryAsync(
+            HttpClient http,
+            Func<ScheduleLoadRetryUpdate, Task>? onWaitingForRetryAsync,
+            CancellationToken cancellationToken = default,
+            string? sport = null,
+            string? kid = null)
+        {
+            var (data, error) = await LoadAllWithRetryAsync(http, onWaitingForRetryAsync, cancellationToken, sport);
+            if (error != null)
+            {
+                return (Array.Empty<Event>(), error);
+            }
+
+            return (SportsSchedules.GetUpcoming(data.Events, sport, kid), null);
+        }
+
+        public static async Task<(SportsSchedulesData Data, string? Error)> LoadAllWithRetryAsync(
+            HttpClient http,
+            Func<ScheduleLoadRetryUpdate, Task>? onWaitingForRetryAsync,
+            CancellationToken cancellationToken = default,
+            string? sport = null)
+        {
+            var consecutiveFailures = 0;
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var (data, error) = await LoadAllOnceAsync(http, sport);
+                if (error == null || !ScheduleLoadRetryPolicy.IsRetriableError(error))
+                {
+                    return (data, error);
+                }
+
+                consecutiveFailures++;
+                var delaySeconds = ScheduleLoadRetryPolicy.GetSecondsBeforeRetry(consecutiveFailures);
+                for (var secondsRemaining = delaySeconds; secondsRemaining > 0; secondsRemaining--)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (onWaitingForRetryAsync != null)
+                    {
+                        await onWaitingForRetryAsync(
+                            new ScheduleLoadRetryUpdate(
+                                error,
+                                consecutiveFailures,
+                                secondsRemaining,
+                                delaySeconds));
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                }
+            }
+        }
+
         public static async Task<(SportsSchedulesData Data, string? Error)> LoadAllAsync(
+            HttpClient http,
+            string? sport = null) =>
+            await LoadAllOnceAsync(http, sport);
+
+        private static async Task<(SportsSchedulesData Data, string? Error)> LoadAllOnceAsync(
             HttpClient http,
             string? sport = null)
         {
@@ -37,7 +115,7 @@ namespace BlazorApp.Client
                 var response = await http.GetAsync(url, cts.Token);
                 if (!response.IsSuccessStatusCode)
                 {
-                    return (new SportsSchedulesData(), "Could not load schedule. Make sure the API is running.");
+                    return (new SportsSchedulesData(), ScheduleLoadRetryPolicy.ApiUnavailableMessage);
                 }
 
                 var body = await response.Content.ReadAsStringAsync(cts.Token);
@@ -50,11 +128,11 @@ namespace BlazorApp.Client
             }
             catch (OperationCanceledException)
             {
-                return (new SportsSchedulesData(), "Schedule request timed out. Check that the API is running at the configured address.");
+                return (new SportsSchedulesData(), ScheduleLoadRetryPolicy.TimedOutMessage);
             }
             catch (Exception)
             {
-                return (new SportsSchedulesData(), "Could not load schedule. Make sure the API is running.");
+                return (new SportsSchedulesData(), ScheduleLoadRetryPolicy.ApiUnavailableMessage);
             }
         }
 

@@ -63,7 +63,7 @@ namespace UnitTest
 
             games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Football);
 
-            games.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "Choen");
+            games.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "Cohen");
 
             games.Select(e => e.Date).Should().BeInAscendingOrder();
 

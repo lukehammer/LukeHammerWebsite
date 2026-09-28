@@ -6,7 +6,7 @@
 
 
 
-<div class="schedule-theme-kid-choen">
+<div class="schedule-theme-kid-cohen">
 
 <h1>Woodland Football</h1>
 
@@ -16,13 +16,13 @@
 
 <style>
 
-    .schedule-theme-kid-choen h1 {
+    .schedule-theme-kid-cohen h1 {
 
       color: #1B4332;
 
     }
 
-    .schedule-theme-kid-choen > p {
+    .schedule-theme-kid-cohen > p {
 
       color: #2D6A4F;
 
@@ -34,13 +34,13 @@
 
     }
 
-    .schedule-theme-kid-choen h3 {
+    .schedule-theme-kid-cohen h3 {
 
       color: #1B4332;
 
     }
 
-    .schedule-theme-kid-choen table {
+    .schedule-theme-kid-cohen table {
 
       border-collapse: collapse;
 
@@ -50,9 +50,9 @@
 
     }
 
-    .schedule-theme-kid-choen th,
+    .schedule-theme-kid-cohen th,
 
-    .schedule-theme-kid-choen td {
+    .schedule-theme-kid-cohen td {
 
       border: 1px solid #52796F;
 
@@ -62,7 +62,7 @@
 
     }
 
-    .schedule-theme-kid-choen th {
+    .schedule-theme-kid-cohen th {
 
       background-color: #2D6A4F;
 
@@ -70,7 +70,7 @@
 
     }
 
-    .schedule-theme-kid-choen .schedule-table tbody tr td {
+    .schedule-theme-kid-cohen .schedule-table tbody tr td {
 
       background-color: #D8F3DC;
 
@@ -78,7 +78,7 @@
 
     }
 
-    .schedule-theme-kid-choen .schedule-table tbody tr.row-theme-kids-multi td {
+    .schedule-theme-kid-cohen .schedule-table tbody tr.row-theme-kids-multi td {
 
       background-color: transparent;
 
@@ -88,19 +88,25 @@
 
     }
 
-    .schedule-theme-kid-choen footer {
+    .schedule-theme-kid-cohen footer {
 
       color: #52796F;
 
     }
 
-    .schedule-theme-kid-choen .schedule-error {
+    .schedule-theme-kid-cohen .schedule-error {
       color: #B91C1C;
     }
 
   </style>
 
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
+@if (_loadRetry.IsRetryWaiting)
+{
+    <ScheduleLoadRetryBanner Message="@(_loadRetry.RetryMessage ?? string.Empty)"
+                             SecondsRemaining="@(_loadRetry.RetrySecondsRemaining ?? 0)"
+                             TotalSeconds="@_loadRetry.RetryTotalSeconds" />
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
     <p class="schedule-error">@_errorMessage</p>
 }
@@ -109,7 +115,7 @@
 {
     <p>Loading schedule...</p>
 }
-else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
+else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage) && !_loadRetry.IsRetryWaiting)
 {
     <h3>No upcoming JV games</h3>
 }
@@ -140,7 +146,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
     @foreach (var game in _upcoming)
     {
 
-        <tr class="schedule-data-row @ScheduleKidThemes.GetRowClass(game, "Choen")" style="@ScheduleKidThemes.GetRowStyle(game)">
+        <tr class="schedule-data-row @ScheduleKidThemes.GetRowClass(game, "Cohen")" style="@ScheduleKidThemes.GetRowStyle(game)">
 
             <td class="schedule-cell-when">
                 <div class="schedule-meta" aria-label="When">
@@ -156,7 +162,7 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
             </td>
 
             <td class="schedule-cell-kids">
-                <ScheduleKidBadges ScheduleEvent="game" DefaultKidWhenEmpty="Choen" />
+                <ScheduleKidBadges ScheduleEvent="game" DefaultKidWhenEmpty="Cohen" />
             </td>
 
             <td class="schedule-cell-location">
@@ -188,12 +194,29 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
     private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
     private bool _loading = true;
     private string? _errorMessage;
+    private readonly ScheduleLoadRetryPageState _loadRetry = new();
+
+    private Task OnScheduleLoadRetryWaitingAsync(ScheduleLoadRetryUpdate update)
+    {
+        _loading = false;
+        _errorMessage = null;
+        _loadRetry.ApplyWaiting(update);
+        return InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        _loadRetry.Clear();
         try
         {
-            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(Http, SportNames.Football);
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingWithRetryAsync(
+                Http,
+                OnScheduleLoadRetryWaitingAsync,
+                sport: SportNames.Football);
+            if (_errorMessage == null)
+            {
+                _loadRetry.Clear();
+            }
         }
         finally
         {

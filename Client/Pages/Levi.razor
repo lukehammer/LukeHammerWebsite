@@ -100,7 +100,13 @@
 
   </style>
 
-  @if (!string.IsNullOrWhiteSpace(_errorMessage))
+  @if (_loadRetry.IsRetryWaiting)
+  {
+    <ScheduleLoadRetryBanner Message="@(_loadRetry.RetryMessage ?? string.Empty)"
+                             SecondsRemaining="@(_loadRetry.RetrySecondsRemaining ?? 0)"
+                             TotalSeconds="@_loadRetry.RetryTotalSeconds" />
+  }
+  else if (!string.IsNullOrWhiteSpace(_errorMessage))
   {
     <p class="schedule-error">@_errorMessage</p>
   }
@@ -109,7 +115,7 @@
   {
     <p>Loading schedule...</p>
   }
-  else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
+  else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage) && !_loadRetry.IsRetryWaiting)
   {
     <h3>No upcoming games</h3>
   }
@@ -192,15 +198,30 @@
     private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
     private bool _loading = true;
     private string? _errorMessage;
+    private readonly ScheduleLoadRetryPageState _loadRetry = new();
+
+    private Task OnScheduleLoadRetryWaitingAsync(ScheduleLoadRetryUpdate update)
+    {
+        _loading = false;
+        _errorMessage = null;
+        _loadRetry.ApplyWaiting(update);
+        return InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnInitializedAsync()
     {
+        _loadRetry.Clear();
         try
         {
-            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingWithRetryAsync(
                 Http,
-                SportNames.Baseball,
+                OnScheduleLoadRetryWaitingAsync,
+                sport: SportNames.Baseball,
                 kid: "Levi");
+            if (_errorMessage == null)
+            {
+                _loadRetry.Clear();
+            }
         }
         catch (Exception)
         {

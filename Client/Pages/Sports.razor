@@ -3,10 +3,11 @@
 @using BlazorApp.Client
 @inject HttpClient Http
 @inject IJSRuntime JS
+@implements IDisposable
 <PageTitle>Sports — All Upcoming Games</PageTitle>
 <div class="schedule-theme-combined schedule-page">
 <h1>Sports</h1>
-<p>All upcoming baseball, football, and soccer games in one list.</p>
+<p>All the sports happening with the cousins, simplified for you.</p>
 <style>
     .schedule-theme-combined h1 {
       color: #374151;
@@ -628,6 +629,10 @@
       cursor: not-allowed;
     }
     @@media (max-width: 640px) {
+      .schedule-theme-combined .schedule-table-wrap .schedule-table,
+      .schedule-theme-combined table.schedule-table {
+        border: none;
+      }
       .schedule-theme-combined .admin-form-grid {
         grid-template-columns: 1fr;
       }
@@ -646,18 +651,6 @@
 @if (!string.IsNullOrEmpty(_kidThemeCss))
 {
     <style>@((MarkupString)_kidThemeCss)</style>
-}
-@if (!string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <p class="schedule-error">@_errorMessage</p>
-}
-@if (_loading)
-{
-    <p>Loading schedule...</p>
-}
-else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
-{
-    <h3>No upcoming games</h3>
 }
 @if (!_isLoggedIn)
 {
@@ -745,6 +738,25 @@ else
                                OnCancel="CloseDialog" />
         </div>
     </div>
+}
+<div class="schedule-main-column">
+@if (_loadRetry.IsRetryWaiting)
+{
+    <ScheduleLoadRetryBanner Message="@(_loadRetry.RetryMessage ?? string.Empty)"
+                             SecondsRemaining="@(_loadRetry.RetrySecondsRemaining ?? 0)"
+                             TotalSeconds="@_loadRetry.RetryTotalSeconds" />
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <p class="schedule-error schedule-main-column__message">@_errorMessage</p>
+}
+@if (_loading)
+{
+    <p class="schedule-main-column__message">Loading schedule...</p>
+}
+else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage) && !_loadRetry.IsRetryWaiting)
+{
+    <h3 class="schedule-main-column__message">No upcoming games</h3>
 }
 @if (!_loading && _upcoming.Count > 0)
 {
@@ -850,6 +862,7 @@ else
 </table>
 </div>
 }
+</div>
 @if (_isLoggedIn)
 {
 <section class="admin-panel">
@@ -935,6 +948,15 @@ else
     private string? _themeError;
     private readonly Dictionary<string, KidThemeColorValidationIssue> _themeIssuesByKid =
         new(StringComparer.Ordinal);
+    private CancellationTokenSource? _reloadCts;
+    private readonly ScheduleLoadRetryPageState _loadRetry = new();
+
+    public void Dispose()
+    {
+        _reloadCts?.Cancel();
+        _reloadCts?.Dispose();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadKidThemesAsync();
@@ -1242,13 +1264,30 @@ else
             _savingThemes = false;
         }
     }
+    private Task OnScheduleLoadRetryWaitingAsync(ScheduleLoadRetryUpdate update)
+    {
+        _loading = false;
+        _errorMessage = null;
+        _loadRetry.ApplyWaiting(update);
+        return InvokeAsync(StateHasChanged);
+    }
+
     private async Task ReloadAsync()
     {
+        _reloadCts?.Cancel();
+        _reloadCts?.Dispose();
+        _reloadCts = new CancellationTokenSource();
+        var ct = _reloadCts.Token;
+
         _loading = true;
         _errorMessage = null;
+        _loadRetry.Clear();
         try
         {
-            var (data, error) = await SportsScheduleApiClient.LoadAllAsync(Http);
+            var (data, error) = await SportsScheduleApiClient.LoadAllWithRetryAsync(
+                Http,
+                OnScheduleLoadRetryWaitingAsync,
+                ct);
             if (error != null)
             {
                 _errorMessage = error;
@@ -1257,9 +1296,14 @@ else
             }
             else
             {
+                _loadRetry.Clear();
                 _allEvents = data.Events ?? new List<Event>();
                 _upcoming = SportsSchedules.GetUpcoming(_allEvents);
             }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return;
         }
         catch (Exception)
         {
@@ -1269,7 +1313,10 @@ else
         }
         finally
         {
-            _loading = false;
+            if (!ct.IsCancellationRequested)
+            {
+                _loading = false;
+            }
         }
     }
     private string FormStartTimeString =>
