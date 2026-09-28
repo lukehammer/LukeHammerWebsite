@@ -1013,9 +1013,73 @@ a, .btn-link {
     margin-top: 0.15rem;
 }
 
+.schedule-table-responsive .schedule-location-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+}
+
 .schedule-table-responsive .schedule-location {
     line-height: 1.4;
     font-size: 0.9375rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.schedule-table-responsive .schedule-map-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.22);
+    background: rgba(255, 255, 255, 0.65);
+    color: inherit;
+    cursor: pointer;
+}
+
+.schedule-table-responsive .schedule-map-btn:hover {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(0, 0, 0, 0.35);
+}
+
+.schedule-kid-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0;
+}
+
+.schedule-kid-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.25;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.schedule-kid-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.65rem;
+    margin: 0.75rem 0 1rem;
+    max-width: 100%;
+}
+
+.schedule-kid-legend-label {
+    font-size: 0.875rem;
+    font-weight: 600;
 }
 
 .schedule-table-responsive .schedule-row-actions .schedule-action-buttons {
@@ -1068,6 +1132,10 @@ a, .btn-link {
         content: "Event";
     }
 
+    .schedule-table-responsive .schedule-cell-kids::before {
+        content: "Kids";
+    }
+
     .schedule-table-responsive .schedule-cell-location::before {
         content: "Location";
     }
@@ -1105,15 +1173,19 @@ a, .btn-link {
 
 @media (min-width: 641px) {
     .schedule-table-responsive .schedule-cell-when {
-        width: 34%;
+        width: 28%;
     }
 
     .schedule-table-responsive .schedule-cell-matchup {
-        width: 26%;
+        width: 22%;
+    }
+
+    .schedule-table-responsive .schedule-cell-kids {
+        width: 14%;
     }
 
     .schedule-table-responsive .schedule-cell-location {
-        width: 18%;
+        width: 16%;
     }
 
     .schedule-table-responsive .schedule-cell-updated {

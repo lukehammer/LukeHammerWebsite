@@ -11,7 +11,10 @@ namespace BlazorApp.Shared
         public static readonly TimeSpan EarliestTime = TimeSpan.FromHours(6);
         public static readonly TimeSpan LatestTime = TimeSpan.FromHours(24);
         public static readonly TimeSpan TypicalStart = TimeSpan.FromHours(8);
-        public static readonly TimeSpan TypicalEnd = TimeSpan.FromHours(21);
+        /// <summary>Last typical slot before late games (7:30 PM).</summary>
+        public static readonly TimeSpan TypicalEnd = new TimeSpan(19, 30, 0);
+        /// <summary>Late games start at 8:00 PM or later.</summary>
+        public static readonly TimeSpan LateStart = TimeSpan.FromHours(20);
 
         public static DateTime MinSelectableDate() => WashingtonScheduleTime.PacificToday;
 
@@ -60,21 +63,17 @@ namespace BlazorApp.Shared
                 .ToList();
         }
 
-        public static string FormatDateOptionLabel(DateTime date)
+        /// <summary>Fixed-width label for date &lt;select&gt; options: MM/dd/yyyy — weekday.</summary>
+        public static string FormatDateOptionLabel(DateTime date) => FormatDatePickerLabel(date);
+
+        public static string FormatDatePickerLabel(DateTime date)
         {
-            var longDate = FormatDateHint(date);
-            if (date.Date == WashingtonScheduleTime.PacificToday)
-            {
-                return $"Today — {longDate}";
-            }
-
-            if (date.Date == WashingtonScheduleTime.PacificToday.AddDays(1))
-            {
-                return $"Tomorrow — {longDate}";
-            }
-
-            return longDate;
+            var numeric = date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
+            var weekday = date.ToString("dddd", CultureInfo.CurrentCulture);
+            return $"{numeric} — {weekday.PadRight(WeekdayColumnWidth)}";
         }
+
+        private const int WeekdayColumnWidth = 9;
 
         public static string FormatDateForInput(DateTime date) =>
             date.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -88,7 +87,7 @@ namespace BlazorApp.Shared
             }
 
             if (DateTime.TryParseExact(
-                    value.Trim(),
+                    value!.Trim(),
                     "yyyy-MM-dd",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
@@ -101,8 +100,7 @@ namespace BlazorApp.Shared
             return false;
         }
 
-        public static string FormatDateHint(DateTime date) =>
-            date.ToString("dddd, MMMM d, yyyy", CultureInfo.CurrentCulture);
+        public static string FormatDateHint(DateTime date) => FormatDatePickerLabel(date);
 
         public static string FormatTimeForStorage(TimeSpan time) =>
             $"{(int)time.TotalHours:D2}:{time.Minutes:D2}";
@@ -115,7 +113,7 @@ namespace BlazorApp.Shared
                 return false;
             }
 
-            if (string.Equals(value.Trim(), "24:00", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(value!.Trim(), "24:00", StringComparison.OrdinalIgnoreCase))
             {
                 time = TimeSpan.FromDays(1);
                 return true;
@@ -179,14 +177,14 @@ namespace BlazorApp.Shared
                     .ToList();
             }
 
-            var typical = slots.Where(s => s.Time >= TypicalStart && s.Time <= TypicalEnd).ToList();
+            var typical = slots.Where(s => s.Time >= TypicalStart && s.Time < LateStart).ToList();
             var early = slots.Where(s => s.Time >= EarliestTime && s.Time < TypicalStart).ToList();
-            var late = slots.Where(s => s.Time > TypicalEnd).ToList();
+            var late = slots.Where(s => s.Time >= LateStart).ToList();
 
             var groups = new List<ScheduleTimeSlotGroup>();
             if (typical.Count > 0)
             {
-                groups.Add(new ScheduleTimeSlotGroup("Typical game times (8 AM – 9 PM)", typical));
+                groups.Add(new ScheduleTimeSlotGroup("Typical game times (8 AM – 7:30 PM)", typical));
             }
 
             if (early.Count > 0)
@@ -202,7 +200,7 @@ namespace BlazorApp.Shared
 
             if (late.Count > 0)
             {
-                groups.Add(new ScheduleTimeSlotGroup("Late (after 9 PM)", late));
+                groups.Add(new ScheduleTimeSlotGroup("Late (8 PM or later)", late));
             }
 
             return groups;

@@ -13,9 +13,9 @@ namespace BlazorApp.Shared
 
         public TimeSpan? StartTime { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        public string Location { get; set; }
+        public string Location { get; set; } = string.Empty;
 
         public string Sport { get; set; } = SportNames.Football;
 
@@ -101,19 +101,14 @@ namespace BlazorApp.Shared
         {
             get
             {
-                if (string.Equals(Sport, SportNames.Football, StringComparison.OrdinalIgnoreCase))
-                {
-                    return $"Woodland JV {Name}";
-                }
-
-                if (string.Equals(Sport, SportNames.Soccer, StringComparison.OrdinalIgnoreCase))
-                {
-                    return $"Bain {Name}";
-                }
-
-                return Name ?? string.Empty;
+                var name = string.IsNullOrWhiteSpace(Name) ? "—" : Name.Trim();
+                var sport = SportLabel;
+                return string.IsNullOrWhiteSpace(sport) ? name : $"{sport}: {name}";
             }
         }
+
+        [JsonIgnore]
+        public string? GoogleMapsSearchUrl => ScheduleMapSearch.BuildGoogleMapsSearchUrl(Location);
 
         [JsonIgnore]
         public string MatchupDisplay => string.IsNullOrWhiteSpace(LocationDisplay) || LocationDisplay == "—"

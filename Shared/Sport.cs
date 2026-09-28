@@ -21,7 +21,7 @@ namespace BlazorApp.Shared
                 return false;
             }
 
-            var trimmed = input.Trim();
+            var trimmed = input!.Trim();
             if (trimmed.Length > 40)
             {
                 return false;

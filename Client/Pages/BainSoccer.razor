@@ -129,6 +129,8 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
 
             <th scope="col" class="schedule-cell-matchup">Event</th>
 
+            <th scope="col" class="schedule-cell-kids">Kids</th>
+
             <th scope="col" class="schedule-cell-location">Location</th>
 
         </tr>
@@ -155,8 +157,12 @@ else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
                 <div class="schedule-matchup">@game.MatchupTitle</div>
             </td>
 
+            <td class="schedule-cell-kids">
+                <ScheduleKidBadges ScheduleEvent="game" DefaultKidWhenEmpty="June" />
+            </td>
+
             <td class="schedule-cell-location">
-                <div class="schedule-location">@game.LocationDisplay</div>
+                <ScheduleLocationLink ScheduleEvent="game" />
             </td>
 
         </tr>

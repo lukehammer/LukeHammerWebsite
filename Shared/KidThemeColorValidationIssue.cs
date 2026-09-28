@@ -4,6 +4,6 @@ namespace BlazorApp.Shared
     {
         public string Message { get; set; } = string.Empty;
 
-        public string SuggestedHex { get; set; }
+        public string? SuggestedHex { get; set; }
     }
 }

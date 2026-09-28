@@ -143,10 +143,17 @@
       margin: 0;
       font-size: 0.875rem;
       color: #64748b;
+      font-family: ui-monospace, "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
     }
-    .schedule-theme-combined .event-time-select,
-    .schedule-theme-combined .event-date-select {
+    .schedule-theme-combined .event-time-select {
       font-size: 1rem;
+    }
+    .schedule-theme-combined .event-date-select {
+      font-family: ui-monospace, "Cascadia Mono", "Consolas", "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.9375rem;
+      letter-spacing: 0;
     }
     .schedule-theme-combined .event-form-fields .event-form-span-full {
       grid-column: 1 / -1;
@@ -168,6 +175,69 @@
       font-weight: normal;
       margin: 0;
     }
+    .schedule-theme-combined .event-form-datetime-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem 1rem;
+      align-items: start;
+    }
+    .schedule-theme-combined .event-form-datetime-row .event-form-field-date,
+    .schedule-theme-combined .event-form-datetime-row .event-form-field-time {
+      min-width: 0;
+    }
+    .schedule-theme-combined .event-sport-select,
+    .schedule-theme-combined .event-sport-input {
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .event-sport-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .schedule-theme-combined .event-sport-custom .event-sport-input {
+      flex: 1 1 12rem;
+    }
+    .schedule-theme-combined .event-sport-back-btn {
+      min-height: 44px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .event-location-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.5rem;
+    }
+    .schedule-theme-combined .event-location-chip {
+      max-width: 100%;
+      text-align: left;
+      min-height: 36px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.25;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .event-location-chip[aria-pressed="true"] {
+      border-color: #4b5563;
+      background: #e5e7eb;
+    }
+    .schedule-theme-combined .event-location-chip:hover:not(:disabled) {
+      background: #e2e8f0;
+    }
     .schedule-theme-combined .event-form-error {
       margin: 0 0 0.5rem;
     }
@@ -181,6 +251,11 @@
     .schedule-theme-combined .event-form-saving {
       font-size: 0.9rem;
       color: #475569;
+    }
+    @@media (max-width: 639px) {
+      .schedule-theme-combined .event-form-datetime-row {
+        grid-template-columns: 1fr;
+      }
     }
     @@media (min-width: 640px) {
       .schedule-theme-combined .event-form-fields {
@@ -652,6 +727,8 @@ else
                                Sport="@_formSport"
                                SportChanged="OnFormSportChangedAsync"
                                SportOptions="@FormSportOptions"
+                               LocationSuggestions="@FormLocationSuggestions"
+                               LocationAutocomplete="@FormLocationAutocomplete"
                                SelectedKids="@_formKids"
                                Date="@_formDate"
                                DateChanged="OnFormDateChangedAsync"
@@ -669,6 +746,10 @@ else
         </div>
     </div>
 }
+@if (!_loading && _upcoming.Count > 0)
+{
+    <ScheduleKidLegend />
+}
 @if (!_loading)
 {
 <div class="schedule-table-wrap">
@@ -677,6 +758,7 @@ else
         <tr>
             <th scope="col" class="schedule-cell-when">When</th>
             <th scope="col" class="schedule-cell-matchup">Event</th>
+            <th scope="col" class="schedule-cell-kids">Kids</th>
             <th scope="col" class="schedule-cell-location">Location</th>
             @if (_isLoggedIn)
             {
@@ -693,7 +775,7 @@ else
             style="@ScheduleKidThemes.GetRowStyle(game)">
             <td class="schedule-cell-when">
                 <div class="schedule-meta" aria-label="When">
-                    @foreach (var part in game.ScheduleMetaPartsWithSport)
+                    @foreach (var part in game.ScheduleMetaParts)
                     {
                         <span class="schedule-meta-part">@part</span>
                     }
@@ -702,8 +784,11 @@ else
             <td class="schedule-cell-matchup">
                 <div class="schedule-matchup">@game.MatchupTitle</div>
             </td>
+            <td class="schedule-cell-kids">
+                <ScheduleKidBadges ScheduleEvent="game" />
+            </td>
             <td class="schedule-cell-location">
-                <div class="schedule-location">@game.LocationDisplay</div>
+                <ScheduleLocationLink ScheduleEvent="game" />
             </td>
             @if (_isLoggedIn)
             {
@@ -740,6 +825,8 @@ else
                                            Sport="@_formSport"
                                            SportChanged="OnFormSportChangedAsync"
                                            SportOptions="@FormSportOptions"
+                                           LocationSuggestions="@FormLocationSuggestions"
+                               LocationAutocomplete="@FormLocationAutocomplete"
                                            SelectedKids="@_formKids"
                                            Date="@_formDate"
                                            DateChanged="OnFormDateChangedAsync"
@@ -774,9 +861,10 @@ else
             {
                 <div class="kid-color-row">
                     <label class="kid-color-option">
-                        @kid
+                        <span class="schedule-kid-badge" style="@ScheduleKidThemes.GetKidBadgeInlineStyle(kid)">@kid</span>
                         <input type="color"
                                value="@GetThemeColor(kid)"
+                               aria-label="@($"{kid} row background color")"
                                @onchange="e => OnKidColorChanged(kid, e.Value?.ToString())" />
                     </label>
                     @if (_themeIssuesByKid.TryGetValue(kid, out var themeIssue))
@@ -950,7 +1038,7 @@ else
     }
     private static string GetEventRowId(Event evt) => $"event-row-{evt.Id}";
 
-    private int ScheduleTableColumnCount => _isLoggedIn ? 5 : 3;
+    private int ScheduleTableColumnCount => _isLoggedIn ? 6 : 4;
 
     private bool IsEditingGame(Event game) =>
         _isLoggedIn && _dialogOpen && _isEditDialog && _editingId == game.Id;
@@ -1194,6 +1282,12 @@ else
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+    private IReadOnlyList<string> FormLocationSuggestions =>
+        ScheduleLocationSuggestions.Build(_allEvents);
+
+    private IReadOnlyList<string> FormLocationAutocomplete =>
+        ScheduleLocationSuggestions.BuildAutocompleteList(_allEvents);
 
     private Task OnFormSportChangedAsync(string sport)
     {

@@ -72,7 +72,7 @@ namespace BlazorApp.Shared
                 return;
             }
 
-            JsonNode root;
+            JsonNode? root;
             try
             {
                 root = JsonNode.Parse(json);
@@ -143,7 +143,7 @@ namespace BlazorApp.Shared
                 return SportNames.Football;
             }
 
-            if (int.TryParse(sport.Trim(), out var index)
+            if (int.TryParse(sport!.Trim(), out var index)
                 && index >= 0
                 && index < SportNames.Defaults.Length)
             {
@@ -273,17 +273,19 @@ namespace BlazorApp.Shared
 
             IEnumerable<Event> query = events.Where(x => x != null && x.Date >= DateTime.Today);
 
-            if (!string.IsNullOrWhiteSpace(sport))
+            if (sport is { } sportValue && !string.IsNullOrWhiteSpace(sportValue))
             {
+                var sportFilter = sportValue.Trim();
                 query = query.Where(x =>
-                    string.Equals(x!.Sport, sport.Trim(), StringComparison.OrdinalIgnoreCase));
+                    string.Equals(x!.Sport, sportFilter, StringComparison.OrdinalIgnoreCase));
             }
 
-            if (!string.IsNullOrWhiteSpace(kid))
+            if (kid is { } kidValue && !string.IsNullOrWhiteSpace(kidValue))
             {
+                var kidFilter = kidValue.Trim();
                 query = query.Where(x =>
                     (x!.Kids ?? Enumerable.Empty<string>()).Any(k =>
-                        string.Equals(k, kid, StringComparison.OrdinalIgnoreCase)));
+                        string.Equals(k, kidFilter, StringComparison.OrdinalIgnoreCase)));
             }
 
             return query

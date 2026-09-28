@@ -15,7 +15,7 @@ namespace BlazorApp.Shared
             "Luke"
         };
 
-        public static bool IsLuke(string submittedBy, IEnumerable<string> configuredAliases = null)
+        public static bool IsLuke(string submittedBy, IEnumerable<string>? configuredAliases = null)
         {
             if (string.IsNullOrWhiteSpace(submittedBy))
             {

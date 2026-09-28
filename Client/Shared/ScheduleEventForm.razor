@@ -1,366 +1,1036 @@
 @using BlazorApp.Shared
+
 @inject IJSRuntime JS
 
+
+
 <div class="event-form-dialog-inner" role="dialog" aria-modal="true" aria-labelledby="@_titleId">
+
     <div class="event-form-dialog-header">
+
         <h4 id="@_titleId">@(IsEdit ? "Edit event" : "Add event")</h4>
+
         <button type="button" class="event-form-close" disabled="@Saving" @onclick="OnCancel" aria-label="Close">×</button>
+
     </div>
 
+
+
     @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+
     {
+
         <p class="schedule-error event-form-error">@ErrorMessage</p>
+
     }
+
+
 
     <EditForm Model="_model" class="admin-form-grid event-form-fields">
+
         @if (ShowSubmittedByField)
+
         {
-            <div>
+
+            <div class="event-form-span-full">
+
                 <label for="@_firstNameId">Your first name</label>
+
                 <input id="@_firstNameId"
+
                        @ref="_firstFieldRef"
+
                        value="@_model.SubmittedBy"
+
                        @oninput="OnSubmittedByInput"
+
                        placeholder="Your first name"
+
                        autocomplete="given-name" />
+
             </div>
+
         }
-        <div class="event-form-field-sport event-form-span-full">
-            <label for="@_sportId">Sport</label>
-            <input id="@_sportId"
-                   @ref="_sportFieldRef"
-                   class="event-sport-input"
-                   list="@_sportListId"
-                   value="@_model.Sport"
-                   placeholder="Pick or type a sport"
-                   @oninput="OnSportInputAsync"
-                   @onchange="OnFieldCommittedAsync" />
-            <datalist id="@_sportListId">
-                @foreach (var s in SportOptions)
-                {
-                    <option value="@s"></option>
-                }
-            </datalist>
-        </div>
+
+
+
         <div class="kid-checkboxes event-form-span-full">
+
             <span class="field-label">Kids</span>
-            @foreach (var kid in ScheduleKids.AllowedKids)
+
+            @for (var ki = 0; ki < ScheduleKids.AllowedKids.Count; ki++)
             {
+                var kid = ScheduleKids.AllowedKids[ki];
                 <label class="kid-option">
-                    <input type="checkbox"
-                           checked="@SelectedKids.Contains(kid)"
-                           @onchange="e => OnKidToggledAsync(kid, (bool)e.Value!)" />
-                    @kid
+                    @if (ki == 0)
+                    {
+                        <input type="checkbox"
+                               @ref="_firstKidFieldRef"
+                               checked="@SelectedKids.Contains(kid)"
+                               @onchange="e => OnKidToggledAsync(kid, (bool)e.Value!)" />
+                    }
+                    else
+                    {
+                        <input type="checkbox"
+                               checked="@SelectedKids.Contains(kid)"
+                               @onchange="e => OnKidToggledAsync(kid, (bool)e.Value!)" />
+                    }
+                    <span class="schedule-kid-badge" style="@ScheduleKidThemes.GetKidBadgeInlineStyle(kid)">@kid</span>
                 </label>
             }
+
         </div>
-        <div class="event-form-field-date event-form-span-full">
-            <label for="@_dateId">Date</label>
-            <div class="event-date-picker">
-                <select id="@_dateId"
-                        class="event-date-input event-date-select"
-                        value="@_dateInputValue"
-                        @onchange="OnDateSelectAsync">
-                    @foreach (var month in _dateOptionGroups)
-                    {
-                        <optgroup label="@month.Label">
-                            @foreach (var day in month.Options)
-                            {
-                                <option value="@day.Value">@day.Label</option>
-                            }
-                        </optgroup>
-                    }
-                </select>
-                <div class="event-date-quick" role="group" aria-label="Quick date">
-                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(0)">Today</button>
-                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(1)">Tomorrow</button>
-                    <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="SetNextSaturdayAsync">Next Sat</button>
-                </div>
-                <p class="event-date-hint" aria-live="polite">@_dateHint</p>
-            </div>
-        </div>
-        <div class="event-form-field-time event-form-span-full">
-            <label for="@_timeId">Start time (optional)</label>
-            <select id="@_timeId"
-                    class="event-time-select"
-                    value="@_selectedTimeValue"
-                    @onchange="OnStartTimeSelectAsync">
-                <option value="">No start time</option>
-                @foreach (var group in _timeSlotGroups)
-                {
-                    <optgroup label="@group.Label">
-                        @foreach (var slot in group.Slots)
+
+
+
+        <div class="event-form-datetime-row event-form-span-full">
+
+            <div class="event-form-field-date">
+
+                <label for="@_dateId">Date</label>
+
+                <div class="event-date-picker">
+
+                    <select id="@_dateId"
+
+                            class="event-date-input event-date-select"
+
+                            value="@_dateInputValue"
+
+                            @onchange="OnDateSelectAsync">
+
+                        @foreach (var month in _dateOptionGroups)
+
                         {
-                            <option value="@slot.Value">@slot.Label</option>
+
+                            <optgroup label="@month.Label">
+
+                                @foreach (var day in month.Options)
+
+                                {
+
+                                    <option value="@day.Value">@day.Label</option>
+
+                                }
+
+                            </optgroup>
+
                         }
-                    </optgroup>
-                }
-            </select>
+
+                    </select>
+
+                    <div class="event-date-quick" role="group" aria-label="Quick date">
+
+                        <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(0)">Today</button>
+
+                        <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="() => SetQuickDateAsync(1)">Tomorrow</button>
+
+                        <button type="button" class="event-date-quick-btn" disabled="@Saving" @onclick="SetNextSaturdayAsync">Next Sat</button>
+
+                    </div>
+
+                    <p class="event-date-hint" aria-live="polite">@_dateHint</p>
+
+                </div>
+
+            </div>
+
+            <div class="event-form-field-time">
+
+                <label for="@_timeId">Start time</label>
+
+                <select id="@_timeId"
+
+                        class="event-time-select"
+
+                        value="@_selectedTimeValue"
+
+                        @onchange="OnStartTimeSelectAsync">
+
+                    <option value="">—</option>
+
+                    @foreach (var group in _timeSlotGroups)
+
+                    {
+
+                        <optgroup label="@group.Label">
+
+                            @foreach (var slot in group.Slots)
+
+                            {
+
+                                <option value="@slot.Value">@slot.Label</option>
+
+                            }
+
+                        </optgroup>
+
+                    }
+
+                </select>
+
+            </div>
+
         </div>
+
+
+
+        <div class="event-form-field-sport event-form-span-full">
+
+            <label for="@_sportSelectId">Sport</label>
+
+            @if (!_sportCustomMode)
+
+            {
+
+                <select id="@_sportSelectId"
+
+                        class="event-sport-select"
+
+                        value="@_sportSelectKey"
+
+                        @onchange="OnSportSelectAsync">
+
+                    @foreach (var s in _listedSports)
+
+                    {
+
+                        <option value="@s">@s</option>
+
+                    }
+
+                    <option value="@CustomSportOption">Other sport…</option>
+
+                </select>
+
+            }
+
+            else
+
+            {
+
+                <div class="event-sport-custom">
+
+                    <input id="@_sportCustomId"
+
+                           @ref="_sportFieldRef"
+
+                           class="event-sport-input"
+
+                           value="@_model.Sport"
+
+                           placeholder="Type sport name"
+
+                           @oninput="OnSportCustomInputAsync"
+
+                           @onchange="OnFieldCommittedAsync" />
+
+                    @if (_listedSports.Count > 0)
+
+                    {
+
+                        <button type="button"
+
+                                class="event-sport-back-btn"
+
+                                disabled="@Saving"
+
+                                @onclick="ShowListedSportsAsync">
+
+                            Pick from list
+
+                        </button>
+
+                    }
+
+                </div>
+
+            }
+
+        </div>
+
+
+
         <div class="event-form-field-name event-form-span-full">
+
             <label for="@_nameId">Name / matchup</label>
+
             <input id="@_nameId" value="@_model.Name" @oninput="OnNameInput" @onchange="OnFieldCommittedAsync" />
+
         </div>
+
+
+
         <div class="event-form-field-location event-form-span-full">
+
             <label for="@_locationId">Location</label>
-            <input id="@_locationId" value="@_model.Location" @oninput="OnLocationInput" @onchange="OnFieldCommittedAsync" />
+
+            @if (_locationSuggestions.Count > 0)
+
+            {
+
+                <div class="event-location-quick" role="group" aria-label="Suggested locations">
+
+                    @foreach (var loc in _locationSuggestions)
+
+                    {
+
+                        <button type="button"
+
+                                class="event-location-chip"
+
+                                disabled="@Saving"
+
+                                aria-pressed="@(string.Equals(_model.Location, loc, StringComparison.OrdinalIgnoreCase))"
+
+                                @onclick="() => PickLocationAsync(loc)">
+
+                            @loc
+
+                        </button>
+
+                    }
+
+                </div>
+
+            }
+
+            <input id="@_locationId"
+                   class="event-location-input"
+                   list="@_locationListId"
+                   value="@_model.Location"
+                   @oninput="OnLocationInput"
+                   @onchange="OnFieldCommittedAsync"
+                   placeholder="Venue or field"
+                   autocomplete="off" />
+            <datalist id="@_locationListId">
+                @foreach (var loc in _locationAutocomplete)
+                {
+                    <option value="@loc"></option>
+                }
+            </datalist>
+
         </div>
+
     </EditForm>
 
+
+
     @if (UseAutoSave)
+
     {
+
         <div class="admin-actions event-form-actions">
+
             @if (Saving)
+
             {
+
                 <span class="event-form-saving" aria-live="polite">Saving…</span>
+
             }
+
             @if (ShowUndoAll)
+
             {
+
                 <button type="button" class="btn-schedule-action" disabled="@Saving" @onclick="OnUndoAll">
+
                     Undo all changes
+
                 </button>
+
             }
+
         </div>
+
     }
+
     else
+
     {
+
         <div class="admin-actions event-form-actions">
+
             @if (IsEdit)
+
             {
+
                 <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Save changes</button>
+
             }
+
             else
+
             {
+
                 <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Add event</button>
+
             }
+
             <button type="button" disabled="@Saving" @onclick="OnCancel">Cancel</button>
+
         </div>
+
     }
+
 </div>
 
+
+
 @code {
+
+    private const string CustomSportOption = "__custom__";
+
+
+
     private readonly string _titleId = $"event-form-title-{Guid.NewGuid():N}";
+
     private readonly string _firstNameId = $"event-first-{Guid.NewGuid():N}";
-    private readonly string _sportId = $"event-sport-{Guid.NewGuid():N}";
-    private readonly string _sportListId = $"event-sport-list-{Guid.NewGuid():N}";
+
+    private readonly string _sportSelectId = $"event-sport-select-{Guid.NewGuid():N}";
+
+    private readonly string _sportCustomId = $"event-sport-custom-{Guid.NewGuid():N}";
+
     private readonly string _dateId = $"event-date-{Guid.NewGuid():N}";
+
     private readonly string _timeId = $"event-time-{Guid.NewGuid():N}";
+
     private string _dateInputValue = string.Empty;
+
     private IReadOnlyList<ScheduleDateOptionGroup> _dateOptionGroups = Array.Empty<ScheduleDateOptionGroup>();
+
     private string _dateHint = string.Empty;
+
     private string _selectedTimeValue = string.Empty;
+
     private IReadOnlyList<ScheduleTimeSlotGroup> _timeSlotGroups = Array.Empty<ScheduleTimeSlotGroup>();
+
     private readonly string _nameId = $"event-name-{Guid.NewGuid():N}";
+
     private readonly string _locationId = $"event-loc-{Guid.NewGuid():N}";
+    private readonly string _locationListId = $"event-loc-list-{Guid.NewGuid():N}";
 
     private ElementReference _firstFieldRef;
+
+    private ElementReference _firstKidFieldRef;
+
     private ElementReference _sportFieldRef;
+
+
+
     private readonly EventFormModel _model = new();
 
+    private IReadOnlyList<string> _listedSports = Array.Empty<string>();
+
+    private IReadOnlyList<string> _locationSuggestions = Array.Empty<string>();
+    private IReadOnlyList<string> _locationAutocomplete = Array.Empty<string>();
+
+    private bool _sportCustomMode;
+
+    private string _sportSelectKey = SportNames.Football;
+
+
+
     [Parameter] public bool IsEdit { get; set; }
+
     [Parameter] public bool ShowSubmittedByField { get; set; } = true;
+
     [Parameter] public string? ErrorMessage { get; set; }
+
     [Parameter] public bool Saving { get; set; }
+
     [Parameter] public string SubmittedBy { get; set; } = string.Empty;
+
     [Parameter] public EventCallback<string> SubmittedByChanged { get; set; }
+
     [Parameter] public IReadOnlyList<string> SportOptions { get; set; } = SportNames.Defaults;
+
+    [Parameter] public IReadOnlyList<string> LocationSuggestions { get; set; } = Array.Empty<string>();
+
+    [Parameter] public IReadOnlyList<string> LocationAutocomplete { get; set; } = Array.Empty<string>();
+
     [Parameter] public string Sport { get; set; } = SportNames.Football;
+
     [Parameter] public EventCallback<string> SportChanged { get; set; }
+
     [Parameter] public HashSet<string> SelectedKids { get; set; } = new(StringComparer.Ordinal);
+
     [Parameter] public DateTime Date { get; set; }
+
     [Parameter] public EventCallback<DateTime> DateChanged { get; set; }
+
     [Parameter] public string? StartTimeString { get; set; }
+
     [Parameter] public EventCallback<ChangeEventArgs> StartTimeChanged { get; set; }
+
     [Parameter] public string Name { get; set; } = string.Empty;
+
     [Parameter] public EventCallback<string> NameChanged { get; set; }
+
     [Parameter] public string Location { get; set; } = string.Empty;
+
     [Parameter] public EventCallback<string> LocationChanged { get; set; }
+
     [Parameter] public EventCallback<(string Kid, bool Selected)> OnKidToggled { get; set; }
+
     [Parameter] public bool UseAutoSave { get; set; } = true;
+
     [Parameter] public bool ShowUndoAll { get; set; }
+
     [Parameter] public EventCallback OnFieldCommitted { get; set; }
+
     [Parameter] public EventCallback OnSubmit { get; set; }
+
     [Parameter] public EventCallback OnCancel { get; set; }
+
     [Parameter] public EventCallback OnUndoAll { get; set; }
 
+
+
     protected override void OnParametersSet()
+
     {
+
         _model.SubmittedBy = SubmittedBy;
+
         _model.Sport = Sport;
+
         _model.Date = ScheduleEventPickers.NormalizeSelectableDate(Date.Date);
+
         _model.Name = Name;
+
         _model.Location = Location;
+
         _model.StartTime = ParseStartTime(StartTimeString);
+
         _dateOptionGroups = ScheduleEventPickers.BuildDateOptionGroups();
+
+        _locationSuggestions = LocationSuggestions ?? Array.Empty<string>();
+        _locationAutocomplete = LocationAutocomplete?.Count > 0
+            ? LocationAutocomplete
+            : _locationSuggestions;
+
+        _listedSports = BuildListedSports(SportOptions);
+
+        SyncSportModeFromModel();
+
         SyncDateDisplay();
+
         RefreshTimeSelectionForDate();
+
     }
+
+
+
+    private static IReadOnlyList<string> BuildListedSports(IReadOnlyList<string> sportOptions)
+
+    {
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var list = new List<string>();
+
+        foreach (var sport in SportNames.Defaults.Concat(sportOptions ?? Array.Empty<string>()))
+
+        {
+
+            if (string.IsNullOrWhiteSpace(sport) || !seen.Add(sport.Trim()))
+
+            {
+
+                continue;
+
+            }
+
+
+
+            list.Add(sport.Trim());
+
+        }
+
+
+
+        return list;
+
+    }
+
+
+
+    private void SyncSportModeFromModel()
+
+    {
+
+        var match = _listedSports.FirstOrDefault(s =>
+
+            string.Equals(s, _model.Sport, StringComparison.OrdinalIgnoreCase));
+
+        if (match != null)
+
+        {
+
+            _sportCustomMode = false;
+
+            _sportSelectKey = match;
+
+            _model.Sport = match;
+
+            return;
+
+        }
+
+
+
+        if (string.IsNullOrWhiteSpace(_model.Sport))
+
+        {
+
+            _sportCustomMode = false;
+
+            _sportSelectKey = _listedSports.FirstOrDefault() ?? SportNames.Football;
+
+            _model.Sport = _sportSelectKey;
+
+            return;
+
+        }
+
+
+
+        _sportCustomMode = true;
+
+        _sportSelectKey = CustomSportOption;
+
+    }
+
+
 
     private Task OnSubmittedByInput(ChangeEventArgs e)
+
     {
+
         _model.SubmittedBy = e.Value?.ToString() ?? string.Empty;
+
         return SubmittedByChanged.InvokeAsync(_model.SubmittedBy);
+
     }
 
-    private async Task OnSportInputAsync(ChangeEventArgs e)
+
+
+    private async Task OnSportSelectAsync(ChangeEventArgs e)
+
     {
-        _model.Sport = e.Value?.ToString() ?? string.Empty;
+
+        var value = e.Value?.ToString() ?? string.Empty;
+
+        if (string.Equals(value, CustomSportOption, StringComparison.Ordinal))
+
+        {
+
+            _sportCustomMode = true;
+
+            _sportSelectKey = CustomSportOption;
+
+            if (_listedSports.Any(s => string.Equals(s, _model.Sport, StringComparison.OrdinalIgnoreCase)))
+
+            {
+
+                _model.Sport = string.Empty;
+
+                await SportChanged.InvokeAsync(_model.Sport);
+
+            }
+
+
+
+            return;
+
+        }
+
+
+
+        _sportCustomMode = false;
+
+        _sportSelectKey = value;
+
+        _model.Sport = value;
+
         await SportChanged.InvokeAsync(_model.Sport);
+
+        await OnFieldCommittedAsync();
+
     }
+
+
+
+    private async Task OnSportCustomInputAsync(ChangeEventArgs e)
+
+    {
+
+        _model.Sport = e.Value?.ToString() ?? string.Empty;
+
+        await SportChanged.InvokeAsync(_model.Sport);
+
+    }
+
+
+
+    private async Task ShowListedSportsAsync()
+
+    {
+
+        _sportCustomMode = false;
+
+        var match = _listedSports.FirstOrDefault(s =>
+
+            string.Equals(s, _model.Sport, StringComparison.OrdinalIgnoreCase));
+
+        _sportSelectKey = match ?? _listedSports.FirstOrDefault() ?? SportNames.Football;
+
+        if (match != null)
+
+        {
+
+            _model.Sport = match;
+
+            await SportChanged.InvokeAsync(_model.Sport);
+
+            await OnFieldCommittedAsync();
+
+        }
+
+    }
+
+
 
     private async Task OnDateSelectAsync(ChangeEventArgs e)
+
     {
+
         if (!ScheduleEventPickers.TryParseDateFromInput(e.Value?.ToString(), out var parsed)
+
             || !ScheduleEventPickers.IsSelectableDate(parsed))
+
         {
+
             SyncDateDisplay();
+
             return;
+
         }
+
+
 
         _model.Date = parsed;
+
         SyncDateDisplay();
+
         await ApplyDateChangeAsync();
+
     }
+
+
 
     private async Task SetQuickDateAsync(int daysFromToday)
+
     {
+
         _model.Date = ScheduleEventPickers.AddDaysFromToday(daysFromToday);
+
         SyncDateDisplay();
+
         await ApplyDateChangeAsync();
+
     }
+
+
 
     private async Task SetNextSaturdayAsync()
+
     {
+
         _model.Date = ScheduleEventPickers.NextSaturdayFrom();
+
         SyncDateDisplay();
+
         await ApplyDateChangeAsync();
+
     }
+
+
 
     private async Task ApplyDateChangeAsync()
+
     {
+
         var clearedTime = RefreshTimeSelectionForDate();
+
         await DateChanged.InvokeAsync(_model.Date);
+
         if (clearedTime)
+
         {
+
             await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = string.Empty });
+
         }
 
+
+
         await OnFieldCommittedAsync();
+
     }
+
+
 
     private void SyncDateDisplay()
+
     {
+
         _dateInputValue = ScheduleEventPickers.FormatDateForInput(_model.Date);
+
         _dateHint = ScheduleEventPickers.FormatDateHint(_model.Date);
+
     }
+
+
 
     private async Task OnStartTimeSelectAsync(ChangeEventArgs e)
+
     {
+
         var raw = e.Value?.ToString();
+
         if (string.IsNullOrWhiteSpace(raw))
+
         {
+
             _selectedTimeValue = string.Empty;
+
             _model.StartTime = null;
+
             await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = string.Empty });
+
             await OnFieldCommittedAsync();
+
             return;
+
         }
+
+
 
         if (!ScheduleEventPickers.TryParseTimeFromStorage(raw, out var parsed)
+
             || WashingtonScheduleTime.IsEventInPast(_model.Date, parsed))
+
         {
+
             _selectedTimeValue = ScheduleEventPickers.FormatTimeForSelect(_model.StartTime);
+
             return;
+
         }
+
+
 
         _selectedTimeValue = raw;
+
         _model.StartTime = parsed;
+
         await StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = FormatStartTimeForParent(_model.StartTime) });
+
         await OnFieldCommittedAsync();
+
     }
+
+
 
     private bool RefreshTimeSelectionForDate()
+
     {
+
         _timeSlotGroups = ScheduleEventPickers.BuildTimeSlotGroups(_model.StartTime, _model.Date);
+
         if (!WashingtonScheduleTime.IsEventInPast(_model.Date, _model.StartTime))
+
         {
+
             _selectedTimeValue = ScheduleEventPickers.FormatTimeForSelect(_model.StartTime);
+
             return false;
+
         }
+
+
 
         _model.StartTime = null;
+
         _selectedTimeValue = string.Empty;
+
         return true;
+
     }
+
+
 
     private async Task OnKidToggledAsync(string kid, bool selected)
+
     {
+
         await OnKidToggled.InvokeAsync((kid, selected));
+
         await OnFieldCommittedAsync();
+
     }
+
+
 
     private Task OnFieldCommittedAsync() =>
+
         UseAutoSave ? OnFieldCommitted.InvokeAsync() : Task.CompletedTask;
 
+
+
     private Task OnNameInput(ChangeEventArgs e)
+
     {
+
         _model.Name = e.Value?.ToString() ?? string.Empty;
+
         return NameChanged.InvokeAsync(_model.Name);
+
     }
+
+
 
     private Task OnLocationInput(ChangeEventArgs e)
+
     {
+
         _model.Location = e.Value?.ToString() ?? string.Empty;
+
         return LocationChanged.InvokeAsync(_model.Location);
+
     }
 
-    public async Task FocusFirstFieldAsync()
+
+
+    private async Task PickLocationAsync(string location)
+
     {
-        var target = ShowSubmittedByField ? _firstFieldRef : _sportFieldRef;
-        try
-        {
-            await JS.InvokeVoidAsync("sportsScheduleAdmin.focusFirst", target);
-        }
-        catch (JSException)
-        {
-            await target.FocusAsync();
-        }
+
+        _model.Location = location;
+
+        await LocationChanged.InvokeAsync(_model.Location);
+
+        await OnFieldCommittedAsync();
+
     }
+
+
+
+    public async Task FocusFirstFieldAsync()
+
+    {
+
+        var target = ShowSubmittedByField
+
+            ? _firstFieldRef
+
+            : _firstKidFieldRef;
+
+        try
+
+        {
+
+            await JS.InvokeVoidAsync("sportsScheduleAdmin.focusFirst", target);
+
+        }
+
+        catch (JSException)
+
+        {
+
+            await target.FocusAsync();
+
+        }
+
+    }
+
+
 
     private Task SubmitAsync() => OnSubmit.InvokeAsync();
 
+
+
     private static TimeSpan? ParseStartTime(string? value)
+
     {
+
         if (string.IsNullOrWhiteSpace(value))
+
         {
+
             return null;
+
         }
+
+
 
         return ScheduleEventPickers.TryParseTimeFromStorage(value, out var time) ? time : null;
+
     }
+
+
 
     private static string FormatStartTimeForParent(TimeSpan? time)
+
     {
+
         if (!time.HasValue)
+
         {
+
             return string.Empty;
+
         }
+
+
 
         if (time.Value >= TimeSpan.FromDays(1))
+
         {
+
             return "24:00";
+
         }
 
+
+
         return ScheduleEventPickers.FormatTimeForStorage(time.Value);
+
     }
 
+
+
     private sealed class EventFormModel
+
     {
+
         public string SubmittedBy { get; set; } = string.Empty;
+
         public string Sport { get; set; } = SportNames.Football;
+
         public DateTime Date { get; set; }
+
         public TimeSpan? StartTime { get; set; }
+
         public string Name { get; set; } = string.Empty;
+
         public string Location { get; set; } = string.Empty;
+
     }
+
 }
+
+
