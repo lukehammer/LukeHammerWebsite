@@ -1,7 +1,18 @@
 ﻿<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        <ErrorBoundary>
+            <ChildContent>
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </ChildContent>
+            <ErrorContent Context="ex">
+                <div class="blazor-error-boundary" role="alert">
+                    <p><strong>Something went wrong on this page.</strong></p>
+                    <p>@ex.Message</p>
+                    <p><a href="">Reload</a></p>
+                </div>
+            </ErrorContent>
+        </ErrorBoundary>
     </Found>
     <NotFound>
         <PageTitle>Not found</PageTitle>

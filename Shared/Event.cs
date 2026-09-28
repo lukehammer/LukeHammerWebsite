@@ -1,43 +1,138 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace BlazorApp.Shared
 {
     public class Event
     {
-        public DateTime DateTime { get; set; }
+        public string Id { get; set; } = string.Empty;
+
+        public DateTime Date { get; set; }
+
+        public TimeSpan? StartTime { get; set; }
+
         public string Name { get; set; }
+
         public string Location { get; set; }
+
+        public Sport Sport { get; set; }
+
+        public List<string> Kids { get; set; } = new();
+
+        public string LastModifiedBy { get; set; } = string.Empty;
+
+        public DateTimeOffset? LastModifiedAt { get; set; }
+
+        /// <summary>Comma-separated kid names for display (alphabetical).</summary>
+        [JsonIgnore]
+        public string KidsDisplay
+        {
+            get
+            {
+                var kids = Kids ?? new List<string>();
+                return kids.Count == 0
+                    ? string.Empty
+                    : string.Join(", ", kids.OrderBy(k => k, StringComparer.Ordinal));
+            }
+        }
+
+        /// <summary>Primary kid for row theming when multiple kids are selected (first alphabetically among allowed names).</summary>
+        [JsonIgnore]
+        public string RowThemeKid =>
+            (Kids ?? new List<string>())
+                .Where(ScheduleKids.IsAllowed)
+                .OrderBy(k => k, StringComparer.Ordinal)
+                .FirstOrDefault()
+            ?? string.Empty;
+
+        public void ApplyLastModified(string submittedBy)
+        {
+            LastModifiedBy = submittedBy;
+            LastModifiedAt = WashingtonScheduleTime.Now;
+        }
+
+        [JsonIgnore]
+        public string LastUpdatedByDisplay =>
+            string.IsNullOrWhiteSpace(LastModifiedBy) ? "—" : LastModifiedBy;
+
+        [JsonIgnore]
+        public string LastModifiedWhenDisplay =>
+            WashingtonScheduleTime.FormatLastModified(LastModifiedAt);
+
+        /// <summary>Who and when (for signed-in schedule admin view).</summary>
+        [JsonIgnore]
+        public string LastModifiedSummary
+        {
+            get
+            {
+                var who = LastUpdatedByDisplay;
+                var when = LastModifiedWhenDisplay;
+                if (who == "—" && when == "—")
+                {
+                    return "—";
+                }
+
+                if (who == "—")
+                {
+                    return when;
+                }
+
+                if (when == "—")
+                {
+                    return who;
+                }
+
+                return $"{who} · {when}";
+            }
+        }
+
+        [JsonIgnore]
+        public string SportLabel => Sport switch
+        {
+            Sport.Baseball => "Baseball",
+            Sport.Football => "Football",
+            Sport.Soccer => "Soccer",
+            _ => string.Empty
+        };
+
+        [JsonIgnore]
+        public string MatchupDisplay => Sport switch
+        {
+            Sport.Football => $"Woodland JV {Name} at {Location}",
+            Sport.Soccer => $"Bain {Name} at {Location}",
+            _ => $"{Name} at {Location}"
+        };
+
+        [JsonIgnore]
+        public string TimeDisplay =>
+            StartTime.HasValue
+                ? DateTime.Today.Add(StartTime.Value).ToString("h:mm tt")
+                : "unscheduled";
 
         public static Event CreateBaseBallGame(string dateTime, string name)
         {
-            return new Event { DateTime = DateTime.Parse(dateTime), Name = name, Location = "H.B. Fuller Company Park" };
-        }
-        public static Event CreateContest(string dateTime, string name, string location)
-        {
+            var parsed = DateTime.Parse(dateTime);
 
-            return new Event { DateTime = DateTime.Parse(dateTime), Name = name, Location = location};
-            
-        }
-    }
-
-    public class Matches
-    {
-        public static List<Event> Contests => GetContest();
-        public static IEnumerable<Event> UpComingContests => Contests.Where(x => x.DateTime > DateTime.Now.AddDays(-1));
-
-        private static List<Event> GetContest()
-        {
-
-            var games = new List<Event>
+            return new Event
             {
-                Event.CreateContest("9/7/2025 14:00", "Jr. Hawks 12U Fallball 12U", "Heritage High School")
+                Date = parsed.Date,
+                StartTime = parsed.TimeOfDay,
+                Name = name,
+                Location = "H.B. Fuller Company Park"
             };
+        }
 
-            return games;
+        public static Event CreateContest(string date, string name, string location, TimeSpan? startTime = null)
+        {
+            return new Event
+            {
+                Date = DateTime.Parse(date).Date,
+                StartTime = startTime,
+                Name = name,
+                Location = location
+            };
         }
     }
 }

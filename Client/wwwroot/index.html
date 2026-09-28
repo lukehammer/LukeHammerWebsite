@@ -20,7 +20,40 @@
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="/js/sports-admin.js"></script>
+    <script src="/js/schedule-auth.js"></script>
+    <script src="/_framework/blazor.webassembly.js" autostart="false"></script>
+    <script>
+        (function () {
+            function showBootFailure(message, err) {
+                var app = document.getElementById('app');
+                if (app) {
+                    app.textContent = message;
+                }
+                if (err) {
+                    console.error(err);
+                }
+            }
+
+            function startBlazor() {
+                if (typeof Blazor === 'undefined') {
+                    showBootFailure(
+                        'Could not load Blazor (/_framework/blazor.webassembly.js returned 404). Stop the Client dev server, run dotnet build on Client, dotnet run --no-build, then hard refresh (Ctrl+F5).');
+                    return;
+                }
+
+                Blazor.start().catch(function (err) {
+                    var detail = err && (err.message || String(err));
+                    showBootFailure(
+                        'The app failed to start. Try a hard refresh (Ctrl+F5). Stop and restart the Client project if you rebuilt while it was running, then reload.'
+                        + (detail ? ' ' + detail : ''),
+                        err);
+                });
+            }
+
+            startBlazor();
+        })();
+    </script>
 </body>
 
 </html>

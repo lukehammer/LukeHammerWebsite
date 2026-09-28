@@ -3,8 +3,32 @@
   "Values": {
     "AzureWebJobsStorage": "",
     "LUKE_HAMMER_WEBSITE": "",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    "LUKE_NAME_ALIASES": "Luke,Luke Hammer,luke hammer",
+
+    "NOTIFY_EMAIL_TO": "luke@lukehammermagic.com",
+    "NOTIFY_EMAIL_FROM": "noreply@lukehammermagic.com",
+    "SENDGRID_API_KEY": "",
+    "SMTP_HOST": "",
+    "SMTP_PORT": "587",
+    "SMTP_USER": "",
+    "SMTP_PASSWORD": "",
+
+    "NOTIFY_SMS_TO": "+15035053005",
+    "TWILIO_ACCOUNT_SID": "",
+    "TWILIO_AUTH_TOKEN": "",
+    "TWILIO_FROM_NUMBER": "",
+
+    "GITHUB_TOKEN": "",
+    "GITHUB_REPO": "YourGitHubUser/LukeHammerWebsite",
+    "GITHUB_BRANCH": "main",
+    "GITHUB_SCHEDULE_FILE_PATH": "Api/data/sports-schedules.json",
+    "GITHUB_KID_THEME_FILE_PATH": "Api/data/kid-theme-colors.json"
   },
+  "_comment_storage": "LUKE_HAMMER_WEBSITE (or AzureWebJobsStorage) persists camping potluck, sports schedules, and kid-theme-colors blobs. Local dev without a connection string uses temp JSON and seeds from Api/data/*.json on first read.",
+  "_comment_notifications": "When someone other than Luke (see LUKE_NAME_ALIASES) adds/updates/deletes a schedule event, email and SMS are sent. If SendGrid/Twilio/SMTP are not configured, the notification payload is logged and CRUD still succeeds.",
+  "_comment_github": "GITHUB_TOKEN needs repo scope (contents write) to commit Api/data/sports-schedules.json via the GitHub Contents API after each mutation. If unset, blob/local storage is still updated and a warning is logged.",
   "Host": {
     "LocalHttpPort": 7071,
     "CORS": "*",

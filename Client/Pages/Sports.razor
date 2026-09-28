@@ -1,0 +1,1310 @@
+@page "/Sports"
+@using BlazorApp.Shared
+@using BlazorApp.Client
+@inject HttpClient Http
+@inject IJSRuntime JS
+<PageTitle>Sports — All Upcoming Games</PageTitle>
+<div class="schedule-theme-combined">
+<h1>Sports</h1>
+<p>All upcoming baseball, football, and soccer games in one list.</p>
+<style>
+    .schedule-theme-combined h1 {
+      color: #374151;
+    }
+    .schedule-theme-combined > p {
+      color: #4B5563;
+      border-left: 4px solid #9CA3AF;
+      padding-left: 12px;
+      margin-left: 0;
+    }
+    .schedule-theme-combined h3 {
+      color: #374151;
+    }
+    .schedule-theme-combined .schedule-table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .schedule-theme-combined .schedule-table-scroll .schedule-table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      border: 2px solid #6B7280;
+    }
+    .schedule-theme-combined table {
+      border-collapse: collapse;
+      border: 2px solid #6B7280;
+    }
+    .schedule-theme-combined th,
+    .schedule-theme-combined td {
+      padding: 8px;
+      text-align: left;
+    }
+    .schedule-theme-combined th {
+      background-color: #4B5563;
+      color: #F9FAFB;
+      border: 1px solid #6B7280;
+    }
+    .schedule-theme-combined footer {
+      color: #6B7280;
+    }
+    .schedule-theme-combined .schedule-error {
+      color: #B91C1C;
+    }
+    .schedule-theme-combined .admin-panel {
+      margin: 2rem auto 0;
+      padding: 1rem;
+      border: 2px dashed #9CA3AF;
+      background: #F9FAFB;
+      max-width: 960px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .admin-panel label,
+    .schedule-theme-combined .admin-panel .field-label {
+      display: block;
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+    .schedule-theme-combined .admin-panel input,
+    .schedule-theme-combined .admin-panel select {
+      margin-top: 0.25rem;
+      padding: 8px 10px;
+      max-width: 100%;
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .admin-actions button {
+      margin-right: 0.5rem;
+      margin-top: 0.5rem;
+      min-height: 44px;
+      padding: 0.5rem 1rem;
+    }
+    .schedule-theme-combined .admin-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem 1rem;
+    }
+    .schedule-theme-combined .event-form-fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem 1rem;
+      margin-top: 0.25rem;
+    }
+    .schedule-theme-combined .event-form-fields label,
+    .schedule-theme-combined .event-form-fields .field-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .schedule-theme-combined .event-form-fields input,
+    .schedule-theme-combined .event-form-fields select,
+    .schedule-theme-combined .event-form-fields .event-date-input {
+      width: 100%;
+      max-width: 100%;
+      min-height: 44px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .event-form-fields .event-form-span-full {
+      grid-column: 1 / -1;
+    }
+    .schedule-theme-combined .event-form-fields .kid-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 1rem;
+      align-items: center;
+    }
+    .schedule-theme-combined .event-form-fields .kid-checkboxes .field-label {
+      width: 100%;
+      margin-bottom: 0.15rem;
+    }
+    .schedule-theme-combined .event-form-fields .kid-checkboxes label.kid-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: normal;
+      margin: 0;
+    }
+    .schedule-theme-combined .event-form-error {
+      margin: 0 0 0.5rem;
+    }
+    .schedule-theme-combined .event-form-actions {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    @@media (min-width: 640px) {
+      .schedule-theme-combined .event-form-fields {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    .schedule-theme-combined .status-msg {
+      color: #047857;
+      margin-top: 0.5rem;
+    }
+    .schedule-theme-combined .admin-panel .kid-checkboxes label.kid-option {
+      display: inline-block;
+      font-weight: normal;
+      margin-right: 1rem;
+      margin-top: 0.25rem;
+    }
+    .schedule-theme-combined .admin-panel .kid-checkboxes label.kid-option input {
+      margin-right: 0.35rem;
+      min-height: 1.25rem;
+      min-width: 1.25rem;
+    }
+    .schedule-theme-combined .last-updated {
+      font-size: 0.85em;
+      color: #6B7280;
+    }
+    .schedule-theme-combined .kid-color-section {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid #D1D5DB;
+    }
+    .schedule-theme-combined .kid-color-section h3 {
+      margin: 0 0 0.5rem 0;
+    }
+    .schedule-theme-combined .kid-color-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-top: 0.5rem;
+    }
+    .schedule-theme-combined .kid-color-option {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      margin-top: 0;
+    }
+    .schedule-theme-combined .kid-color-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 10rem;
+    }
+    .schedule-theme-combined .kid-color-hint {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #B45309;
+      margin: 0;
+      max-width: 14rem;
+    }
+    .schedule-theme-combined .kid-color-suggest-btn {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      margin-top: 0.15rem;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .kid-color-option input[type="color"] {
+      width: 3rem;
+      height: 2.25rem;
+      padding: 2px;
+      border: 1px solid #9CA3AF;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #fff;
+    }
+    .schedule-theme-combined .manage-events-section {
+      margin-top: 0.5rem;
+    }
+    .schedule-theme-combined .manage-events-toolbar {
+      margin: 0.75rem 0;
+    }
+    .schedule-theme-combined .btn-add-event {
+      min-height: 44px;
+      padding: 0.5rem 1.25rem;
+      font-weight: 600;
+      background: #4B5563;
+      color: #F9FAFB;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 280px;
+    }
+    .schedule-theme-combined .btn-add-event:hover:not(:disabled) {
+      background: #374151;
+    }
+    .schedule-theme-combined .btn-add-event:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .schedule-theme-combined .manage-events-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .schedule-theme-combined .event-form-dialog {
+      margin: 0.35rem 0;
+      padding: 0;
+      max-width: 100%;
+    }
+    .schedule-theme-combined .event-form-dialog-inner {
+      padding: 0.75rem 1rem;
+      border: 2px solid #4B5563;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      min-width: min(100%, 18rem);
+    }
+    .schedule-theme-combined tr.schedule-row-editing > td {
+      border-top: 3px solid #2563EB;
+      box-shadow: inset 0 2px 0 rgba(37, 99, 235, 0.08);
+    }
+    .schedule-theme-combined tr.schedule-row-editing > td:first-child {
+      border-left: 3px solid #2563EB;
+    }
+    .schedule-theme-combined tr.schedule-row-editing > td:last-child {
+      border-right: 3px solid #2563EB;
+    }
+    .schedule-theme-combined tr.schedule-row-editing > td {
+      border-bottom: 2px solid #93C5FD;
+    }
+    .schedule-theme-combined tr.schedule-row-editing + tr.event-form-dialog-row > td {
+      padding: 0.5rem 0.65rem 0.65rem !important;
+      background: #EFF6FF;
+      border-bottom: 3px solid #2563EB;
+      border-left: 3px solid #2563EB;
+      border-right: 3px solid #2563EB;
+      border-top: none;
+      vertical-align: top;
+    }
+    .schedule-theme-combined tr.schedule-row-editing + tr.event-form-dialog-row .event-form-dialog-inner {
+      border: 1px solid #93C5FD;
+      box-shadow: none;
+      background: #fff;
+    }
+    .schedule-theme-combined .event-form-dialog-row > td {
+      padding: 0.35rem 0.5rem !important;
+      background: #E5E7EB;
+      border: 1px solid #9CA3AF;
+      vertical-align: top;
+    }
+    .schedule-theme-combined .event-form-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+    .schedule-theme-combined .event-form-dialog-header h4 {
+      margin: 0;
+      color: #374151;
+    }
+    .schedule-theme-combined .event-form-close {
+      flex-shrink: 0;
+      min-width: 44px;
+      min-height: 44px;
+      border: none;
+      background: transparent;
+      font-size: 1.75rem;
+      line-height: 1;
+      cursor: pointer;
+      color: #4B5563;
+      border-radius: 4px;
+    }
+    .schedule-theme-combined .event-form-close:hover:not(:disabled) {
+      background: #F3F4F6;
+    }
+    .schedule-theme-combined .event-form-actions .btn-primary-action {
+      font-weight: 600;
+    }
+    .schedule-theme-combined .schedule-row-actions {
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .schedule-theme-combined .schedule-action-buttons {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .schedule-theme-combined .btn-schedule-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      min-width: 5.25rem;
+      height: 2.25rem;
+      padding: 0 0.875rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      line-height: 1;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .schedule-theme-combined .btn-schedule-action:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .schedule-theme-combined .btn-schedule-edit {
+      background-color: #fff;
+      color: #374151;
+      border-color: #D1D5DB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    .schedule-theme-combined .btn-schedule-edit:hover:not(:disabled) {
+      background-color: #F9FAFB;
+      border-color: #9CA3AF;
+    }
+    .schedule-theme-combined .btn-schedule-delete {
+      background-color: #FEF2F2;
+      color: #B91C1C;
+      border-color: #FECACA;
+      box-shadow: 0 1px 2px rgba(185, 28, 28, 0.08);
+    }
+    .schedule-theme-combined .btn-schedule-delete:hover:not(:disabled) {
+      background-color: #FEE2E2;
+      border-color: #FCA5A5;
+    }
+    .schedule-theme-combined .sign-in-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 0.75rem 0 0.5rem;
+      padding: 0.65rem 0.85rem;
+      background: #E5E7EB;
+      border: 1px solid #9CA3AF;
+      border-radius: 8px;
+      color: #374151;
+    }
+    .schedule-theme-combined .sign-in-bar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .schedule-theme-combined .btn-add-event-inline {
+      min-height: 44px;
+      padding: 0.5rem 1.25rem;
+      font-weight: 600;
+      background: #4B5563;
+      color: #F9FAFB;
+      border: 1px solid #374151;
+      border-radius: 9999px;
+      cursor: pointer;
+      width: auto;
+      max-width: none;
+    }
+    .schedule-theme-combined .btn-add-event-inline:hover:not(:disabled) {
+      background: #374151;
+    }
+    .schedule-theme-combined .btn-add-event-inline:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .schedule-theme-combined .schedule-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(17, 24, 39, 0.5);
+      backdrop-filter: blur(2px);
+    }
+    .schedule-theme-combined .schedule-modal-panel {
+      width: 100%;
+      max-width: 640px;
+      max-height: min(90vh, 720px);
+      overflow: auto;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+    }
+    .schedule-theme-combined .signed-in-status {
+      margin: 0 0 0.75rem;
+    }
+    .schedule-theme-combined .btn-sign-out {
+      min-height: 44px;
+      padding: 0.35rem 1rem;
+      font-weight: 600;
+      background: #fff;
+      border: 1px solid #6B7280;
+      border-radius: 9999px;
+      cursor: pointer;
+      color: #374151;
+    }
+    .schedule-theme-combined .btn-sign-out:hover:not(:disabled) {
+      background: #F3F4F6;
+    }
+    .schedule-theme-combined .schedule-login {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .schedule-login-inline {
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+      margin: 0.75rem 0 0.5rem;
+      padding: 0.85rem 1rem;
+      background: #E5E7EB;
+      border: 1px solid #9CA3AF;
+      border-radius: 8px;
+    }
+    .schedule-theme-combined .schedule-login-fields {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1rem;
+      margin-top: 0.5rem;
+    }
+    .schedule-theme-combined .schedule-login-field {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+    .schedule-theme-combined .schedule-login-field label {
+      margin-top: 0;
+    }
+    .schedule-theme-combined .schedule-login-inline .btn-login {
+      flex: 0 0 auto;
+      margin-top: 0;
+      border-radius: 9999px;
+    }
+    .schedule-theme-combined .schedule-login-lead {
+      margin: 0 0 0.75rem;
+      color: #4B5563;
+      font-size: 0.9375rem;
+    }
+    .schedule-theme-combined .schedule-login label {
+      display: block;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    .schedule-theme-combined .schedule-login input {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 8px 10px;
+      min-height: 44px;
+      box-sizing: border-box;
+    }
+    .schedule-theme-combined .btn-login {
+      margin-top: 0.75rem;
+      min-height: 44px;
+      padding: 0.5rem 1.25rem;
+      font-weight: 600;
+      background: #4B5563;
+      color: #F9FAFB;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .schedule-theme-combined .btn-login:hover:not(:disabled) {
+      background: #374151;
+    }
+    .schedule-theme-combined .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    @@media (max-width: 640px) {
+      .schedule-theme-combined .admin-form-grid {
+        grid-template-columns: 1fr;
+      }
+      .schedule-theme-combined .btn-add-event {
+        max-width: none;
+        width: 100%;
+      }
+      .schedule-theme-combined .event-form-dialog-inner {
+        border-radius: 8px 8px 0 0;
+      }
+      .schedule-theme-combined .event-form-dialog-row > td {
+        padding: 0.25rem !important;
+      }
+    }
+</style>
+@if (!string.IsNullOrEmpty(_kidThemeCss))
+{
+    <style>@((MarkupString)_kidThemeCss)</style>
+}
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <p class="schedule-error">@_errorMessage</p>
+}
+@if (_loading)
+{
+    <p>Loading schedule...</p>
+}
+else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <h3>No upcoming games</h3>
+}
+@if (!_isLoggedIn)
+{
+    <div class="schedule-login schedule-login-inline">
+        <p class="schedule-login-lead">Sign in with your first name to edit the schedule or change row colors.</p>
+        @if (!string.IsNullOrWhiteSpace(_loginError))
+        {
+            <p class="schedule-error">@_loginError</p>
+        }
+        <div class="schedule-login-fields">
+            <div class="schedule-login-field">
+                <label for="scheduleLoginFirstName">Your first name</label>
+                <input id="scheduleLoginFirstName"
+                       value="@_loginName"
+                       @oninput="OnLoginNameInput"
+                       @onkeydown="OnLoginKeyDown"
+                       placeholder="Your first name"
+                       autocomplete="given-name"
+                       disabled="@_loggingIn" />
+            </div>
+            <button type="button"
+                    class="btn-login"
+                    disabled="@_loggingIn"
+                    @onclick="LoginAsync">
+                Login
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="sign-in-bar">
+        <span>Signed in as <strong>@SignedInDisplayName</strong>.</span>
+        <div class="sign-in-bar-actions">
+            <button type="button"
+                    class="btn-add-event-inline"
+                    disabled="@_saving"
+                    @onclick="OpenAddDialogAsync">
+                Add event
+            </button>
+            <button type="button"
+                    class="btn-sign-out"
+                    disabled="@(_saving || _savingThemes)"
+                    @onclick="SignOutAsync">
+                Sign out
+            </button>
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(_adminMessage))
+    {
+        <p class="status-msg signed-in-status">@_adminMessage</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(_adminError) && !_dialogOpen)
+    {
+        <p class="schedule-error signed-in-status">@_adminError</p>
+    }
+}
+@if (_isLoggedIn && _dialogOpen && !_isEditDialog)
+{
+    <div class="schedule-modal-backdrop" @onclick="CloseDialogFromBackdropAsync">
+        <div class="schedule-modal-panel" @ref="_dialogAnchorRef" @onclick:stopPropagation="true">
+            <ScheduleEventForm @ref="_eventFormRef"
+                               IsEdit="false"
+                               ShowSubmittedByField="false"
+                               Saving="@_saving"
+                               ErrorMessage="@_adminError"
+                               Sport="@_formSport"
+                               SportChanged="v => _formSport = v"
+                               SelectedKids="@_formKids"
+                               Date="@_formDate"
+                               DateChanged="v => _formDate = v"
+                               StartTimeString="@FormStartTimeString"
+                               StartTimeChanged="OnStartTimeChanged"
+                               Name="@_formName"
+                               NameChanged="v => _formName = v"
+                               Location="@_formLocation"
+                               LocationChanged="v => _formLocation = v"
+                               OnKidToggled="OnKidToggledAsync"
+                               OnSubmit="AddEventAsync"
+                               OnCancel="CloseDialog" />
+        </div>
+    </div>
+}
+@if (!_loading)
+{
+<div class="schedule-table-scroll">
+<table class="schedule-table">
+    <thead>
+        <tr>
+            <th scope="col">Day of week</th>
+            <th scope="col">Date</th>
+            <th scope="col">Time</th>
+            <th scope="col">Sport</th>
+            <th scope="col">Matchup</th>
+            @if (_isLoggedIn)
+            {
+                <th scope="col">Last updated</th>
+                <th scope="col" class="schedule-row-actions">Actions</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var game in _upcoming)
+    {
+        <tr id="@GetEventRowId(game)"
+            class="@GetScheduleRowClass(game)"
+            style="@ScheduleKidThemes.GetRowStyle(game)">
+            <td>@game.Date.DayOfWeek</td>
+            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+            <td>@game.TimeDisplay</td>
+            <td>@game.SportLabel</td>
+            <td>@game.MatchupDisplay</td>
+            @if (_isLoggedIn)
+            {
+                <td class="last-updated">@game.LastModifiedSummary</td>
+                <td class="schedule-row-actions">
+                    <div class="schedule-action-buttons">
+                        <button type="button"
+                                class="btn-schedule-action btn-schedule-edit"
+                                disabled="@_saving"
+                                aria-expanded="@IsEditingGame(game)"
+                                @onclick="() => BeginEditAsync(game)">
+                            Edit
+                        </button>
+                        <button type="button"
+                                class="btn-schedule-action btn-schedule-delete"
+                                disabled="@_saving"
+                                @onclick="() => DeleteEventAsync(game)">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            }
+        </tr>
+        @if (IsEditingGame(game))
+        {
+            <tr class="event-form-dialog-row">
+                <td colspan="7">
+                    <div class="event-form-dialog" @ref="_dialogAnchorRef">
+                        <ScheduleEventForm @ref="_eventFormRef"
+                                           IsEdit="true"
+                                           ShowSubmittedByField="false"
+                                           Saving="@_saving"
+                                           ErrorMessage="@_adminError"
+                                           Sport="@_formSport"
+                                           SportChanged="v => _formSport = v"
+                                           SelectedKids="@_formKids"
+                                           Date="@_formDate"
+                                           DateChanged="v => _formDate = v"
+                                           StartTimeString="@FormStartTimeString"
+                                           StartTimeChanged="OnStartTimeChanged"
+                                           Name="@_formName"
+                                           NameChanged="v => _formName = v"
+                                           Location="@_formLocation"
+                                           LocationChanged="v => _formLocation = v"
+                                           OnKidToggled="OnKidToggledAsync"
+                                           OnSubmit="SaveEditAsync"
+                                           OnCancel="CloseDialog" />
+                    </div>
+                </td>
+            </tr>
+        }
+    }
+    </tbody>
+</table>
+</div>
+}
+@if (_isLoggedIn)
+{
+<section class="admin-panel">
+    <h2>Row colors</h2>
+    <p>Background color for each kid&apos;s schedule rows and multi-kid stripes.</p>
+    <div class="kid-color-section">
+        <div class="kid-color-grid">
+            @foreach (var kid in ScheduleKids.AllowedKids)
+            {
+                <div class="kid-color-row">
+                    <label class="kid-color-option">
+                        @kid
+                        <input type="color"
+                               value="@GetThemeColor(kid)"
+                               @onchange="e => OnKidColorChanged(kid, e.Value?.ToString())" />
+                    </label>
+                    @if (_themeIssuesByKid.TryGetValue(kid, out var themeIssue))
+                    {
+                        <p class="kid-color-hint">@themeIssue.Message</p>
+                        @if (!string.IsNullOrWhiteSpace(themeIssue.SuggestedHex))
+                        {
+                            <button type="button"
+                                    class="kid-color-suggest-btn"
+                                    @onclick="() => ApplySuggestedThemeColor(kid, themeIssue.SuggestedHex!)">
+                                Use suggested @themeIssue.SuggestedHex
+                            </button>
+                        }
+                    }
+                </div>
+            }
+        </div>
+        <div class="admin-actions">
+            <button type="button" disabled="@_savingThemes" @onclick="SaveKidThemesAsync">Save kid colors</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(_themeMessage))
+        {
+            <p class="status-msg">@_themeMessage</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(_themeError))
+        {
+            <p class="schedule-error">@_themeError</p>
+        }
+    </div>
+</section>
+}
+<footer>
+    <li>&copy; @DateTime.Now.Year Luke Hammer</li>
+    <li>Updated 9/27/2026</li>
+</footer>
+</div>
+@code {
+    private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
+    private List<Event> _allEvents = new();
+    private bool _loading = true;
+    private bool _saving;
+    private string? _errorMessage;
+    private string? _adminMessage;
+    private string? _adminError;
+    private string _submittedBy = string.Empty;
+    private bool _isLoggedIn;
+    private string _loginName = string.Empty;
+    private string? _loginError;
+    private bool _loggingIn;
+    private string? _editingId;
+    private bool _dialogOpen;
+    private bool _isEditDialog;
+    private bool _pendingDialogFocus;
+    private ScheduleEventForm? _eventFormRef;
+    private ElementReference _dialogAnchorRef;
+    private Sport _formSport = Sport.Football;
+    private readonly HashSet<string> _formKids = new(StringComparer.Ordinal);
+    private DateTime _formDate = DateTime.Today;
+    private string? _formStartTime;
+    private string _formName = string.Empty;
+    private string _formLocation = string.Empty;
+    private readonly Dictionary<string, string> _themeBackgrounds = new(StringComparer.Ordinal);
+    private string _kidThemeCss = string.Empty;
+    private bool _savingThemes;
+    private string? _themeMessage;
+    private string? _themeError;
+    private readonly Dictionary<string, KidThemeColorValidationIssue> _themeIssuesByKid =
+        new(StringComparer.Ordinal);
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadKidThemesAsync();
+        await RestoreSessionAuthAsync();
+        await ReloadAsync();
+    }
+
+    private async Task RestoreSessionAuthAsync()
+    {
+        var name = await ScheduleSessionAuth.TryRestoreSignedInNameAsync(JS);
+        if (name != null)
+        {
+            _submittedBy = name;
+            _isLoggedIn = true;
+        }
+    }
+
+    private void OnLoginNameInput(ChangeEventArgs e) =>
+        _loginName = e.Value?.ToString() ?? string.Empty;
+
+    private async Task OnLoginKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoginAsync();
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        _loginError = null;
+        if (!ScheduleSubmitters.TryValidateLoginFirstName(_loginName, out var normalized, out var error))
+        {
+            _loginError = error;
+            return;
+        }
+
+        _loggingIn = true;
+        try
+        {
+            var sessionToken = string.Equals(
+                _loginName.Trim(),
+                ScheduleSubmitters.LukeAuthCode,
+                StringComparison.Ordinal)
+                ? ScheduleSubmitters.LukeAuthCode
+                : normalized;
+            _submittedBy = sessionToken;
+            _isLoggedIn = true;
+            _loginName = string.Empty;
+            await ScheduleSessionAuth.PersistSignedInNameAsync(JS, sessionToken);
+        }
+        finally
+        {
+            _loggingIn = false;
+        }
+    }
+
+    private async Task SignOutAsync()
+    {
+        await ScheduleSessionAuth.ClearSignedInNameAsync(JS);
+        _isLoggedIn = false;
+        _submittedBy = string.Empty;
+        _loginError = null;
+        _adminMessage = null;
+        _adminError = null;
+        _themeMessage = null;
+        _themeError = null;
+        CloseDialog();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_pendingDialogFocus)
+        {
+            return;
+        }
+
+        _pendingDialogFocus = false;
+        try
+        {
+            if (_eventFormRef != null)
+            {
+                await _eventFormRef.FocusFirstFieldAsync();
+            }
+
+            if (_isEditDialog && !string.IsNullOrEmpty(_editingId))
+            {
+                try
+                {
+                    await JS.InvokeVoidAsync("sportsScheduleAdmin.scrollToEditGroup", _editingId);
+                }
+                catch (JSException)
+                {
+                    // Cached sports-admin.js may lack scrollToEditGroup; ignore.
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Focus/scroll must not tear down the page if the dialog moved in the DOM.
+        }
+    }
+    private static string GetEventRowId(Event evt) => $"event-row-{evt.Id}";
+
+    private bool IsEditingGame(Event game) =>
+        _isLoggedIn && _dialogOpen && _isEditDialog && _editingId == game.Id;
+
+    private string GetScheduleRowClass(Event game)
+    {
+        var themeClass = ScheduleKidThemes.GetRowClass(game);
+        return IsEditingGame(game)
+            ? $"{themeClass} schedule-row-editing".Trim()
+            : themeClass;
+    }
+    private async Task OpenAddDialogAsync()
+    {
+        if (_dialogOpen && _isEditDialog)
+        {
+            CloseDialog();
+        }
+
+        _isEditDialog = false;
+        _editingId = null;
+        ClearForm();
+        _adminError = null;
+        _dialogOpen = true;
+        _pendingDialogFocus = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task CloseDialogFromBackdropAsync()
+    {
+        if (_saving)
+        {
+            return Task.CompletedTask;
+        }
+
+        CloseDialog();
+        return Task.CompletedTask;
+    }
+    private async Task BeginEditAsync(Event evt)
+    {
+        if (_dialogOpen && _isEditDialog && _editingId == evt.Id)
+        {
+            CloseDialog();
+            return;
+        }
+        _editingId = evt.Id;
+        _isEditDialog = true;
+        _formSport = evt.Sport;
+        _formKids.Clear();
+        foreach (var kid in evt.Kids ?? new List<string>())
+        {
+            _formKids.Add(kid);
+        }
+        _formDate = evt.Date;
+        _formName = evt.Name ?? string.Empty;
+        _formLocation = evt.Location ?? string.Empty;
+        _formStartTime = evt.StartTime.HasValue
+            ? $"{evt.StartTime.Value.Hours:D2}:{evt.StartTime.Value.Minutes:D2}"
+            : null;
+        _adminError = null;
+        _adminMessage = null;
+        _dialogOpen = true;
+        _pendingDialogFocus = true;
+        await InvokeAsync(StateHasChanged);
+    }
+    private void CloseDialog()
+    {
+        _dialogOpen = false;
+        _isEditDialog = false;
+        _editingId = null;
+        _eventFormRef = null;
+        ClearForm();
+    }
+    private Task OnKidToggledAsync((string Kid, bool Selected) args)
+    {
+        ToggleFormKid(args.Kid, args.Selected);
+        return Task.CompletedTask;
+    }
+    private async Task LoadKidThemesAsync()
+    {
+        _themeError = null;
+        try
+        {
+            var (data, error) = await KidThemeColorsApiClient.LoadAsync(Http);
+            ApplyThemeData(data);
+            if (error != null)
+            {
+                _themeError = error;
+            }
+        }
+        catch (Exception)
+        {
+            ApplyThemeData(KidThemeColors.CreateDefaultData());
+            _themeError = "Could not load kid colors. Using defaults.";
+        }
+    }
+    private void ApplyThemeData(KidThemeColorsData data)
+    {
+        KidThemeColorsLoader.Apply(data);
+        _themeBackgrounds.Clear();
+        foreach (var kid in ScheduleKids.AllowedKids)
+        {
+            _themeBackgrounds[kid] = KidThemeColors.GetBackgroundHex(kid);
+        }
+        _kidThemeCss = KidThemeColorsLoader.CombinedPageCss();
+        RefreshThemeColorValidation();
+    }
+    private void RefreshThemeColorValidation()
+    {
+        _themeIssuesByKid.Clear();
+        foreach (var pair in KidColorSuggestions.ValidateAllBackgrounds(BuildThemeDataFromEditor().BackgroundByKid))
+        {
+            _themeIssuesByKid[pair.Key] = pair.Value;
+        }
+    }
+    private string GetThemeColor(string kid) =>
+        _themeBackgrounds.TryGetValue(kid, out var hex) ? hex : KidThemeColors.GetBackgroundHex(kid);
+    private void OnKidColorChanged(string kid, string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex) || !KidThemeColors.IsValidHex(hex))
+        {
+            return;
+        }
+        _themeBackgrounds[kid] = hex;
+        _themeMessage = null;
+        _themeError = null;
+        ApplyThemeData(BuildThemeDataFromEditor());
+    }
+    private void ApplySuggestedThemeColor(string kid, string suggestedHex)
+    {
+        if (!KidThemeColors.IsValidHex(suggestedHex))
+        {
+            return;
+        }
+        _themeBackgrounds[kid] = suggestedHex;
+        _themeMessage = null;
+        _themeError = null;
+        ApplyThemeData(BuildThemeDataFromEditor());
+    }
+    private KidThemeColorsData BuildThemeDataFromEditor() =>
+        new KidThemeColorsData
+        {
+            BackgroundByKid = ScheduleKids.AllowedKids.ToDictionary(
+                k => k,
+                k => GetThemeColor(k),
+                StringComparer.Ordinal)
+        };
+    private async Task SaveKidThemesAsync()
+    {
+        _themeMessage = null;
+        _themeError = null;
+        if (!TryGetValidatedSubmitter(out var submittedBy))
+        {
+            _themeError = _adminError;
+            return;
+        }
+        var payload = BuildThemeDataFromEditor();
+        RefreshThemeColorValidation();
+        if (_themeIssuesByKid.Count > 0)
+        {
+            _themeError = KidThemeColors.FormatColorRuleError(_themeIssuesByKid);
+            return;
+        }
+        if (!KidThemeColors.TryValidateWrite(payload, out var validationError))
+        {
+            _themeError = validationError;
+            return;
+        }
+        _savingThemes = true;
+        try
+        {
+            var (data, error) = await KidThemeColorsApiClient.SaveAsync(Http, submittedBy, payload);
+            if (error != null)
+            {
+                if (KidThemeColorsValidationError.TryParse(error, out var apiValidation)
+                    && apiValidation!.IssuesByKid.Count > 0)
+                {
+                    _themeIssuesByKid.Clear();
+                    foreach (var pair in apiValidation.IssuesByKid)
+                    {
+                        _themeIssuesByKid[pair.Key] = pair.Value;
+                    }
+                    _themeError = apiValidation.Error;
+                }
+                else
+                {
+                    _themeError = error;
+                }
+                return;
+            }
+            ApplyThemeData(data!);
+            _themeMessage = "Kid colors saved.";
+        }
+        finally
+        {
+            _savingThemes = false;
+        }
+    }
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        try
+        {
+            var (data, error) = await SportsScheduleApiClient.LoadAllAsync(Http);
+            if (error != null)
+            {
+                _errorMessage = error;
+                _upcoming = Array.Empty<Event>();
+                _allEvents = new List<Event>();
+            }
+            else
+            {
+                _allEvents = data.Events ?? new List<Event>();
+                _upcoming = SportsSchedules.GetUpcoming(_allEvents);
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Could not display the schedule. Try reloading the page.";
+            _upcoming = Array.Empty<Event>();
+            _allEvents = new List<Event>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+    private string FormStartTimeString =>
+        _formStartTime ?? (_formDate.TimeOfDay == TimeSpan.Zero ? string.Empty : _formDate.ToString("HH:mm"));
+    private void OnStartTimeChanged(ChangeEventArgs e)
+    {
+        _formStartTime = e.Value?.ToString();
+    }
+    private Event BuildFormEvent() =>
+        new Event
+        {
+            Sport = _formSport,
+            Kids = ScheduleKids.NormalizeKidsList(_formKids),
+            Date = _formDate.Date,
+            Name = _formName,
+            Location = _formLocation,
+            StartTime = ParseStartTime(_formStartTime)
+        };
+    private static TimeSpan? ParseStartTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+        return TimeSpan.TryParse(value, out var ts) ? ts : null;
+    }
+    private async Task AddEventAsync()
+    {
+        _adminError = null;
+        _adminMessage = null;
+        if (!TryGetValidatedSubmitter(out var submittedBy))
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_formName))
+        {
+            _adminError = "Matchup name is required.";
+            return;
+        }
+        if (_formKids.Count == 0)
+        {
+            _adminError = "Select at least one kid.";
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var (_, error) = await SportsScheduleApiClient.AddEventAsync(Http, submittedBy, BuildFormEvent());
+            if (error != null)
+            {
+                _adminError = SanitizeAdminError(error);
+                return;
+            }
+            _adminMessage = "Event added.";
+            CloseDialog();
+            await ReloadAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    private async Task SaveEditAsync()
+    {
+        if (_editingId == null)
+        {
+            return;
+        }
+        _adminError = null;
+        _adminMessage = null;
+        if (!TryGetValidatedSubmitter(out var submittedBy))
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_formName))
+        {
+            _adminError = "Matchup name is required.";
+            return;
+        }
+        if (_formKids.Count == 0)
+        {
+            _adminError = "Select at least one kid.";
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var (_, error) = await SportsScheduleApiClient.UpdateEventAsync(
+                Http,
+                _editingId,
+                submittedBy,
+                BuildFormEvent());
+            if (error != null)
+            {
+                _adminError = SanitizeAdminError(error);
+                return;
+            }
+            _adminMessage = "Event updated.";
+            CloseDialog();
+            await ReloadAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    private async Task DeleteEventAsync(Event evt)
+    {
+        _adminError = null;
+        _adminMessage = null;
+        if (!TryGetValidatedSubmitter(out var submittedBy))
+        {
+            return;
+        }
+
+        var confirmMessage = string.IsNullOrWhiteSpace(evt.Name)
+            ? "Delete this event?"
+            : $"Delete \"{evt.Name}\"?";
+        var confirmed = await JS.InvokeAsync<bool>("scheduleAuth.confirmDelete", confirmMessage);
+        if (!confirmed)
+        {
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var (_, error) = await SportsScheduleApiClient.DeleteEventAsync(Http, evt.Id, submittedBy);
+            if (error != null)
+            {
+                _adminError = SanitizeAdminError(error);
+                return;
+            }
+            _adminMessage = "Event deleted.";
+            if (_editingId == evt.Id)
+            {
+                CloseDialog();
+            }
+            await ReloadAsync();
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+    private void ClearForm()
+    {
+        _formSport = Sport.Football;
+        _formKids.Clear();
+        _formDate = DateTime.Today;
+        _formStartTime = null;
+        _formName = string.Empty;
+        _formLocation = string.Empty;
+    }
+    private void ToggleFormKid(string kid, bool selected)
+    {
+        if (selected)
+        {
+            _formKids.Add(kid);
+        }
+        else
+        {
+            _formKids.Remove(kid);
+        }
+    }
+    private string SignedInDisplayName =>
+        string.Equals(_submittedBy, ScheduleSubmitters.LukeAuthCode, StringComparison.Ordinal)
+            ? "Luke"
+            : _submittedBy;
+
+    private static string? SanitizeAdminError(string? error)
+    {
+        if (string.Equals(error, ScheduleSubmitters.FakeLukeMessage, StringComparison.Ordinal))
+        {
+            return ScheduleSubmitters.InvalidSessionMessage;
+        }
+
+        return error;
+    }
+
+    /// <summary>
+    /// Ensures the current session is valid and returns the value to send as <c>submittedBy</c> on API writes
+    /// (session token <c>1123</c> for Luke, not the normalized display name).
+    /// </summary>
+    private bool TryGetValidatedSubmitter(out string submittedByForApi)
+    {
+        submittedByForApi = string.Empty;
+        if (!ScheduleSubmitters.TryResolveSubmitterForWrite(_submittedBy, out _, out var error))
+        {
+            _adminError = SanitizeAdminError(error);
+            return false;
+        }
+
+        submittedByForApi = _submittedBy.Trim();
+        return true;
+    }
+}

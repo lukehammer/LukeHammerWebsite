@@ -1,0 +1,189 @@
+@page "/WoodlandFootball"
+@using BlazorApp.Shared
+@inject HttpClient Http
+
+<PageTitle>Woodland Football — JV Schedule</PageTitle>
+
+
+
+<div class="schedule-theme-kid-choen">
+
+<h1>Woodland Football</h1>
+
+<p>Woodland JV tackle schedule. Only upcoming games are shown.</p>
+
+
+
+<style>
+
+    .schedule-theme-kid-choen h1 {
+
+      color: #1B4332;
+
+    }
+
+    .schedule-theme-kid-choen > p {
+
+      color: #2D6A4F;
+
+      border-left: 4px solid #A8A9AD;
+
+      padding-left: 12px;
+
+      margin-left: 0;
+
+    }
+
+    .schedule-theme-kid-choen h3 {
+
+      color: #1B4332;
+
+    }
+
+    .schedule-theme-kid-choen table {
+
+      border-collapse: collapse;
+
+      margin: auto;
+
+      border: 2px solid #40916C;
+
+    }
+
+    .schedule-theme-kid-choen th,
+
+    .schedule-theme-kid-choen td {
+
+      border: 1px solid #52796F;
+
+      padding: 8px;
+
+      text-align: left;
+
+    }
+
+    .schedule-theme-kid-choen th {
+
+      background-color: #2D6A4F;
+
+      color: #F0F0F0;
+
+    }
+
+    .schedule-theme-kid-choen .schedule-table tbody tr td {
+
+      background-color: #D8F3DC;
+
+      color: #1B4332;
+
+    }
+
+    .schedule-theme-kid-choen .schedule-table tbody tr.row-theme-kids-multi td {
+
+      background-color: transparent;
+
+      background-image: var(--row-stripe-bg);
+
+      color: #1F2937;
+
+    }
+
+    .schedule-theme-kid-choen footer {
+
+      color: #52796F;
+
+    }
+
+    .schedule-theme-kid-choen .schedule-error {
+      color: #B91C1C;
+    }
+
+  </style>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <p class="schedule-error">@_errorMessage</p>
+}
+
+@if (_loading)
+{
+    <p>Loading schedule...</p>
+}
+else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <h3>No upcoming JV games</h3>
+}
+
+
+
+<table class="schedule-table">
+
+    <thead>
+
+        <tr>
+
+            <th scope="col">Day of week</th>
+
+            <th scope="col">Date</th>
+
+            <th scope="col">Time</th>
+
+            <th scope="col">Matchup</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (var game in _upcoming)
+    {
+
+        <tr class="@ScheduleKidThemes.GetRowClass(game, "Choen")" style="@ScheduleKidThemes.GetRowStyle(game)">
+
+            <td>@game.Date.DayOfWeek</td>
+
+            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+
+            <td>@game.TimeDisplay</td>
+
+            <td>Woodland JV @game.Name at @game.Location</td>
+
+        </tr>
+
+    }
+
+    </tbody>
+
+</table>
+
+
+
+<footer>
+
+    <li>&copy; @DateTime.Now.Year Luke Hammer</li>
+
+    <li>Updated 9/27/2026</li>
+
+</footer>
+
+</div>
+
+@code {
+    private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(Http, Sport.Football);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
+

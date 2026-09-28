@@ -1,51 +1,201 @@
 @page "/Levi"
+@using BlazorApp.Shared
+@inject HttpClient Http
+
+<PageTitle>Cougars 2027 — Games &amp; Tournaments</PageTitle>
 
 
-<liageTitle>Levi's Home Page</liageTitle>
+
+<div class="schedule-theme-kid-levi">
+
+<h1>Cougars 2027</h1>
+
+<p>2027 season schedule. Times show when set; otherwise listed as unscheduled.</p>
+
+
 
 <style>
-    table {
+
+    .schedule-theme-kid-levi h1 {
+
+      color: #1E40AF;
+
+    }
+
+    .schedule-theme-kid-levi > p {
+
+      color: #2563EB;
+
+      border-left: 4px solid #93C5FD;
+
+      padding-left: 12px;
+
+      margin-left: 0;
+
+    }
+
+    .schedule-theme-kid-levi h3 {
+
+      color: #1E40AF;
+
+    }
+
+    .schedule-theme-kid-levi table {
+
       border-collapse: collapse;
+
       margin: auto;
+
+      border: 2px solid #1E3A8A;
+
     }
-    th, td {
-      border: 1px solid black;
+
+    .schedule-theme-kid-levi th,
+
+    .schedule-theme-kid-levi td {
+
+      border: 1px solid #94A3B8;
+
       padding: 8px;
+
       text-align: left;
+
     }
-    th {
-      background-color: #f2f2f2;
+
+    .schedule-theme-kid-levi th {
+
+      background-color: #1E40AF;
+
+      color: #F0F9FF;
+
     }
+
+    .schedule-theme-kid-levi .schedule-table tbody tr td {
+
+      background-color: #DBEAFE;
+
+      color: #1E3A8A;
+
+    }
+
+    .schedule-theme-kid-levi .schedule-table tbody tr.row-theme-kids-multi td {
+
+      background-color: transparent;
+
+      background-image: var(--row-stripe-bg);
+
+      color: #1F2937;
+
+    }
+
+    .schedule-theme-kid-levi footer {
+
+      color: #64748B;
+
+    }
+
+    .schedule-theme-kid-levi .schedule-error {
+      color: #B91C1C;
+    }
+
   </style>
 
-  @if (BlazorApp.Shared.Matches.UpComingContests.Count() == 0)
+  @if (!string.IsNullOrWhiteSpace(_errorMessage))
+  {
+    <p class="schedule-error">@_errorMessage</p>
+  }
+
+  @if (_loading)
+  {
+    <p>Loading schedule...</p>
+  }
+  else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
   {
     <h3>No upcoming games</h3>
   }
 
 
-<table>
+
+
+
+<table class="schedule-table">
+
     <thead>
-    <th scope="col">Day of week</th>
-    <th scope="col">Date</th>
-    <th scope="col">Name</th>
-    </thead>
-    
-    @foreach (var game in BlazorApp.Shared.Matches.UpComingContests)
-    {
+
         <tr>
 
-            <td>@game.DateTime.DayOfWeek</td>
-            <td>@game.DateTime.ToString("MMM-dd htt")</td>
-            <td>@game.Name at @game.Location </td>
+            <th scope="col">Day of week</th>
+
+            <th scope="col">Date</th>
+
+            <th scope="col">Time</th>
+
+            <th scope="col">Name</th>
+
         </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (var game in _upcoming)
+    {
+
+        <tr class="@ScheduleKidThemes.GetRowClass(game, "Levi")" style="@ScheduleKidThemes.GetRowStyle(game)">
+
+            <td>@game.Date.DayOfWeek</td>
+
+            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+
+            <td>@game.TimeDisplay</td>
+
+            <td>@game.Name at @game.Location </td>
+
+        </tr>
+
     }
+
+    </tbody>
 
 </table>
 
 
+
+
+
 <footer>
+
     <li>&copy; @DateTime.Now.Year Luke Hammer </li>
-    <li>Updated 9/4/2025 </li>
+
+    <li>Updated 9/27/2026</li>
+
 </footer>
+
+</div>
+
+@code {
+    private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(
+                Http,
+                Sport.Baseball,
+                kid: "Levi");
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Could not display the schedule. Try reloading the page.";
+            _upcoming = Array.Empty<Event>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
 

@@ -1,0 +1,198 @@
+@using BlazorApp.Shared
+@inject IJSRuntime JS
+
+<div class="event-form-dialog-inner" role="dialog" aria-modal="true" aria-labelledby="@_titleId">
+    <div class="event-form-dialog-header">
+        <h4 id="@_titleId">@(IsEdit ? "Edit event" : "Add event")</h4>
+        <button type="button" class="event-form-close" disabled="@Saving" @onclick="OnCancel" aria-label="Close">×</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <p class="schedule-error event-form-error">@ErrorMessage</p>
+    }
+
+    <EditForm Model="_model" class="admin-form-grid event-form-fields">
+        @if (ShowSubmittedByField)
+        {
+            <div>
+                <label for="@_firstNameId">Your first name</label>
+                <input id="@_firstNameId"
+                       @ref="_firstFieldRef"
+                       value="@_model.SubmittedBy"
+                       @oninput="OnSubmittedByInput"
+                       placeholder="Your first name"
+                       autocomplete="given-name" />
+            </div>
+        }
+        <div class="event-form-field-sport">
+            <label for="@_sportId">Sport</label>
+            <select id="@_sportId"
+                    @ref="_sportFieldRef"
+                    @bind="_model.Sport"
+                    @bind:after="OnSportChangedAsync">
+                @foreach (var s in Enum.GetValues<Sport>())
+                {
+                    <option value="@s">@s</option>
+                }
+            </select>
+        </div>
+        <div class="kid-checkboxes event-form-span-full">
+            <span class="field-label">Kids</span>
+            @foreach (var kid in ScheduleKids.AllowedKids)
+            {
+                <label class="kid-option">
+                    <input type="checkbox"
+                           checked="@SelectedKids.Contains(kid)"
+                           @onchange="e => OnKidToggled.InvokeAsync((kid, (bool)e.Value!))" />
+                    @kid
+                </label>
+            }
+        </div>
+        <div class="event-form-field-date">
+            <label>Date</label>
+            <InputDate TValue="DateTime"
+                       class="event-date-input"
+                       @bind-Value="_model.Date"
+                       @bind-Value:after="OnDateChangedAsync" />
+        </div>
+        <div class="event-form-field-time">
+            <label for="@_timeId">Start time (optional)</label>
+            <input id="@_timeId"
+                   type="time"
+                   class="event-time-input"
+                   value="@FormatStartTime(_model.StartTime)"
+                   @onchange="OnStartTimeInputAsync" />
+        </div>
+        <div class="event-form-field-name event-form-span-full">
+            <label for="@_nameId">Name / matchup</label>
+            <input id="@_nameId" value="@_model.Name" @oninput="OnNameInput" />
+        </div>
+        <div class="event-form-field-location event-form-span-full">
+            <label for="@_locationId">Location</label>
+            <input id="@_locationId" value="@_model.Location" @oninput="OnLocationInput" />
+        </div>
+    </EditForm>
+
+    <div class="admin-actions event-form-actions">
+        @if (IsEdit)
+        {
+            <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Save changes</button>
+        }
+        else
+        {
+            <button type="button" class="btn-primary-action" disabled="@Saving" @onclick="SubmitAsync">Add event</button>
+        }
+        <button type="button" disabled="@Saving" @onclick="OnCancel">Cancel</button>
+    </div>
+</div>
+
+@code {
+    private readonly string _titleId = $"event-form-title-{Guid.NewGuid():N}";
+    private readonly string _firstNameId = $"event-first-{Guid.NewGuid():N}";
+    private readonly string _sportId = $"event-sport-{Guid.NewGuid():N}";
+    private readonly string _timeId = $"event-time-{Guid.NewGuid():N}";
+    private readonly string _nameId = $"event-name-{Guid.NewGuid():N}";
+    private readonly string _locationId = $"event-loc-{Guid.NewGuid():N}";
+
+    private ElementReference _firstFieldRef;
+    private ElementReference _sportFieldRef;
+    private readonly EventFormModel _model = new();
+
+    [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public bool ShowSubmittedByField { get; set; } = true;
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public bool Saving { get; set; }
+    [Parameter] public string SubmittedBy { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> SubmittedByChanged { get; set; }
+    [Parameter] public Sport Sport { get; set; }
+    [Parameter] public EventCallback<Sport> SportChanged { get; set; }
+    [Parameter] public HashSet<string> SelectedKids { get; set; } = new(StringComparer.Ordinal);
+    [Parameter] public DateTime Date { get; set; }
+    [Parameter] public EventCallback<DateTime> DateChanged { get; set; }
+    [Parameter] public string? StartTimeString { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> StartTimeChanged { get; set; }
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> NameChanged { get; set; }
+    [Parameter] public string Location { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> LocationChanged { get; set; }
+    [Parameter] public EventCallback<(string Kid, bool Selected)> OnKidToggled { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _model.SubmittedBy = SubmittedBy;
+        _model.Sport = Sport;
+        _model.Date = Date.Date;
+        _model.Name = Name;
+        _model.Location = Location;
+        _model.StartTime = ParseStartTime(StartTimeString);
+    }
+
+    private Task OnSubmittedByInput(ChangeEventArgs e)
+    {
+        _model.SubmittedBy = e.Value?.ToString() ?? string.Empty;
+        return SubmittedByChanged.InvokeAsync(_model.SubmittedBy);
+    }
+
+    private Task OnSportChangedAsync() => SportChanged.InvokeAsync(_model.Sport);
+
+    private Task OnDateChangedAsync() => DateChanged.InvokeAsync(_model.Date);
+
+    private Task OnStartTimeInputAsync(ChangeEventArgs e)
+    {
+        _model.StartTime = ParseStartTime(e.Value?.ToString());
+        return StartTimeChanged.InvokeAsync(new ChangeEventArgs { Value = FormatStartTime(_model.StartTime) });
+    }
+
+    private Task OnNameInput(ChangeEventArgs e)
+    {
+        _model.Name = e.Value?.ToString() ?? string.Empty;
+        return NameChanged.InvokeAsync(_model.Name);
+    }
+
+    private Task OnLocationInput(ChangeEventArgs e)
+    {
+        _model.Location = e.Value?.ToString() ?? string.Empty;
+        return LocationChanged.InvokeAsync(_model.Location);
+    }
+
+    public async Task FocusFirstFieldAsync()
+    {
+        var target = ShowSubmittedByField ? _firstFieldRef : _sportFieldRef;
+        try
+        {
+            await JS.InvokeVoidAsync("sportsScheduleAdmin.focusFirst", target);
+        }
+        catch (JSException)
+        {
+            await target.FocusAsync();
+        }
+    }
+
+    private Task SubmitAsync() => OnSubmit.InvokeAsync();
+
+    private static TimeOnly? ParseStartTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return TimeOnly.TryParse(value, out var time) ? time : null;
+    }
+
+    private static string FormatStartTime(TimeOnly? time) =>
+        time?.ToString("HH:mm") ?? string.Empty;
+
+    private sealed class EventFormModel
+    {
+        public string SubmittedBy { get; set; } = string.Empty;
+        public Sport Sport { get; set; }
+        public DateTime Date { get; set; }
+        public TimeOnly? StartTime { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+    }
+}

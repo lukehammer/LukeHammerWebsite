@@ -1,0 +1,380 @@
+﻿{
+  "events": [
+    {
+      "id": "035e2063-6a26-4f3a-b87e-08e2e10ddab3",
+      "date": "2026-09-12T00:00:00",
+      "startTime": "14:30:00",
+      "name": "vs La Center Blue",
+      "location": "Woodland HS",
+      "sport": "Football",
+      "kids": ["Choen"]
+    },
+    {
+      "id": "7b19faae-6cf6-41bc-9ed7-468e9b8d24a5",
+      "date": "2026-09-12T00:00:00",
+      "startTime": "11:00:00",
+      "name": "@ VW G20 Minions",
+      "location": "Jason Lee Middle School \u2014 Field 3B",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "cd828b38-b3dc-4243-8663-0ca8a7519c34",
+      "date": "2026-09-19T00:00:00",
+      "startTime": "11:00:00",
+      "name": "vs La Center White",
+      "location": "Kelso HS",
+      "sport": "Football",
+      "kids": ["Choen"]
+    },
+    {
+      "id": "9bc2f55f-7b68-4e86-bf74-86a96c5476ea",
+      "date": "2026-09-19T00:00:00",
+      "startTime": "09:00:00",
+      "name": "vs PSCN G20 Starburst (R)",
+      "location": "RORC \u2014 Field 5A",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "b732fa08-5d3c-4939-beaf-f69770da7c1e",
+      "date": "2026-09-26T00:00:00",
+      "startTime": "11:30:00",
+      "name": "vs Kelso JV",
+      "location": "Kalama",
+      "sport": "Football",
+      "kids": ["Choen"]
+    },
+    {
+      "id": "2dcf3f7e-21e0-459c-a29a-14e9d942673f",
+      "date": "2026-09-26T00:00:00",
+      "startTime": "09:00:00",
+      "name": "vs FCSC 20G Pink Lightning",
+      "location": "RORC \u2014 Field 5A",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "ba51f8cd-fa93-48a6-b8f7-df7bb2150ad9",
+      "date": "2026-10-03T00:00:00",
+      "startTime": "09:00:00",
+      "name": "@ PSCN G20 Meade (R)",
+      "location": "RORC \u2014 Field 5A",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "7c0e0efb-52db-41e4-a17f-fdcf9f25a499",
+      "date": "2026-10-03T00:00:00",
+      "startTime": "15:00:00",
+      "name": "Game at Woodland MS",
+      "location": "Woodland Middle School",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "d69ac883-f43a-427d-a858-28e381a33783",
+      "date": "2026-10-10T00:00:00",
+      "startTime": "13:00:00",
+      "name": "vs Castle Rock JV",
+      "location": "Castle Rock",
+      "sport": "Football",
+      "kids": ["Choen"]
+    },
+    {
+      "id": "77409662-9467-4b9a-9950-8b82db86ab9a",
+      "date": "2026-10-10T00:00:00",
+      "startTime": "11:00:00",
+      "name": "@ FCSC 20G Wild Strawberries",
+      "location": "Felida Park \u2014 Field S3",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "a7053210-f216-4de0-a39b-c04d632f98be",
+      "date": "2026-10-10T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "5aecc7e8-8d62-4d4c-8e20-cd7a8928176d",
+      "date": "2026-10-17T00:00:00",
+      "startTime": "12:00:00",
+      "name": "vs Longview JV",
+      "location": "Woodland HS",
+      "sport": "Football",
+      "kids": ["Choen"]
+    },
+    {
+      "id": "57579722-3d4a-4e27-b16d-3c214a623a73",
+      "date": "2026-10-17T00:00:00",
+      "startTime": "12:00:00",
+      "name": "vs PSCN G20 Pink Panthers (LC)",
+      "location": "RORC \u2014 Field 5B",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "928b3065-186c-49a6-80a0-6fcd2af53205",
+      "date": "2026-10-17T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "7b6b8952-7561-4a4b-a753-26d5eb48d427",
+      "date": "2026-10-24T00:00:00",
+      "startTime": "11:00:00",
+      "name": "vs PSCN G20 Speedy Bunnies (W)",
+      "location": "RORC \u2014 Field 5B",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "8e99494c-edb8-45e6-97be-fc23f5cf7820",
+      "date": "2026-10-24T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "40350114-3e4c-4c54-8c62-aa21d0c28442",
+      "date": "2026-10-31T00:00:00",
+      "startTime": "14:00:00",
+      "name": "@ PSCN G20 LaMont (LC)",
+      "location": "RORC \u2014 Field 5D",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "1f2384ea-ca3c-4fea-952b-ffa3f3e0098f",
+      "date": "2026-10-31T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "84db8f16-3949-4e29-8651-b213917f7c15",
+      "date": "2026-11-07T00:00:00",
+      "startTime": "14:00:00",
+      "name": "@ PSCC G20 Rainbow Thundercats (BG)",
+      "location": "RORC \u2014 Field 5C",
+      "sport": "Soccer",
+      "kids": ["June"]
+    },
+    {
+      "id": "be415a1f-59f5-4e0a-9541-da775b2a8cb1",
+      "date": "2026-11-07T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "64555db4-a17c-45c5-b47d-113639d2911f",
+      "date": "2026-11-14T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "7bb686f9-32dc-43bb-9e4c-c67a41848ae4",
+      "date": "2026-11-21T00:00:00",
+      "startTime": null,
+      "name": "Saturday game (TBD)",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Cael", "Silas"],
+      "lastModifiedBy": "Luke",
+      "lastModifiedAt": "2026-09-27T19:00:00-07:00"
+    },
+    {
+      "id": "59362c26-485f-40d1-85e5-767628cde196",
+      "date": "2027-03-21T00:00:00",
+      "startTime": null,
+      "name": "DH vs Bolts",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "b5f87ee2-42ae-4dfe-bc7a-b83e861e1ac6",
+      "date": "2027-04-04T00:00:00",
+      "startTime": null,
+      "name": "DH vs TBD",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "2237d115-a017-4d33-9636-8c714129f34a",
+      "date": "2027-04-10T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "be072c1a-9bfa-4b77-b486-a551fd2c2d38",
+      "date": "2027-04-18T00:00:00",
+      "startTime": null,
+      "name": "DH vs TBD",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "864d37a3-4999-417b-ac15-c354da955b40",
+      "date": "2027-04-24T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "4f02e4a3-c646-4302-b01e-24f4172e2f77",
+      "date": "2027-05-01T00:00:00",
+      "startTime": null,
+      "name": "DH vs Bolts",
+      "location": "Louis Bloch",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "ed5e380d-20f0-495d-982e-8d743e50eac8",
+      "date": "2027-05-02T00:00:00",
+      "startTime": null,
+      "name": "DH vs Cascade Baseball",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "82918128-2857-4eb5-b879-88a90fd61ac2",
+      "date": "2027-05-08T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "e931e70f-5a94-44ad-a633-82bf0e9ab8d9",
+      "date": "2027-05-15T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "69b95a45-e887-4f5d-87a7-4f1e5632731b",
+      "date": "2027-05-23T00:00:00",
+      "startTime": null,
+      "name": "DH vs TBD",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "19e6787a-f0fc-4188-bd48-098693cda257",
+      "date": "2027-05-28T00:00:00",
+      "startTime": null,
+      "name": "Bend Memorial Tournament",
+      "location": "Bend, OR",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "fa800b4f-9e6e-4389-81d0-12caeb751a7a",
+      "date": "2027-06-06T00:00:00",
+      "startTime": null,
+      "name": "DH vs TBD",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "02c356fe-7e7d-4412-86c0-6c2c7e1294f9",
+      "date": "2027-06-10T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "265a360d-dc0c-4f58-862e-03afbbeedb7a",
+      "date": "2027-06-17T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "d9f3ad3b-6ddf-46f6-8d40-7121f8e4f355",
+      "date": "2027-06-26T00:00:00",
+      "startTime": null,
+      "name": "Beach Blast Tournament",
+      "location": "TBD",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "57908159-84be-43d3-9827-23ce7878a044",
+      "date": "2027-07-03T00:00:00",
+      "startTime": null,
+      "name": "DH vs TBD",
+      "location": "RORC",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "cc71678f-5f92-4ad4-b1a0-940f02065e55",
+      "date": "2027-07-08T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    },
+    {
+      "id": "713b65d0-b0af-4471-9fb5-f49ed9d89902",
+      "date": "2027-07-15T00:00:00",
+      "startTime": null,
+      "name": "TTS Tournament",
+      "location": "Union HS",
+      "sport": "Baseball",
+      "kids": ["Levi"]
+    }
+  ]
+}

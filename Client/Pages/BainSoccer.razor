@@ -1,0 +1,191 @@
+@page "/BainSoccer"
+@using BlazorApp.Shared
+@inject HttpClient Http
+
+<PageTitle>PSCN G20 Bain (W) — Fall 2026</PageTitle>
+
+
+
+<div class="schedule-theme-kid-june">
+
+<h1>PSCN G20 Bain (W)</h1>
+
+<p>Fall 2026 soccer schedule. Only upcoming games are shown.</p>
+
+
+
+<style>
+
+    .schedule-theme-kid-june h1 {
+
+      color: #5C2D4A;
+
+    }
+
+    .schedule-theme-kid-june > p {
+
+      color: #6B3A5C;
+
+      border-left: 4px solid #D4869C;
+
+      padding-left: 12px;
+
+      margin-left: 0;
+
+    }
+
+    .schedule-theme-kid-june h3 {
+
+      color: #5C2D4A;
+
+    }
+
+    .schedule-theme-kid-june table {
+
+      border-collapse: collapse;
+
+      margin: auto;
+
+      border: 2px solid #9B7194;
+
+    }
+
+    .schedule-theme-kid-june th,
+
+    .schedule-theme-kid-june td {
+
+      border: 1px solid #C4A8BD;
+
+      padding: 8px;
+
+      text-align: left;
+
+      color: #3D2A35;
+
+    }
+
+    .schedule-theme-kid-june th {
+
+      background-color: #6B3A5C;
+
+      color: #FFFFFF;
+
+    }
+
+    .schedule-theme-kid-june .schedule-table tbody tr td {
+
+      background-color: #FCE7F3;
+
+      color: #3D2A35;
+
+    }
+
+    .schedule-theme-kid-june .schedule-table tbody tr.row-theme-kids-multi td {
+
+      background-color: transparent;
+
+      background-image: var(--row-stripe-bg);
+
+      color: #1F2937;
+
+    }
+
+    .schedule-theme-kid-june footer {
+
+      color: #6B5B73;
+
+    }
+
+    .schedule-theme-kid-june .schedule-error {
+      color: #B91C1C;
+    }
+
+  </style>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <p class="schedule-error">@_errorMessage</p>
+}
+
+@if (_loading)
+{
+    <p>Loading schedule...</p>
+}
+else if (_upcoming.Count == 0 && string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <h3>No upcoming games</h3>
+}
+
+
+
+<table class="schedule-table">
+
+    <thead>
+
+        <tr>
+
+            <th scope="col">Day of week</th>
+
+            <th scope="col">Date</th>
+
+            <th scope="col">Time</th>
+
+            <th scope="col">Matchup</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (var game in _upcoming)
+    {
+
+        <tr class="@ScheduleKidThemes.GetRowClass(game, "June")" style="@ScheduleKidThemes.GetRowStyle(game)">
+
+            <td>@game.Date.DayOfWeek</td>
+
+            <td>@game.Date.ToString("MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+
+            <td>@game.TimeDisplay</td>
+
+            <td>Bain @game.Name at @game.Location</td>
+
+        </tr>
+
+    }
+
+    </tbody>
+
+</table>
+
+
+
+<footer>
+
+    <li>&copy; @DateTime.Now.Year Luke Hammer</li>
+
+    <li>Updated 9/27/2026</li>
+
+</footer>
+
+</div>
+
+@code {
+    private IReadOnlyList<Event> _upcoming = Array.Empty<Event>();
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            (_upcoming, _errorMessage) = await SportsScheduleApiClient.LoadUpcomingAsync(Http, Sport.Soccer);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}
+
