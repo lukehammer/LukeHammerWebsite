@@ -4,7 +4,13 @@
 self.importScripts('./service-worker-assets.js');
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
-self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
+self.addEventListener('fetch', event => {
+    // Static Web Apps sign-in/out (/.auth/*) must reach the server, not the cached index.html.
+    if (new URL(event.request.url).pathname.startsWith('/.auth/')) {
+        return;
+    }
+    event.respondWith(onFetch(event));
+});
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
