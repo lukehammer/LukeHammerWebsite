@@ -248,31 +248,63 @@ namespace BlazorApp.Client.PhotoShoot
         /// <summary>Immediate poll (manual refresh button, tab became visible, network came back).</summary>
         public async Task SyncNowAsync()
         {
-            await PollOnceAsync(manual: true);
+            if (_pollCts == null)
+            {
+                await PollOnceAsync(manual: true);
+                return;
+            }
+
+            // The live loop owns polling: cut its current wait short (or queue behind an in-flight poll).
+            _manualRequested = true;
+            _delayCts?.Cancel();
         }
+
+        /// <summary>The network just came back, so forget the backoff and sync right away.</summary>
+        public Task NetworkRestoredAsync()
+        {
+            _failures = Math.Min(_failures, 1);
+            return SyncNowAsync();
+        }
+
+        private bool _manualRequested;
+        private CancellationTokenSource? _delayCts;
 
         private async Task PollLoopAsync(CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
-                var delay = _failures == 0
-                    ? LiveInterval
-                    : TimeSpan.FromMilliseconds(Math.Min(MaxBackoff.TotalMilliseconds, LiveInterval.TotalMilliseconds * Math.Pow(2, Math.Min(_failures, 4))));
-                if (_liveSubscribers == 0)
+                if (!_manualRequested)
                 {
-                    delay = IdleInterval;
+                    var delay = _failures == 0
+                        ? LiveInterval
+                        : TimeSpan.FromMilliseconds(Math.Min(MaxBackoff.TotalMilliseconds, LiveInterval.TotalMilliseconds * Math.Pow(2, Math.Min(_failures, 4))));
+                    if (_liveSubscribers == 0)
+                    {
+                        delay = IdleInterval;
+                    }
+
+                    using var delayCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    _delayCts = delayCts;
+                    try
+                    {
+                        await Task.Delay(delay, delayCts.Token);
+                    }
+                    catch (TaskCanceledException) when (!token.IsCancellationRequested)
+                    {
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        return;
+                    }
+                    finally
+                    {
+                        _delayCts = null;
+                    }
                 }
 
-                try
-                {
-                    await Task.Delay(delay, token);
-                }
-                catch (TaskCanceledException)
-                {
-                    return;
-                }
-
-                await PollOnceAsync(manual: false);
+                var manual = _manualRequested;
+                _manualRequested = false;
+                await PollOnceAsync(manual);
             }
         }
 

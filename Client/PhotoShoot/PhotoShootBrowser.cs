@@ -62,6 +62,12 @@ namespace BlazorApp.Client.PhotoShoot
                 return;
             }
 
+            if (reason == "online")
+            {
+                await _store.NetworkRestoredAsync();
+                return;
+            }
+
             await _store.SyncNowAsync();
         }
 
