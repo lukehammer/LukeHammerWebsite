@@ -1,0 +1,346 @@
+@page "/photoshoot/director"
+@layout PhotoShootLiveLayout
+@implements IAsyncDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Director · Photo Shoot</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    @if (!Store.IsOwner)
+    {
+        <div class="ps-panel ps-gate">
+            <p>The director view is for the shoot owner. Use the photographer view instead.</p>
+            <a class="ps-btn ps-btn-primary ps-btn-lg" href="photoshoot/photographer">Open photographer view</a>
+        </div>
+    }
+    else
+    {
+        var session = doc.Session;
+        var progress = PhotoShootPlanner.Progress(doc);
+        var remaining = PhotoShootPlanner.EstimateRemaining(doc, session.MustHaveOnly);
+        var current = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
+        var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
+        var upcoming = PhotoShootPlanner.Upcoming(doc, current?.Id, 5, session.MustHaveOnly);
+        var skipped = PhotoShootPlanner.OrderedShots(doc).Where(s => s.Status == ShotStatus.Skipped).ToList();
+        var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, current?.Id, session.MustHaveOnly);
+
+        <div class="ps-director">
+            <section class="ps-live-progress" aria-label="Progress">
+                <div><strong>@progress.Completed</strong>/@progress.Total done</div>
+                <div class="ps-live-progress-must"><i class="bi bi-star-fill" aria-hidden="true"></i> <strong>@progress.MustHaveCompleted</strong>/@progress.MustHaveTotal must-have</div>
+                <div class="ps-muted">~@PhotoShootEstimate.Format(remaining.TotalMinutes) left (est.)</div>
+                <div class="ps-mini-track" aria-hidden="true"><div class="ps-mini-fill" style="width:@(progress.Percent)%"></div><div class="ps-mini-fill-must" style="width:@(progress.MustHavePercent)%"></div></div>
+            </section>
+
+            @if (!session.IsActive)
+            {
+                <button type="button" class="ps-btn ps-btn-primary ps-btn-xl ps-block" disabled="@busy" @onclick="() => Do(SessionAction.Start)">
+                    <i class="bi bi-play-fill" aria-hidden="true"></i> @(session.StartedUtc == null ? "Start the session" : "Resume the session")
+                </button>
+            }
+
+            @if (session.NextRequestedUtc != null)
+            {
+                <div class="ps-request-banner" role="alert">
+                    <i class="bi bi-hand-index-thumb" aria-hidden="true"></i>
+                    <span><strong>Photographer is ready for the next shot</strong> <span class="ps-small">(@PsUi.LocalTime(session.NextRequestedUtc))</span></span>
+                    <div class="ps-request-actions">
+                        <button type="button" class="ps-btn ps-btn-success" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">Complete &amp; next</button>
+                        <button type="button" class="ps-btn ps-btn-ghost" disabled="@busy" @onclick="() => Do(SessionAction.ClearNextRequest)">Dismiss</button>
+                    </div>
+                </div>
+            }
+
+            @if (setup != null)
+            {
+                <section class="ps-live-setup @(setup.RequiresChildren ? "is-kids" : "")">
+                    <div class="ps-live-setup-label">Setup @setup.Sequence of @doc.Setups.Count @(setup.RequiresChildren ? "· children on set" : "")</div>
+                    <div class="ps-live-setup-name">@setup.Name</div>
+                    @if (PsUi.Has(setup.Outfit))
+                    {
+                        <div class="ps-small ps-muted">Outfit: @setup.Outfit</div>
+                    }
+                </section>
+            }
+
+            @if (current == null)
+            {
+                <div class="ps-panel ps-center">
+                    @if (progress.Total == 0)
+                    {
+                        <p>There are no shots yet. <a href="photoshoot/shots/new">Add one</a>.</p>
+                    }
+                    else if (progress.Completed == progress.Total)
+                    {
+                        <p class="ps-big-message">🎉 Every shot is complete!</p>
+                    }
+                    else
+                    {
+                        <p>No current shot. Start the session or pick one below.</p>
+                    }
+                </div>
+            }
+            else
+            {
+                <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
+                    <div class="ps-live-shot-meta">
+                        <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
+                        <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                        <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
+                        @if (current.Status == ShotStatus.InProgress && current.StartedUtc != null)
+                        {
+                            <span class="ps-timer" title="Time on this shot"><i class="bi bi-stopwatch" aria-hidden="true"></i> @PsUi.Elapsed(current.StartedUtc) / @PsUi.Minutes(current.EstimatedMinutes)</span>
+                        }
+                    </div>
+                    <h1 class="ps-live-title">@current.Title</h1>
+                    @if (PsUi.Has(current.Summary))
+                    {
+                        <p class="ps-live-summary">@current.Summary</p>
+                    }
+                    <PsShotDirections Shot="current" Setup="setup" ShowPhotographer="false" />
+                    <details class="ps-live-more">
+                        <summary>Photographer side, references &amp; purpose</summary>
+                        <PsShotDirections Shot="current" Setup="setup" ShowPerformer="false" ShowProps="false" />
+                        <PsShotReferences Shot="current" ShowSearchPhrases="false" />
+                        @if (PsUi.Has(current.MarketingPurpose))
+                        {
+                            <p class="ps-small"><strong>Use:</strong> @current.MarketingPurpose</p>
+                        }
+                        <a class="ps-small" href="@PsUi.ShotUrl(current)">Open full shot page</a>
+                    </details>
+                </section>
+
+                <div class="ps-live-actions">
+                    <button type="button" class="ps-btn ps-btn-success ps-btn-xl ps-span-2" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next
+                    </button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    <button type="button" class="ps-btn ps-btn-warning ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@(busy || nextSetupShot == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
+                </div>
+            }
+
+            <nav class="ps-tabs" role="tablist" aria-label="Director tools">
+                <button type="button" role="tab" class="ps-tab @(tab == "next" ? "is-active" : "")" aria-selected="@(tab == "next")" @onclick='() => tab = "next"'>Up next</button>
+                <button type="button" role="tab" class="ps-tab @(tab == "skipped" ? "is-active" : "")" aria-selected="@(tab == "skipped")" @onclick='() => tab = "skipped"'>Skipped (@skipped.Count)</button>
+                <button type="button" role="tab" class="ps-tab @(tab == "find" ? "is-active" : "")" aria-selected="@(tab == "find")" @onclick='() => tab = "find"'>Find</button>
+                <button type="button" role="tab" class="ps-tab @(tab == "notes" ? "is-active" : "")" aria-selected="@(tab == "notes")" @onclick='() => tab = "notes"'>Notes</button>
+                <button type="button" role="tab" class="ps-tab @(tab == "options" ? "is-active" : "")" aria-selected="@(tab == "options")" @onclick='() => tab = "options"'><i class="bi bi-sliders" aria-label="Options"></i></button>
+            </nav>
+
+            <section class="ps-tab-panel" role="tabpanel">
+                @switch (tab)
+                {
+                    case "next":
+                        @if (upcoming.Count == 0)
+                        {
+                            <p class="ps-muted">Nothing queued after this shot@(skipped.Count > 0 ? " — check Skipped" : "").</p>
+                        }
+                        <ul class="ps-queue">
+                            @foreach (var shot in upcoming)
+                            {
+                                <li class="ps-queue-row" @key="shot.Id">
+                                    <div class="ps-queue-text">
+                                        <span class="ps-queue-title">@shot.Title</span>
+                                        <span class="ps-queue-meta">
+                                            <span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span>
+                                            @PsUi.Minutes(shot.EstimatedMinutes)
+                                            @if (shot.SetupId != current?.SetupId) { <span class="ps-setup-change"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> setup change</span> }
+                                        </span>
+                                    </div>
+                                    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm ps-tap" disabled="@busy" @onclick="() => Do(SessionAction.SetCurrent, shot.Id)">Go</button>
+                                    @if (shot != upcoming.FirstOrDefault())
+                                    {
+                                        <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" title="Shoot this next" aria-label="Shoot @shot.Title next" @onclick="() => Do(SessionAction.ShootNext, shot.Id)"><i class="bi bi-arrow-bar-up" aria-hidden="true"></i></button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        break;
+
+                    case "skipped":
+                        @if (skipped.Count == 0)
+                        {
+                            <p class="ps-muted">No skipped shots.</p>
+                        }
+                        <ul class="ps-queue">
+                            @foreach (var shot in skipped)
+                            {
+                                <li class="ps-queue-row" @key="shot.Id">
+                                    <div class="ps-queue-text">
+                                        <span class="ps-queue-title">@shot.Title</span>
+                                        <span class="ps-queue-meta"><span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span> @PsUi.SetupLabel(doc, shot)</span>
+                                    </div>
+                                    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm ps-tap" disabled="@busy" @onclick="() => Do(SessionAction.SetCurrent, shot.Id)">Shoot now</button>
+                                    <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" title="Put back in the queue" aria-label="Put @shot.Title back in the queue" @onclick="() => Do(SessionAction.ReopenShot, shot.Id)"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>
+                                </li>
+                            }
+                        </ul>
+                        break;
+
+                    case "find":
+                        <input class="form-control ps-input" type="search" placeholder="Search any shot…" aria-label="Search shots" @bind="findText" @bind:event="oninput" />
+                        <ul class="ps-queue">
+                            @foreach (var shot in FindShots(doc))
+                            {
+                                <li class="ps-queue-row @PsUi.StatusClass(shot.Status)" @key="shot.Id">
+                                    <div class="ps-queue-text">
+                                        <span class="ps-queue-title"><i class="bi @PsUi.StatusIcon(shot.Status)" aria-hidden="true"></i> @PhotoShootPlanner.OrderNumber(doc, shot.Id). @shot.Title</span>
+                                        <span class="ps-queue-meta">@PhotoShootLabels.Status(shot.Status) · @PsUi.SetupLabel(doc, shot)</span>
+                                    </div>
+                                    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm ps-tap" disabled="@busy" @onclick="() => Do(SessionAction.SetCurrent, shot.Id)">Go</button>
+                                    @if (current != null && shot.Id != current.Id && shot.Status != ShotStatus.Completed)
+                                    {
+                                        <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" title="Shoot this next" aria-label="Shoot @shot.Title next" @onclick="() => Do(SessionAction.ShootNext, shot.Id)"><i class="bi bi-arrow-bar-up" aria-hidden="true"></i></button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        break;
+
+                    case "notes":
+                        <div class="ps-note-form">
+                            <input class="form-control ps-input" placeholder="@(current == null ? "Session note…" : $"Note for “{current.Title}”…")" maxlength="500" @bind="noteText" @bind:event="oninput" aria-label="Note" />
+                            <button type="button" class="ps-btn ps-btn-primary" disabled="@(busy || string.IsNullOrWhiteSpace(noteText))" @onclick="AddNote">Add</button>
+                        </div>
+                        @foreach (var note in session.Notes.OrderByDescending(n => n.CreatedUtc).Take(30))
+                        {
+                            var shot = PhotoShootPlanner.FindShot(doc, note.ShotId);
+                            <div class="ps-note">
+                                <span class="ps-muted ps-small">@PsUi.LocalTime(note.CreatedUtc) · @note.Author @(shot == null ? "" : "· " + shot.Title)</span>
+                                <div>@note.Text</div>
+                            </div>
+                        }
+                        break;
+
+                    case "options":
+                        <div class="ps-options">
+                            <label class="ps-toggle ps-toggle-lg"><input type="checkbox" checked="@session.MustHaveOnly" disabled="@busy" @onchange="e => Do(SessionAction.SetMustHaveOnly, flag: IsChecked(e))" /> Must-have shots only</label>
+                            <label class="ps-toggle ps-toggle-lg"><input type="checkbox" checked="@session.PhotographerCanAdvance" disabled="@busy" @onchange="e => Do(SessionAction.SetPhotographerCanAdvance, flag: IsChecked(e))" /> Let the photographer move to the next shot</label>
+                            <label class="ps-toggle ps-toggle-lg"><input type="checkbox" checked="@keepAwake" @onchange="ToggleAwake" /> Keep this screen awake</label>
+                            @if (session.IsActive)
+                            {
+                                @if (confirmEnd)
+                                {
+                                    <p>End the session? All progress stays saved and you can resume later.</p>
+                                    <button type="button" class="ps-btn ps-btn-danger" disabled="@busy" @onclick="EndSession">End session</button>
+                                    <button type="button" class="ps-btn ps-btn-ghost" @onclick="() => confirmEnd = false">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="ps-btn ps-btn-outline" @onclick="() => confirmEnd = true"><i class="bi bi-stop-fill" aria-hidden="true"></i> End session…</button>
+                                }
+                            }
+                            <p class="ps-muted ps-small">Both phones refresh every few seconds. If a phone loses signal it reconnects automatically; tap ↻ to refresh right away.</p>
+                        </div>
+                        break;
+                }
+            </section>
+        </div>
+    }
+}
+
+@code {
+    private bool busy;
+    private string tab = "next";
+    private string findText = "";
+    private string noteText = "";
+    private bool keepAwake = true;
+    private bool confirmEnd;
+    private Timer? ticker;
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Store.StartLive();
+        ticker = new Timer(_ => InvokeAsync(StateHasChanged), null, 1000, 1000);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Browser.KeepAwakeAsync(keepAwake);
+        }
+    }
+
+    private static bool IsChecked(ChangeEventArgs e) => e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);
+
+    private async Task Do(SessionAction action, string shotId = "", bool flag = false)
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await Store.SessionAsync(action, shotId, flag);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task AddNote()
+    {
+        var text = noteText;
+        busy = true;
+        try
+        {
+            if (await Store.SessionAsync(SessionAction.AddNote, text: text))
+            {
+                noteText = "";
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task EndSession()
+    {
+        await Do(SessionAction.End);
+        confirmEnd = false;
+    }
+
+    private async Task ToggleAwake(ChangeEventArgs e)
+    {
+        keepAwake = IsChecked(e);
+        var ok = await Browser.KeepAwakeAsync(keepAwake);
+        if (keepAwake && !ok)
+        {
+            Store.SetFlash("This browser can't keep the screen awake. Turn off auto-lock in your phone settings during the shoot.", isError: true);
+        }
+    }
+
+    private IEnumerable<PhotoShot> FindShots(PhotoShootDocument doc)
+    {
+        var term = findText.Trim();
+        var shots = PhotoShootPlanner.OrderedShots(doc).AsEnumerable();
+        if (term.Length > 0)
+        {
+            shots = shots.Where(s => s.Title.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || s.Tags.Any(t => t.Contains(term, StringComparison.OrdinalIgnoreCase))
+                || s.Inspiration.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return shots.Take(40);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        ticker?.Dispose();
+        Store.StopLive();
+        Store.Changed -= OnChanged;
+        await Browser.KeepAwakeAsync(false);
+    }
+}

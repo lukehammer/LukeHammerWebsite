@@ -1,0 +1,55 @@
+@inherits LayoutComponentBase
+@layout BlazorApp.Client.Shared.MainLayout
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject NavigationManager Nav
+
+<HeadContent>
+    <link rel="stylesheet" href="css/photoshoot.css" />
+</HeadContent>
+
+<div class="ps-root">
+    <nav class="ps-subnav" aria-label="Photo shoot sections">
+        <NavLink class="ps-subnav-link" href="photoshoot" Match="NavLinkMatch.All"><i class="bi bi-speedometer2" aria-hidden="true"></i><span>Dashboard</span></NavLink>
+        <NavLink class="ps-subnav-link" href="photoshoot/shots"><i class="bi bi-list-check" aria-hidden="true"></i><span>Shots</span></NavLink>
+        @if (Store.Me?.Access != PhotoShootAccess.Photographer)
+        {
+            <NavLink class="ps-subnav-link" href="photoshoot/setups"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>Setups</span></NavLink>
+            <NavLink class="ps-subnav-link" href="photoshoot/references"><i class="bi bi-images" aria-hidden="true"></i><span>References</span></NavLink>
+            <NavLink class="ps-subnav-link" href="photoshoot/director"><i class="bi bi-megaphone" aria-hidden="true"></i><span>Director</span></NavLink>
+        }
+        <NavLink class="ps-subnav-link" href="photoshoot/photographer"><i class="bi bi-camera" aria-hidden="true"></i><span>Photographer</span></NavLink>
+        @if (Store.Me?.Access != PhotoShootAccess.Photographer)
+        {
+            <NavLink class="ps-subnav-link" href="photoshoot/manage"><i class="bi bi-gear" aria-hidden="true"></i><span>Manage</span></NavLink>
+        }
+    </nav>
+
+    <PsFlash />
+
+    <PsGate AllowWithoutShoot="@AllowWithoutShoot">
+        @Body
+    </PsGate>
+</div>
+
+@code {
+    // The manage page creates/imports shoots, so it must work before any shoot exists.
+    private bool AllowWithoutShoot =>
+        Nav.ToBaseRelativePath(Nav.Uri).StartsWith("photoshoot/manage", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

@@ -1,0 +1,18 @@
+<div class="ps-progress @CssClass">
+    <div class="ps-progress-head">
+        <span class="ps-progress-label">@Label</span>
+        <span class="ps-progress-value">@Value / @Max <span class="ps-muted">(@Percent%)</span></span>
+    </div>
+    <div class="ps-progress-track" role="progressbar" aria-label="@Label" aria-valuemin="0" aria-valuemax="@Max" aria-valuenow="@Value">
+        <div class="ps-progress-fill" style="width:@(Percent)%"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public int Value { get; set; }
+    [Parameter] public int Max { get; set; }
+    [Parameter] public string CssClass { get; set; } = "";
+
+    private int Percent => Max <= 0 ? 0 : (int)Math.Round(Value * 100.0 / Max);
+}

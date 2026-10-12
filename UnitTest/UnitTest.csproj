@@ -32,6 +32,9 @@
     <None Include="..\Api\data\kid-theme-colors.json" Link="data\kid-theme-colors.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\Api\data\photoshoot-catalog.json" Link="data\photoshoot-catalog.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

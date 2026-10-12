@@ -1,0 +1,294 @@
+@page "/photoshoot/shots/new"
+@page "/photoshoot/shots/{Id}/edit"
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject NavigationManager Nav
+
+<PageTitle>Photo Shoot · @(IsNew ? "New shot" : "Edit shot")</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    @if (!Store.IsOwner)
+    {
+        <div class="ps-empty"><p>Only the shoot owner can edit shots.</p></div>
+    }
+    else if (draft == null)
+    {
+        <div class="ps-empty">
+            <p>That shot doesn't exist.</p>
+            <a class="ps-btn ps-btn-outline" href="photoshoot/shots">Back to shots</a>
+        </div>
+    }
+    else
+    {
+        <header class="ps-page-head">
+            <h1 class="ps-h1">@(IsNew ? "New shot" : "Edit shot")</h1>
+        </header>
+
+        @if (errors.Count > 0)
+        {
+            <div class="ps-flash ps-flash-error" role="alert">
+                <ul class="mb-0">@foreach (var e in errors) { <li>@e</li> }</ul>
+            </div>
+        }
+
+        <form class="ps-form" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <fieldset class="ps-fieldset">
+                <legend>Basics</legend>
+                <label class="ps-label" for="ps-title">Title *</label>
+                <input id="ps-title" class="form-control ps-input" @bind="draft.Title" maxlength="120" required />
+
+                <label class="ps-label" for="ps-summary">Short description</label>
+                <input id="ps-summary" class="form-control ps-input" @bind="draft.Summary" placeholder="What the photo looks like, in one sentence" />
+
+                <div class="ps-form-grid">
+                    <div>
+                        <label class="ps-label" for="ps-setup">Setup</label>
+                        <select id="ps-setup" class="form-select ps-select" @bind="draft.SetupId">
+                            <option value="">Unassigned</option>
+                            @foreach (var setup in PhotoShootPlanner.OrderedSetups(doc))
+                            {
+                                <option value="@setup.Id">@setup.Sequence. @setup.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-priority">Priority</label>
+                        <select id="ps-priority" class="form-select ps-select" @bind="draft.Priority">
+                            @foreach (var p in Enum.GetValues<ShotPriority>())
+                            {
+                                <option value="@p">@PhotoShootLabels.Priority(p)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-category">Category</label>
+                        <select id="ps-category" class="form-select ps-select" @bind="draft.Category">
+                            @foreach (var c in Enum.GetValues<ShotCategory>())
+                            {
+                                <option value="@c">@PhotoShootLabels.Category(c)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-status">Status</label>
+                        <select id="ps-status" class="form-select ps-select" @bind="draft.Status" disabled="@IsNew">
+                            @foreach (var s in Enum.GetValues<ShotStatus>())
+                            {
+                                <option value="@s">@PhotoShootLabels.Status(s)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-minutes">Estimated minutes</label>
+                        <input id="ps-minutes" type="number" min="0" max="240" class="form-control ps-input" @bind="draft.EstimatedMinutes" />
+                    </div>
+                    <div class="ps-check-cell">
+                        <label class="ps-toggle"><input type="checkbox" @bind="draft.IsFavorite" /> Favorite / selected</label>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset class="ps-fieldset">
+                <legend>Why this shot</legend>
+                <label class="ps-label" for="ps-objective">Detailed objective</label>
+                <textarea id="ps-objective" class="form-control ps-input" rows="2" @bind="draft.Objective"></textarea>
+                <label class="ps-label" for="ps-marketing">Marketing purpose</label>
+                <textarea id="ps-marketing" class="form-control ps-input" rows="2" @bind="draft.MarketingPurpose"></textarea>
+                <label class="ps-label" for="ps-inspiration">Inspiration performer / character</label>
+                <input id="ps-inspiration" class="form-control ps-input" @bind="draft.Inspiration" />
+                <label class="ps-label" for="ps-phrases">Reference search phrases (one per line)</label>
+                <textarea id="ps-phrases" class="form-control ps-input" rows="2" @bind="phrasesText"></textarea>
+            </fieldset>
+
+            <fieldset class="ps-fieldset">
+                <legend>Performer directions</legend>
+                <label class="ps-label" for="ps-face">Facial expression</label>
+                <textarea id="ps-face" class="form-control ps-input" rows="2" @bind="draft.FacialExpression"></textarea>
+                <label class="ps-label" for="ps-body">Body position</label>
+                <textarea id="ps-body" class="form-control ps-input" rows="2" @bind="draft.BodyPosition"></textarea>
+                <label class="ps-label" for="ps-hands">Hand position</label>
+                <textarea id="ps-hands" class="form-control ps-input" rows="2" @bind="draft.HandPosition"></textarea>
+                <label class="ps-label" for="ps-eyes">Eye direction</label>
+                <input id="ps-eyes" class="form-control ps-input" @bind="draft.EyeDirection" />
+                <label class="ps-label" for="ps-perf">Performer instructions / acting note</label>
+                <textarea id="ps-perf" class="form-control ps-input" rows="2" @bind="draft.PerformerInstructions"></textarea>
+            </fieldset>
+
+            <fieldset class="ps-fieldset">
+                <legend>Photographer directions</legend>
+                <label class="ps-label" for="ps-photo">Photographer instructions</label>
+                <textarea id="ps-photo" class="form-control ps-input" rows="2" @bind="draft.PhotographerInstructions"></textarea>
+                <div class="ps-form-grid">
+                    <div>
+                        <label class="ps-label" for="ps-framing">Camera framing</label>
+                        <input id="ps-framing" class="form-control ps-input" @bind="draft.Framing" placeholder="Tight head and shoulders" />
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-orient">Orientation</label>
+                        <select id="ps-orient" class="form-select ps-select" @bind="draft.Orientation">
+                            @foreach (var o in Enum.GetValues<CameraOrientation>())
+                            {
+                                <option value="@o">@PhotoShootLabels.Orientation(o)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-crop">Recommended crop</label>
+                        <input id="ps-crop" class="form-control ps-input" @bind="draft.RecommendedCrop" />
+                    </div>
+                    <div>
+                        <label class="ps-label" for="ps-neg">Negative space</label>
+                        <select id="ps-neg" class="form-select ps-select" @bind="draft.NegativeSpace">
+                            @foreach (var n in Enum.GetValues<NegativeSpaceDirection>())
+                            {
+                                <option value="@n">@PhotoShootLabels.NegativeSpace(n)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <label class="ps-label" for="ps-bg">Background (leave blank to use the setup's)</label>
+                <input id="ps-bg" class="form-control ps-input" @bind="draft.Background" />
+                <label class="ps-label" for="ps-light">Lighting notes</label>
+                <textarea id="ps-light" class="form-control ps-input" rows="2" @bind="draft.LightingNotes"></textarea>
+                <label class="ps-label" for="ps-props">Props (comma or line separated)</label>
+                <textarea id="ps-props" class="form-control ps-input" rows="2" @bind="propsText"></textarea>
+            </fieldset>
+
+            <fieldset class="ps-fieldset">
+                <legend>Other</legend>
+                <label class="ps-label" for="ps-tags">Tags (comma separated)</label>
+                <input id="ps-tags" class="form-control ps-input" @bind="tagsText" />
+                <label class="ps-label" for="ps-notes">Notes</label>
+                <textarea id="ps-notes" class="form-control ps-input" rows="3" @bind="draft.Notes"></textarea>
+            </fieldset>
+
+            <div class="ps-form-actions">
+                <button type="submit" class="ps-btn ps-btn-primary ps-btn-lg" disabled="@busy">@(busy ? "Saving…" : "Save")</button>
+                <a class="ps-btn ps-btn-outline ps-btn-lg" href="@(IsNew ? "photoshoot/shots" : $"photoshoot/shots/{Id}")">Cancel</a>
+                @if (!IsNew)
+                {
+                    @if (confirmDelete)
+                    {
+                        <button type="button" class="ps-btn ps-btn-danger ps-btn-lg" disabled="@busy" @onclick="DeleteAsync">Yes, delete this shot</button>
+                        <button type="button" class="ps-btn ps-btn-ghost" @onclick="() => confirmDelete = false">Keep it</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="ps-btn ps-btn-ghost ps-danger-text" @onclick="() => confirmDelete = true"><i class="bi bi-trash" aria-hidden="true"></i> Delete</button>
+                    }
+                }
+            </div>
+        </form>
+    }
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "setup")] public string? SetupQuery { get; set; }
+
+    private PhotoShot? draft;
+    private string propsText = "";
+    private string tagsText = "";
+    private string phrasesText = "";
+    private List<string> errors = new();
+    private bool busy;
+    private bool confirmDelete;
+    private string? loadedFor;
+
+    private bool IsNew => string.IsNullOrEmpty(Id);
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    protected override void OnParametersSet() => LoadDraft();
+
+    private void LoadDraft()
+    {
+        var key = (Id ?? "new") + "|" + (Store.Shoot?.Id ?? "");
+        if (loadedFor == key || Store.Shoot == null)
+        {
+            return;
+        }
+
+        loadedFor = key;
+        if (IsNew)
+        {
+            draft = new PhotoShot { EstimatedMinutes = 3, Priority = ShotPriority.Standard, SetupId = SetupQuery ?? "" };
+        }
+        else
+        {
+            var source = PhotoShootPlanner.FindShot(Store.Shoot, Id);
+            draft = source == null ? null : System.Text.Json.JsonSerializer.Deserialize<PhotoShot>(System.Text.Json.JsonSerializer.Serialize(source));
+        }
+
+        propsText = string.Join("\n", draft?.Props ?? new());
+        tagsText = string.Join(", ", draft?.Tags ?? new());
+        phrasesText = string.Join("\n", draft?.ReferenceSearchPhrases ?? new());
+    }
+
+    private async Task SaveAsync()
+    {
+        if (draft == null)
+        {
+            return;
+        }
+
+        draft.Props = PhotoShootEditor.ParseList(propsText);
+        draft.Tags = PhotoShootEditor.ParseList(tagsText);
+        draft.ReferenceSearchPhrases = PhotoShootEditor.CleanList((phrasesText ?? "").Split('\n'));
+        errors = PhotoShootValidator.ValidateShot(draft, Store.Shoot);
+        if (errors.Count > 0)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var createdId = "";
+            var ok = await Store.RunAsync(async id =>
+            {
+                var response = IsNew ? await Store.Api.CreateShotAsync(id, draft) : await Store.Api.UpdateShotAsync(id, draft);
+                createdId = response.CreatedId;
+                return response;
+            });
+
+            if (ok)
+            {
+                Nav.NavigateTo(IsNew ? $"photoshoot/shots/{createdId}" : $"photoshoot/shots/{Id}");
+            }
+            else
+            {
+                errors = new List<string> { Store.Flash };
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        busy = true;
+        try
+        {
+            if (await Store.RunAsync(id => Store.Api.DeleteShotAsync(id, Id!), "Shot deleted."))
+            {
+                Nav.NavigateTo("photoshoot/shots");
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OnChanged()
+    {
+        LoadDraft();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

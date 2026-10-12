@@ -1,0 +1,120 @@
+@page "/photoshoot"
+@implements IDisposable
+@inject PhotoShootStore Store
+
+<PageTitle>Photo Shoot · Dashboard</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var progress = PhotoShootPlanner.Progress(doc);
+    var remaining = PhotoShootPlanner.EstimateRemaining(doc);
+    var mustRemaining = PhotoShootPlanner.EstimateRemaining(doc, mustHaveOnly: true);
+    var total = PhotoShootPlanner.EstimateTotal(doc);
+    var current = PhotoShootPlanner.FindShot(doc, doc.Session.CurrentShotId);
+    var currentSetup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
+
+    <header class="ps-page-head">
+        <div>
+            <h1 class="ps-h1">@doc.Name</h1>
+            @if (PsUi.Has(doc.ShootDate))
+            {
+                <div class="ps-muted"><i class="bi bi-calendar-event" aria-hidden="true"></i> @doc.ShootDate</div>
+            }
+        </div>
+        <div class="ps-live-pill @(doc.Session.IsActive ? "is-live" : "")">
+            @(doc.Session.IsActive ? "Session live" : "Not shooting")
+        </div>
+    </header>
+
+    <div class="ps-cta-row">
+        @if (Store.IsOwner)
+        {
+            <a class="ps-btn ps-btn-primary ps-btn-lg" href="photoshoot/director"><i class="bi bi-megaphone" aria-hidden="true"></i> Director view</a>
+        }
+        <a class="ps-btn ps-btn-teal ps-btn-lg" href="photoshoot/photographer"><i class="bi bi-camera" aria-hidden="true"></i> Photographer view</a>
+    </div>
+
+    <section class="ps-stats" aria-label="Totals">
+        <div class="ps-stat"><span class="ps-stat-num">@progress.Total</span><span class="ps-stat-label">Planned</span></div>
+        <div class="ps-stat ps-stat-done"><span class="ps-stat-num">@progress.Completed</span><span class="ps-stat-label">Completed</span></div>
+        <div class="ps-stat"><span class="ps-stat-num">@progress.Remaining</span><span class="ps-stat-label">Remaining</span></div>
+        <div class="ps-stat ps-stat-skip"><span class="ps-stat-num">@progress.Skipped</span><span class="ps-stat-label">Skipped</span></div>
+    </section>
+
+    <section class="ps-card">
+        <PsProgress Label="Must-have shots" Value="progress.MustHaveCompleted" Max="progress.MustHaveTotal" CssClass="ps-progress-must" />
+        <PsProgress Label="All shots" Value="progress.Completed" Max="progress.Total" />
+        <div class="ps-link-row">
+            <a href="photoshoot/shots?priority=MustHave&status=Remaining">Remaining must-haves (@progress.MustHaveRemaining) →</a>
+            @if (progress.Skipped > 0)
+            {
+                <a href="photoshoot/shots?status=Skipped">Skipped shots (@progress.Skipped) →</a>
+            }
+        </div>
+    </section>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Now</h2>
+        @if (current == null)
+        {
+            <p class="ps-muted">No current shot. @(Store.IsOwner ? "Open the director view and start the session." : "Waiting for the director.")</p>
+        }
+        else
+        {
+            <div class="ps-now">
+                <div class="ps-now-setup">@(currentSetup == null ? "Unassigned" : $"Setup {currentSetup.Sequence}: {currentSetup.Name}")</div>
+                <a class="ps-now-title" href="@PsUi.ShotUrl(current)">@current.Title</a>
+                <div class="ps-badges">
+                    <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                    <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
+                </div>
+            </div>
+        }
+    </section>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Time <span class="ps-muted ps-small">(estimates)</span></h2>
+        <dl class="ps-dl ps-dl-compact">
+            <div class="ps-dl-row"><dt>Remaining (est.)</dt><dd><strong>@PhotoShootEstimate.Format(remaining.TotalMinutes)</strong></dd></div>
+            <div class="ps-dl-row"><dt>Remaining must-haves (est.)</dt><dd>@PhotoShootEstimate.Format(mustRemaining.TotalMinutes)</dd></div>
+            <div class="ps-dl-row"><dt>Whole plan (est.)</dt><dd>@PhotoShootEstimate.Format(total.TotalMinutes)</dd></div>
+            <div class="ps-dl-row"><dt>Breakdown</dt><dd>@PhotoShootEstimate.Format(remaining.ShootingMinutes) shooting · @PhotoShootEstimate.Format(remaining.ChangeoverMinutes) changeovers · @PhotoShootEstimate.Format(remaining.BreakMinutes) breaks</dd></div>
+        </dl>
+        <p class="ps-muted ps-small">Estimates add each shot's planned minutes, setup changeovers, and optional breaks (@(doc.BreakEveryMinutes > 0 ? $"{doc.BreakDurationMinutes} min every {doc.BreakEveryMinutes} min" : "none planned")). Real shoots vary.</p>
+    </section>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Setups</h2>
+        <ol class="ps-setup-summary">
+            @foreach (var group in PhotoShootPlanner.Groups(doc, includeEmptySetups: false))
+            {
+                <li class="@(group.IsDone ? "is-done" : "") @(currentSetup != null && group.Setup?.Id == currentSetup.Id ? "is-current" : "")">
+                    <span class="ps-setup-summary-name">
+                        @if (group.Setup?.RequiresChildren == true)
+                        {
+                            <i class="bi bi-people-fill ps-kids-icon" title="Children on set" aria-label="Children on set"></i>
+                        }
+                        @group.Name
+                    </span>
+                    <span class="ps-setup-summary-count">@group.CompletedCount/@group.Shots.Count</span>
+                </li>
+            }
+        </ol>
+    </section>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Store.StartLive();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.StopLive();
+        Store.Changed -= OnChanged;
+    }
+}

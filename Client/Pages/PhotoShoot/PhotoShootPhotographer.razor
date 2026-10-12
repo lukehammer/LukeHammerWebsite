@@ -1,0 +1,233 @@
+@page "/photoshoot/photographer"
+@layout PhotoShootLiveLayout
+@implements IAsyncDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Photographer · Photo Shoot</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var session = doc.Session;
+    var progress = PhotoShootPlanner.Progress(doc);
+    var current = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
+    var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
+    var next = PhotoShootPlanner.Upcoming(doc, current?.Id, 1, session.MustHaveOnly).FirstOrDefault();
+    var canAdvance = Store.IsOwner || session.PhotographerCanAdvance;
+    var heroImage = current == null ? null : PhotoShootEditor.ReferencesForShot(doc, current.Id).FirstOrDefault(r => r.HasImage);
+
+    <div class="ps-photographer">
+        @if (!session.IsActive)
+        {
+            <div class="ps-waiting" role="status"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Waiting for the director to start the session.@(current == null ? "" : " First up:")</div>
+        }
+
+        @if (current == null)
+        {
+            <div class="ps-panel ps-center">
+                <p class="ps-big-message">@(progress.Total > 0 && progress.Completed == progress.Total ? "🎉 Every shot is complete!" : "No shot selected yet.")</p>
+            </div>
+        }
+        else
+        {
+            <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
+                <div class="ps-live-shot-meta">
+                    <span class="ps-seq-big">@PhotoShootPlanner.OrderNumber(doc, current.Id)<span class="ps-muted">/@progress.Total</span></span>
+                    <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                    <span class="ps-badge @PsUi.StatusClass(current.Status)"><i class="bi @PsUi.StatusIcon(current.Status)" aria-hidden="true"></i> @PhotoShootLabels.Status(current.Status)</span>
+                    <span class="ps-badge ps-badge-plain"><i class="bi bi-clock" aria-hidden="true"></i> ~@PsUi.Minutes(current.EstimatedMinutes)</span>
+                </div>
+                <h1 class="ps-live-title">@current.Title</h1>
+                @if (setup != null)
+                {
+                    <div class="ps-muted ps-small">Setup @setup.Sequence: @setup.Name</div>
+                }
+
+                @if (heroImage != null)
+                {
+                    <img class="ps-hero-ref" src="@Store.Api.ImageUrl(doc.Id, heroImage)" alt="Reference: @heroImage.Title" />
+                    @if (PsUi.Has(heroImage.WhatToImitate) || PsUi.Has(heroImage.WhatToChange))
+                    {
+                        <p class="ps-small">
+                            @if (PsUi.Has(heroImage.WhatToImitate)) { <span><strong>Match:</strong> @heroImage.WhatToImitate </span> }
+                            @if (PsUi.Has(heroImage.WhatToChange)) { <span><strong>Change:</strong> @heroImage.WhatToChange</span> }
+                        </p>
+                    }
+                }
+                else if (PsUi.Has(current.Inspiration))
+                {
+                    <div class="ps-ref-placeholder"><i class="bi bi-image ps-ref-placeholder-icon" aria-hidden="true"></i><div><span class="ps-ref-label">Inspiration:</span> @current.Inspiration</div></div>
+                }
+
+                <div class="ps-photo-key">
+                    <div class="ps-key-card">
+                        <div class="ps-key-label"><i class="bi bi-aspect-ratio" aria-hidden="true"></i> Framing</div>
+                        <div class="ps-key-value">@(PsUi.Has(current.Framing) ? current.Framing : "—") · @PhotoShootLabels.Orientation(current.Orientation)</div>
+                        @if (current.NegativeSpace != NegativeSpaceDirection.None)
+                        {
+                            <div class="ps-key-sub">@PhotoShootLabels.NegativeSpace(current.NegativeSpace)</div>
+                        }
+                        @if (PsUi.Has(current.RecommendedCrop))
+                        {
+                            <div class="ps-key-sub">Crop: @current.RecommendedCrop</div>
+                        }
+                    </div>
+                    @if (PsUi.Has(current.PhotographerInstructions))
+                    {
+                        <div class="ps-key-card ps-key-wide">
+                            <div class="ps-key-label"><i class="bi bi-camera" aria-hidden="true"></i> Direction</div>
+                            <div class="ps-key-value">@current.PhotographerInstructions</div>
+                        </div>
+                    }
+                    <div class="ps-key-card">
+                        <div class="ps-key-label"><i class="bi bi-lightbulb" aria-hidden="true"></i> Lighting</div>
+                        <div class="ps-key-value">@(PsUi.Has(current.LightingNotes) ? current.LightingNotes : PsUi.Has(setup?.Lighting) ? setup!.Lighting : "Setup lighting")</div>
+                    </div>
+                    <div class="ps-key-card">
+                        <div class="ps-key-label"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Pose</div>
+                        <div class="ps-key-value">@(PsUi.Has(current.BodyPosition) ? current.BodyPosition : "—")</div>
+                        @if (PsUi.Has(current.HandPosition))
+                        {
+                            <div class="ps-key-sub">Hands: @current.HandPosition</div>
+                        }
+                    </div>
+                    <div class="ps-key-card">
+                        <div class="ps-key-label"><i class="bi bi-emoji-surprise" aria-hidden="true"></i> Expression</div>
+                        <div class="ps-key-value">@(PsUi.Has(current.FacialExpression) ? current.FacialExpression : "—")</div>
+                        @if (PsUi.Has(current.EyeDirection))
+                        {
+                            <div class="ps-key-sub">Eyes: @current.EyeDirection</div>
+                        }
+                    </div>
+                    @if (current.Props.Count > 0)
+                    {
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-magic" aria-hidden="true"></i> Props</div>
+                            <div class="ps-key-value">@PsUi.Join(current.Props)</div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <div class="ps-live-actions">
+                @if (current.Status != ShotStatus.Completed)
+                {
+                    <button type="button" class="ps-btn ps-btn-success ps-btn-xl ps-span-2" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i> Got it — mark complete
+                    </button>
+                }
+                <button type="button" class="ps-btn @(session.NextRequestedUtc != null ? "ps-btn-outline" : "ps-btn-teal") ps-btn-xl ps-span-2" disabled="@(busy || session.NextRequestedUtc != null)" @onclick="() => Do(SessionAction.RequestNext)">
+                    <i class="bi bi-hand-index-thumb" aria-hidden="true"></i> @(session.NextRequestedUtc != null ? "Director notified — waiting…" : "Ready for next shot")
+                </button>
+                @if (canAdvance)
+                {
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                }
+            </div>
+
+            @if (next != null)
+            {
+                <div class="ps-up-next">
+                    <span class="ps-muted">Up next:</span> <strong>@next.Title</strong>
+                    @if (next.SetupId != current.SetupId)
+                    {
+                        var nextSetup = PhotoShootPlanner.FindSetup(doc, next.SetupId);
+                        <div class="ps-setup-change"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Setup change: @(nextSetup?.Name ?? "Unassigned")</div>
+                    }
+                </div>
+            }
+
+            <details class="ps-live-more">
+                <summary>More detail (acting note, references, purpose)</summary>
+                @if (PsUi.Has(current.PerformerInstructions))
+                {
+                    <p><strong>Acting note:</strong> @current.PerformerInstructions</p>
+                }
+                <PsShotReferences Shot="current" ShowSearchPhrases="false" />
+                @if (PsUi.Has(current.MarketingPurpose))
+                {
+                    <p class="ps-small"><strong>Use:</strong> @current.MarketingPurpose</p>
+                }
+                @if (PsUi.Has(setup?.CameraPosition))
+                {
+                    <p class="ps-small"><strong>Camera:</strong> @setup!.CameraPosition</p>
+                }
+            </details>
+
+            <div class="ps-note-form">
+                <input class="form-control ps-input" placeholder="Note to the director…" maxlength="500" @bind="noteText" @bind:event="oninput" aria-label="Note to the director" />
+                <button type="button" class="ps-btn ps-btn-outline" disabled="@(busy || string.IsNullOrWhiteSpace(noteText))" @onclick="AddNote">Send</button>
+            </div>
+        }
+
+        <div class="ps-live-progress ps-live-progress-foot">
+            <div><strong>@progress.Completed</strong>/@progress.Total done</div>
+            <div class="ps-live-progress-must"><i class="bi bi-star-fill" aria-hidden="true"></i> @progress.MustHaveCompleted/@progress.MustHaveTotal must-have</div>
+            <div class="ps-mini-track" aria-hidden="true"><div class="ps-mini-fill" style="width:@(progress.Percent)%"></div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool busy;
+    private string noteText = "";
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Store.StartLive();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Browser.KeepAwakeAsync(true);
+        }
+    }
+
+    private async Task Do(SessionAction action)
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await Store.SessionAsync(action);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task AddNote()
+    {
+        var text = noteText;
+        busy = true;
+        try
+        {
+            if (await Store.SessionAsync(SessionAction.AddNote, text: text))
+            {
+                noteText = "";
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Store.StopLive();
+        Store.Changed -= OnChanged;
+        await Browser.KeepAwakeAsync(false);
+    }
+}

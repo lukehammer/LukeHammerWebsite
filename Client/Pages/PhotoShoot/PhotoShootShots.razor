@@ -1,0 +1,245 @@
+@page "/photoshoot/shots"
+@implements IDisposable
+@inject PhotoShootStore Store
+
+<PageTitle>Photo Shoot · Shots</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var groups = FilteredGroups(doc);
+    var shown = groups.Sum(g => g.Shots.Count);
+
+    <header class="ps-page-head">
+        <h1 class="ps-h1">Shots <span class="ps-muted ps-h1-count">@shown of @doc.Shots.Count</span></h1>
+        @if (Store.IsOwner)
+        {
+            <a class="ps-btn ps-btn-primary" href="photoshoot/shots/new"><i class="bi bi-plus-lg" aria-hidden="true"></i> New shot</a>
+        }
+    </header>
+
+    <section class="ps-filters" aria-label="Filters">
+        <input class="form-control ps-input" type="search" placeholder="Search titles, tags, inspiration…" aria-label="Search shots"
+               @bind="search" @bind:event="oninput" />
+        <div class="ps-filter-row">
+            <select class="form-select ps-select" aria-label="Priority" @bind="priority">
+                <option value="">All priorities</option>
+                @foreach (var p in Enum.GetValues<ShotPriority>())
+                {
+                    <option value="@p">@PhotoShootLabels.Priority(p)</option>
+                }
+            </select>
+            <select class="form-select ps-select" aria-label="Status" @bind="status">
+                <option value="">All statuses</option>
+                <option value="Remaining">Remaining (not completed)</option>
+                @foreach (var s in Enum.GetValues<ShotStatus>())
+                {
+                    <option value="@s">@PhotoShootLabels.Status(s)</option>
+                }
+            </select>
+            <select class="form-select ps-select" aria-label="Category" @bind="category">
+                <option value="">All categories</option>
+                @foreach (var c in Enum.GetValues<ShotCategory>())
+                {
+                    <option value="@c">@PhotoShootLabels.Category(c)</option>
+                }
+            </select>
+        </div>
+        <div class="ps-toggle-row">
+            <label class="ps-toggle"><input type="checkbox" @bind="groupBySetup" /> Group by setup</label>
+            <label class="ps-toggle"><input type="checkbox" @bind="favoritesOnly" /> Favorites</label>
+            @if (Store.IsOwner)
+            {
+                <label class="ps-toggle"><input type="checkbox" @bind="reorder" /> Reorder</label>
+            }
+            @if (HasFilters)
+            {
+                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="ClearFilters">Clear filters</button>
+            }
+        </div>
+        @if (reorder && HasFilters)
+        {
+            <p class="ps-muted ps-small">Arrows move a shot within the full shooting order (filters only hide shots).</p>
+        }
+    </section>
+
+    @if (shown == 0)
+    {
+        <div class="ps-empty">
+            @if (doc.Shots.Count == 0)
+            {
+                <p>No shots yet.</p>
+                @if (Store.IsOwner)
+                {
+                    <a class="ps-btn ps-btn-primary" href="photoshoot/shots/new">Create the first shot</a>
+                }
+            }
+            else
+            {
+                <p>No shots match these filters.</p>
+            }
+        </div>
+    }
+
+    @foreach (var group in groups)
+    {
+        @if (groupBySetup)
+        {
+            <h2 class="ps-group-head">
+                <span>@(group.Setup == null ? "Unassigned" : $"{group.Setup.Sequence}. {group.Setup.Name}")</span>
+                @if (group.Setup?.RequiresChildren == true)
+                {
+                    <span class="ps-badge ps-badge-kids"><i class="bi bi-people-fill" aria-hidden="true"></i> Kids</span>
+                }
+                <span class="ps-muted ps-small">@group.Shots.Count(s => s.Status == ShotStatus.Completed)/@group.Shots.Count</span>
+            </h2>
+        }
+        <ul class="ps-shot-list">
+            @foreach (var shot in group.Shots)
+            {
+                var number = PhotoShootPlanner.OrderNumber(doc, shot.Id);
+                <li class="ps-shot-row @PsUi.StatusClass(shot.Status) @(shot.Id == doc.Session.CurrentShotId ? "is-current" : "")" @key="shot.Id">
+                    @if (reorder && Store.IsOwner)
+                    {
+                        <div class="ps-reorder">
+                            <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" @onclick="() => Move(shot, -1)" aria-label="Move @shot.Title earlier"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                            <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" @onclick="() => Move(shot, 1)" aria-label="Move @shot.Title later"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                        </div>
+                    }
+                    <a class="ps-shot-main" href="@PsUi.ShotUrl(shot)">
+                        <span class="ps-shot-num">@number</span>
+                        <span class="ps-shot-text">
+                            <span class="ps-shot-title">@shot.Title</span>
+                            <span class="ps-shot-meta">
+                                <span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span>
+                                <span>@PhotoShootLabels.Category(shot.Category)</span>
+                                <span>· @PsUi.Minutes(shot.EstimatedMinutes)</span>
+                                @if (!groupBySetup)
+                                {
+                                    <span>· @PsUi.SetupLabel(doc, shot)</span>
+                                }
+                            </span>
+                        </span>
+                    </a>
+                    @if (Store.IsOwner && !reorder)
+                    {
+                        <div class="ps-quick">
+                            <button type="button" class="ps-icon-btn ps-tap ps-fav @(shot.IsFavorite ? "is-on" : "")" disabled="@busy" @onclick="() => ToggleFavorite(shot)"
+                                    aria-label="@(shot.IsFavorite ? "Unfavorite" : "Favorite") @shot.Title" aria-pressed="@shot.IsFavorite">
+                                <i class="bi @(shot.IsFavorite ? "bi-star-fill" : "bi-star")" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="ps-icon-btn ps-tap ps-skip-btn @(shot.Status == ShotStatus.Skipped ? "is-on" : "")" disabled="@busy" @onclick="() => ToggleSkip(shot)"
+                                    aria-label="@(shot.Status == ShotStatus.Skipped ? "Unskip" : "Skip") @shot.Title">
+                                <i class="bi bi-skip-forward" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="ps-icon-btn ps-tap ps-done-btn @(shot.Status == ShotStatus.Completed ? "is-on" : "")" disabled="@busy" @onclick="() => ToggleDone(shot)"
+                                    aria-label="@(shot.Status == ShotStatus.Completed ? "Mark not done" : "Mark complete") @shot.Title" aria-pressed="@(shot.Status == ShotStatus.Completed)">
+                                <i class="bi @PsUi.StatusIcon(shot.Status == ShotStatus.Completed ? ShotStatus.Completed : ShotStatus.NotStarted)" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    }
+                    else if (!Store.IsOwner)
+                    {
+                        <span class="ps-badge @PsUi.StatusClass(shot.Status)">@PhotoShootLabels.Status(shot.Status)</span>
+                    }
+                </li>
+            }
+        </ul>
+    }
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "priority")] public string? PriorityQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "category")] public string? CategoryQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "q")] public string? SearchQuery { get; set; }
+
+    private string search = "";
+    private string priority = "";
+    private string status = "";
+    private string category = "";
+    private bool groupBySetup = true;
+    private bool favoritesOnly;
+    private bool reorder;
+    private bool busy;
+
+    private bool HasFilters => search.Length > 0 || priority.Length > 0 || status.Length > 0 || category.Length > 0 || favoritesOnly;
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private string? appliedQuery;
+
+    protected override void OnParametersSet()
+    {
+        var query = $"{PriorityQuery}|{StatusQuery}|{CategoryQuery}|{SearchQuery}";
+        if (query == appliedQuery)
+        {
+            return;
+        }
+
+        appliedQuery = query;
+        priority = PriorityQuery ?? "";
+        status = StatusQuery ?? "";
+        category = CategoryQuery ?? "";
+        search = SearchQuery ?? "";
+    }
+
+    private void ClearFilters()
+    {
+        search = priority = status = category = "";
+        favoritesOnly = false;
+    }
+
+    private List<SetupGroup> FilteredGroups(PhotoShootDocument doc)
+    {
+        bool Matches(PhotoShot s)
+        {
+            if (priority.Length > 0 && s.Priority.ToString() != priority) return false;
+            if (category.Length > 0 && s.Category.ToString() != category) return false;
+            if (status == "Remaining" && s.Status == ShotStatus.Completed) return false;
+            if (status.Length > 0 && status != "Remaining" && s.Status.ToString() != status) return false;
+            if (favoritesOnly && !s.IsFavorite) return false;
+            if (search.Length > 0)
+            {
+                var term = search.Trim();
+                var haystack = string.Join(" ", new[] { s.Title, s.Summary, s.Inspiration, s.MarketingPurpose, string.Join(" ", s.Tags), string.Join(" ", s.Props) });
+                if (haystack.IndexOf(term, StringComparison.OrdinalIgnoreCase) < 0) return false;
+            }
+
+            return true;
+        }
+
+        var groups = PhotoShootPlanner.Groups(doc, includeEmptySetups: false)
+            .Select(g => new SetupGroup { Setup = g.Setup, Shots = g.Shots.Where(Matches).ToList() })
+            .Where(g => g.Shots.Count > 0)
+            .ToList();
+
+        return groupBySetup ? groups : new List<SetupGroup> { new() { Shots = groups.SelectMany(g => g.Shots).ToList() } };
+    }
+
+    private async Task Run(Func<string, Task<LiveShootResponse>> call)
+    {
+        busy = true;
+        try
+        {
+            await Store.RunAsync(call);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private Task Move(PhotoShot shot, int delta) => Run(id => Store.Api.MoveShotAsync(id, shot.Id, new MoveShotRequest { Delta = delta }));
+
+    private Task ToggleDone(PhotoShot shot) =>
+        Run(id => Store.Api.SetStatusAsync(id, shot.Id, shot.Status == ShotStatus.Completed ? ShotStatus.NotStarted : ShotStatus.Completed));
+
+    private Task ToggleSkip(PhotoShot shot) =>
+        Run(id => Store.Api.SetStatusAsync(id, shot.Id, shot.Status == ShotStatus.Skipped ? ShotStatus.NotStarted : ShotStatus.Skipped));
+
+    private Task ToggleFavorite(PhotoShot shot) => Run(id => Store.Api.SetFavoriteAsync(id, shot.Id, !shot.IsFavorite));
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

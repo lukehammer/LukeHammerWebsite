@@ -1,0 +1,68 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject IJSRuntime JS
+
+<HeadContent>
+    <link rel="stylesheet" href="css/photoshoot.css" />
+    <meta name="theme-color" content="@(dark ? "#2B2B2B" : "#831B3F")" />
+</HeadContent>
+
+<div class="ps-root ps-live @(dark ? "ps-dark" : "")">
+    <header class="ps-live-bar">
+        <a class="ps-live-exit" href="photoshoot" title="Back to the planner" aria-label="Back to the planner"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+        <div class="ps-live-bar-title">@Store.Shoot?.Name</div>
+        <PsConnection />
+        <button type="button" class="ps-icon-btn" @onclick="ToggleTheme" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <i class="bi @(dark ? "bi-sun" : "bi-moon-stars")" aria-hidden="true"></i>
+        </button>
+    </header>
+
+    <PsFlash />
+
+    <main class="ps-live-main">
+        <PsGate>
+            @Body
+        </PsGate>
+    </main>
+</div>
+
+@code {
+    private const string ThemeKey = "photoshoot.theme";
+    private bool dark;
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            dark = await JS.InvokeAsync<string?>("localStorage.getItem", ThemeKey) == "dark";
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        dark = !dark;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ThemeKey, dark ? "dark" : "light");
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

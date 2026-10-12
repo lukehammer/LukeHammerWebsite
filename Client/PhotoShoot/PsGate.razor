@@ -1,0 +1,146 @@
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+@inject NavigationManager Nav
+
+@switch (Store.State)
+{
+    case PhotoShootLoadState.Loading:
+        <div class="ps-panel ps-center" role="status">
+            <div class="spinner-border ps-spinner" aria-hidden="true"></div>
+            <p>Loading the photo shoot…</p>
+        </div>
+        break;
+
+    case PhotoShootLoadState.NeedsSignIn:
+        <div class="ps-panel ps-gate">
+            <h1 class="ps-gate-title"><i class="bi bi-camera" aria-hidden="true"></i> Photo Shoot Planner</h1>
+            <p>This is a private planning tool. Sign in with an invited account to continue.</p>
+            <div class="ps-gate-actions">
+                <a class="ps-btn ps-btn-primary ps-btn-lg" href="@LoginUrl("github")"><i class="bi bi-github" aria-hidden="true"></i> Sign in with GitHub</a>
+                <a class="ps-btn ps-btn-outline ps-btn-lg" href="@LoginUrl("aad")"><i class="bi bi-microsoft" aria-hidden="true"></i> Sign in with Microsoft</a>
+            </div>
+            @if (IsLocalhost)
+            {
+                <p class="ps-muted ps-small">
+                    Running locally? Sign-in only exists on Azure Static Web Apps. Start the API with
+                    <code>PHOTOSHOOT_DEV_AUTH=true</code> to use the local developer bypass (see docs/photoshoot/README.md).
+                </p>
+            }
+        </div>
+        break;
+
+    case PhotoShootLoadState.NoAccess:
+        <div class="ps-panel ps-gate">
+            <h1 class="ps-gate-title">No access yet</h1>
+            <p>You're signed in, but this account hasn't been invited to the photo shoot. Ask Luke for an invitation link, then sign in again.</p>
+            <div class="ps-gate-actions">
+                <a class="ps-btn ps-btn-outline ps-btn-lg" href="/.auth/logout?post_logout_redirect_uri=/photoshoot">Sign out</a>
+                <button type="button" class="ps-btn ps-btn-ghost ps-btn-lg" @onclick="Store.ReloadAsync">Try again</button>
+            </div>
+        </div>
+        break;
+
+    case PhotoShootLoadState.Error:
+        <div class="ps-panel ps-gate">
+            <h1 class="ps-gate-title">Can't load the photo shoot</h1>
+            <p class="ps-error-text">@Store.ErrorMessage</p>
+            @if (IsLocalhost)
+            {
+                <p class="ps-muted ps-small">Make sure the API is running (<code>func start --port 7071</code> in <code>Api/</code>).</p>
+            }
+            <button type="button" class="ps-btn ps-btn-primary ps-btn-lg" @onclick="Store.ReloadAsync"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+        </div>
+        break;
+
+    case PhotoShootLoadState.NoShoot:
+        @if (AllowWithoutShoot)
+        {
+            @ChildContent
+        }
+        else
+        {
+            <div class="ps-panel ps-gate">
+                <h1 class="ps-gate-title">No photo shoot yet</h1>
+                @if (Store.IsOwner)
+                {
+                    <p>Start from the Lucky Luke starter catalog (about 100 shots in 25 setups) or create an empty shoot.</p>
+                    <div class="ps-gate-actions">
+                        <button type="button" class="ps-btn ps-btn-primary ps-btn-lg" disabled="@busy" @onclick="SeedAsync">
+                            <i class="bi bi-stars" aria-hidden="true"></i> @(busy ? "Creating…" : "Load starter catalog")
+                        </button>
+                        <a class="ps-btn ps-btn-outline ps-btn-lg" href="photoshoot/manage">Create or import a shoot</a>
+                    </div>
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <p class="ps-error-text">@error</p>
+                    }
+                }
+                else
+                {
+                    <p>The director hasn't set up a shoot yet. Check back soon.</p>
+                }
+            </div>
+        }
+        break;
+
+    default:
+        @ChildContent
+        break;
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool AllowWithoutShoot { get; set; }
+
+    private bool busy;
+    private string error = "";
+
+    private bool IsLocalhost => new Uri(Nav.Uri).IsLoopback;
+
+    private string LoginUrl(string provider)
+    {
+        var path = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('#')[0];
+        return $"/.auth/login/{provider}?post_login_redirect_uri={Uri.EscapeDataString(path)}";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Store.Changed += OnChanged;
+        var query = System.Web.HttpUtility.ParseQueryString(new Uri(Nav.Uri).Query);
+        await Store.EnsureInitializedAsync(query.Get("devRole"));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Browser.WatchAsync();
+        }
+    }
+
+    private async Task SeedAsync()
+    {
+        busy = true;
+        error = "";
+        try
+        {
+            var response = await Store.Api.SeedAsync(null);
+            await Store.LoadShootAsync(response.Shoot?.Id ?? response.CreatedId);
+            await Store.RefreshIndexAsync();
+            Store.SetFlash(response.Message, isError: false);
+        }
+        catch (PhotoShootApiException ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

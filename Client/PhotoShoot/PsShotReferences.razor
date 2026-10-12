@@ -1,0 +1,83 @@
+@inject PhotoShootStore Store
+
+@* Reference images/links for a shot, with inspiration + search-phrase placeholders when none exist yet. *@
+<section class="ps-refs @(Large ? "ps-refs-large" : "")" aria-label="References">
+    @if (References.Count > 0)
+    {
+        <div class="ps-ref-grid">
+            @foreach (var reference in References)
+            {
+                <figure class="ps-ref-card">
+                    @if (reference.HasImage)
+                    {
+                        <img class="ps-ref-img" src="@Store.Api.ImageUrl(Store.ShootId, reference)" alt="@reference.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <div class="ps-ref-img ps-ref-noimg" aria-hidden="true"><i class="bi bi-image"></i></div>
+                    }
+                    <figcaption>
+                        <strong>@reference.Title</strong>
+                        @if (PsUi.Has(reference.PerformerOrCharacter))
+                        {
+                            <span class="ps-muted"> · @reference.PerformerOrCharacter</span>
+                        }
+                        @if (PsUi.Has(reference.WhatToImitate))
+                        {
+                            <div><span class="ps-ref-label">Imitate:</span> @reference.WhatToImitate</div>
+                        }
+                        @if (PsUi.Has(reference.WhatToChange))
+                        {
+                            <div><span class="ps-ref-label">Different:</span> @reference.WhatToChange</div>
+                        }
+                        @if (PsUi.Has(reference.SourceUrl))
+                        {
+                            <a href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow" class="ps-small">Open source link <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+                        }
+                    </figcaption>
+                </figure>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="ps-ref-placeholder">
+            <i class="bi bi-image ps-ref-placeholder-icon" aria-hidden="true"></i>
+            <div>
+                <div class="ps-muted">No reference image yet.</div>
+                @if (PsUi.Has(Shot.Inspiration))
+                {
+                    <div><span class="ps-ref-label">Inspiration:</span> @Shot.Inspiration</div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (ShowSearchPhrases && Shot.ReferenceSearchPhrases.Count > 0)
+    {
+        <div class="ps-ref-search">
+            <span class="ps-ref-label">Find references:</span>
+            @foreach (var phrase in Shot.ReferenceSearchPhrases)
+            {
+                <a class="ps-chip ps-chip-link" href="@PsUi.ImageSearchUrl(phrase)" target="_blank" rel="noopener noreferrer nofollow">
+                    <i class="bi bi-search" aria-hidden="true"></i> @phrase
+                </a>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PhotoShot Shot { get; set; } = default!;
+    [Parameter] public bool Large { get; set; }
+    [Parameter] public bool ShowSearchPhrases { get; set; } = true;
+    [Parameter] public bool ImagesOnly { get; set; }
+
+    private List<PhotoReference> References =>
+        Store.Shoot == null
+            ? new()
+            : PhotoShootEditor.ReferencesForShot(Store.Shoot, Shot.Id)
+                .Where(r => !ImagesOnly || r.HasImage)
+                .OrderByDescending(r => r.HasImage)
+                .ToList();
+}

@@ -1,0 +1,54 @@
+@implements IDisposable
+@inject PhotoShootStore Store
+
+@if (!string.IsNullOrEmpty(Store.Flash))
+{
+    <div class="ps-flash @(Store.FlashIsError ? "ps-flash-error" : "ps-flash-ok")" role="@(Store.FlashIsError ? "alert" : "status")">
+        <span class="ps-flash-text">@Store.Flash</span>
+        <button type="button" class="ps-icon-btn" @onclick="Store.ClearFlash" aria-label="Dismiss"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    </div>
+}
+
+@code {
+    private string lastFlash = "";
+    private CancellationTokenSource? hideCts;
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void OnChanged()
+    {
+        if (Store.Flash != lastFlash)
+        {
+            lastFlash = Store.Flash;
+            hideCts?.Cancel();
+            if (Store.Flash.Length > 0)
+            {
+                hideCts = new CancellationTokenSource();
+                _ = AutoHideAsync(Store.Flash, Store.FlashIsError ? 8000 : 3500, hideCts.Token);
+            }
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AutoHideAsync(string message, int ms, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(ms, token);
+            if (Store.Flash == message)
+            {
+                Store.ClearFlash();
+            }
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        hideCts?.Cancel();
+        Store.Changed -= OnChanged;
+    }
+}

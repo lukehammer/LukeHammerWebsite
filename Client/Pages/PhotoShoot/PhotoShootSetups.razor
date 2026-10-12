@@ -1,0 +1,266 @@
+@page "/photoshoot/setups"
+@implements IDisposable
+@inject PhotoShootStore Store
+
+<PageTitle>Photo Shoot · Setups</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var groups = PhotoShootPlanner.Groups(doc);
+
+    <header class="ps-page-head">
+        <h1 class="ps-h1">Setups <span class="ps-muted ps-h1-count">@doc.Setups.Count</span></h1>
+        @if (Store.IsOwner)
+        {
+            <button type="button" class="ps-btn ps-btn-primary" @onclick="StartNew"><i class="bi bi-plus-lg" aria-hidden="true"></i> New setup</button>
+        }
+    </header>
+
+    <p class="ps-muted">Each setup groups shots that share a background, lighting, camera position, and outfit, so the crew changes things as rarely as possible.</p>
+
+    @if (Store.IsOwner)
+    {
+        <div class="ps-card ps-card-tight">
+            @if (confirmSuggest)
+            {
+                <p>Apply the suggested order? Inside each setup, must-have shots move first. Setups with matching backgrounds are kept together, setups with more must-haves move earlier, and setups with children keep their time slot. You can still reorder manually afterwards.</p>
+                <button type="button" class="ps-btn ps-btn-primary" disabled="@busy" @onclick="ApplySuggested">Apply suggested order</button>
+                <button type="button" class="ps-btn ps-btn-ghost" @onclick="() => confirmSuggest = false">Cancel</button>
+            }
+            else
+            {
+                <button type="button" class="ps-btn ps-btn-outline" @onclick="() => confirmSuggest = true"><i class="bi bi-magic" aria-hidden="true"></i> Suggest an efficient order…</button>
+            }
+        </div>
+    }
+
+    @if (editing != null && editingId == "")
+    {
+        @SetupForm(doc)
+    }
+
+    @if (groups.Count == 0)
+    {
+        <div class="ps-empty"><p>No setups yet.</p></div>
+    }
+
+    @foreach (var group in groups)
+    {
+        var setup = group.Setup;
+        <section class="ps-setup-card @(group.IsDone ? "is-done" : "")" @key="group.Key">
+            <div class="ps-setup-head">
+                <div class="ps-setup-title">
+                    <span class="ps-setup-seq">@(setup?.Sequence.ToString() ?? "–")</span>
+                    <div>
+                        <h2 class="ps-h2 mb-0">@group.Name</h2>
+                        <div class="ps-muted ps-small">
+                            @group.Shots.Count shots · @group.MustHaveCount must-have · @group.CompletedCount done · ~@PhotoShootEstimate.Format(group.EstimatedMinutes)
+                            @if (setup != null && setup.ChangeoverMinutes > 0)
+                            {
+                                <text> + @setup.ChangeoverMinutes min changeover</text>
+                            }
+                        </div>
+                    </div>
+                </div>
+                @if (setup?.RequiresChildren == true)
+                {
+                    <span class="ps-badge ps-badge-kids"><i class="bi bi-people-fill" aria-hidden="true"></i> Children on set</span>
+                }
+            </div>
+
+            @if (setup != null)
+            {
+                @if (editingId == setup.Id && editing != null)
+                {
+                    @SetupForm(doc)
+                }
+                else
+                {
+                    <dl class="ps-dl ps-dl-compact">
+                        @if (PsUi.Has(setup.Description)) { <div class="ps-dl-row"><dt>About</dt><dd>@setup.Description</dd></div> }
+                        @if (PsUi.Has(setup.Background)) { <div class="ps-dl-row"><dt>Background</dt><dd>@setup.Background</dd></div> }
+                        @if (PsUi.Has(setup.Lighting)) { <div class="ps-dl-row"><dt>Lighting</dt><dd>@setup.Lighting</dd></div> }
+                        @if (PsUi.Has(setup.CameraPosition)) { <div class="ps-dl-row"><dt>Camera</dt><dd>@setup.CameraPosition</dd></div> }
+                        @if (PsUi.Has(setup.Outfit)) { <div class="ps-dl-row"><dt>Outfit</dt><dd>@setup.Outfit</dd></div> }
+                        @if (setup.Props.Count > 0) { <div class="ps-dl-row"><dt>Props</dt><dd>@PsUi.Join(setup.Props)</dd></div> }
+                        @if (PsUi.Has(setup.Notes)) { <div class="ps-dl-row"><dt>Notes</dt><dd class="ps-prewrap">@setup.Notes</dd></div> }
+                    </dl>
+                    @if (Store.IsOwner)
+                    {
+                        <div class="ps-setup-actions">
+                            <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" @onclick="() => MoveSetup(setup, -1)" aria-label="Move setup earlier"><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                            <button type="button" class="ps-icon-btn ps-tap" disabled="@busy" @onclick="() => MoveSetup(setup, 1)" aria-label="Move setup later"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+                            <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" @onclick="() => StartEdit(setup)"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</button>
+                            <a class="ps-btn ps-btn-outline ps-btn-sm" href="photoshoot/shots/new?setup=@setup.Id"><i class="bi bi-plus" aria-hidden="true"></i> Shot</a>
+                            @if (deletingId == setup.Id)
+                            {
+                                <span class="ps-small">Delete? Its shots will become Unassigned.</span>
+                                <button type="button" class="ps-btn ps-btn-danger ps-btn-sm" disabled="@busy" @onclick="() => DeleteSetup(setup)">Delete</button>
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => deletingId = null">Cancel</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm ps-danger-text" @onclick="() => deletingId = setup.Id"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                            }
+                        </div>
+                    }
+                }
+            }
+
+            <details class="ps-setup-shots">
+                <summary>Shots in this setup (@group.Shots.Count)</summary>
+                <ol>
+                    @foreach (var shot in group.Shots)
+                    {
+                        <li class="@PsUi.StatusClass(shot.Status)">
+                            <a href="@PsUi.ShotUrl(shot)">@shot.Title</a>
+                            <span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span>
+                        </li>
+                    }
+                </ol>
+            </details>
+        </section>
+    }
+}
+
+@code {
+    private PhotoSetup? editing;
+    private string? editingId;
+    private string propsText = "";
+    private string? deletingId;
+    private bool busy;
+    private bool confirmSuggest;
+    private List<string> errors = new();
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void StartNew()
+    {
+        editing = new PhotoSetup { ChangeoverMinutes = 5 };
+        editingId = "";
+        propsText = "";
+        errors.Clear();
+    }
+
+    private void StartEdit(PhotoSetup setup)
+    {
+        editing = System.Text.Json.JsonSerializer.Deserialize<PhotoSetup>(System.Text.Json.JsonSerializer.Serialize(setup));
+        editingId = setup.Id;
+        propsText = string.Join("\n", setup.Props);
+        errors.Clear();
+    }
+
+    private void CancelEdit()
+    {
+        editing = null;
+        editingId = null;
+    }
+
+    private RenderFragment SetupForm(PhotoShootDocument doc) => __builder =>
+    {
+        <form class="ps-form ps-setup-form" @onsubmit="SaveSetup" @onsubmit:preventDefault>
+            @if (errors.Count > 0)
+            {
+                <div class="ps-flash ps-flash-error" role="alert">@string.Join(" ", errors)</div>
+            }
+            <label class="ps-label" for="setup-name">Name *</label>
+            <input id="setup-name" class="form-control ps-input" @bind="editing!.Name" maxlength="120" required />
+            <label class="ps-label" for="setup-desc">Description</label>
+            <textarea id="setup-desc" class="form-control ps-input" rows="2" @bind="editing.Description"></textarea>
+            <div class="ps-form-grid">
+                <div>
+                    <label class="ps-label" for="setup-bg">Background</label>
+                    <input id="setup-bg" class="form-control ps-input" @bind="editing.Background" />
+                </div>
+                <div>
+                    <label class="ps-label" for="setup-outfit">Outfit</label>
+                    <input id="setup-outfit" class="form-control ps-input" @bind="editing.Outfit" />
+                </div>
+                <div>
+                    <label class="ps-label" for="setup-camera">Camera position</label>
+                    <input id="setup-camera" class="form-control ps-input" @bind="editing.CameraPosition" />
+                </div>
+                <div>
+                    <label class="ps-label" for="setup-change">Changeover minutes</label>
+                    <input id="setup-change" type="number" min="0" max="240" class="form-control ps-input" @bind="editing.ChangeoverMinutes" />
+                </div>
+            </div>
+            <label class="ps-label" for="setup-light">Lighting configuration</label>
+            <textarea id="setup-light" class="form-control ps-input" rows="2" @bind="editing.Lighting"></textarea>
+            <label class="ps-label" for="setup-props">Props (comma or line separated)</label>
+            <textarea id="setup-props" class="form-control ps-input" rows="2" @bind="propsText"></textarea>
+            <label class="ps-label" for="setup-notes">Notes</label>
+            <textarea id="setup-notes" class="form-control ps-input" rows="2" @bind="editing.Notes"></textarea>
+            <label class="ps-toggle"><input type="checkbox" @bind="editing.RequiresChildren" /> Children on set (keep this setup's time slot fixed)</label>
+            <div class="ps-form-actions">
+                <button type="submit" class="ps-btn ps-btn-primary" disabled="@busy">@(busy ? "Saving…" : "Save setup")</button>
+                <button type="button" class="ps-btn ps-btn-ghost" @onclick="CancelEdit">Cancel</button>
+            </div>
+        </form>
+    };
+
+    private async Task SaveSetup()
+    {
+        if (editing == null)
+        {
+            return;
+        }
+
+        editing.Props = PhotoShootEditor.ParseList(propsText);
+        errors = PhotoShootValidator.ValidateSetup(editing);
+        if (errors.Count > 0)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var setup = editing;
+            var ok = editingId == ""
+                ? await Store.RunAsync(id => Store.Api.CreateSetupAsync(id, setup))
+                : await Store.RunAsync(id => Store.Api.UpdateSetupAsync(id, setup));
+            if (ok)
+            {
+                CancelEdit();
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task MoveSetup(PhotoSetup setup, int delta)
+    {
+        busy = true;
+        try { await Store.RunAsync(id => Store.Api.MoveSetupAsync(id, setup.Id, delta)); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteSetup(PhotoSetup setup)
+    {
+        busy = true;
+        try
+        {
+            await Store.RunAsync(id => Store.Api.DeleteSetupAsync(id, setup.Id, null));
+            deletingId = null;
+        }
+        finally { busy = false; }
+    }
+
+    private async Task ApplySuggested()
+    {
+        busy = true;
+        try
+        {
+            await Store.RunAsync(id => Store.Api.ApplySuggestedOrderAsync(id));
+            confirmSuggest = false;
+        }
+        finally { busy = false; }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

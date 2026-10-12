@@ -1,0 +1,344 @@
+@page "/photoshoot/references"
+@implements IDisposable
+@inject PhotoShootStore Store
+
+<PageTitle>Photo Shoot · References</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var focusShot = PhotoShootPlanner.FindShot(doc, ShotQuery);
+    var references = doc.References
+        .Where(r => focusShot == null || r.ShotIds.Contains(focusShot.Id))
+        .Where(r => string.IsNullOrWhiteSpace(filter) || Matches(r, filter))
+        .OrderByDescending(r => r.UpdatedUtc)
+        .ToList();
+
+    <header class="ps-page-head">
+        <h1 class="ps-h1">References <span class="ps-muted ps-h1-count">@doc.References.Count</span></h1>
+        @if (Store.IsOwner && editing == null)
+        {
+            <button type="button" class="ps-btn ps-btn-primary" @onclick="() => StartNew(focusShot)"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add reference</button>
+        }
+    </header>
+
+    <p class="ps-muted ps-small">
+        References show the photographer what to aim for. Use your own photos or images you have rights to; external links open in a new tab and are never embedded.
+        Uploaded images are stored privately and only shown to signed-in shoot members.
+    </p>
+
+    @if (focusShot != null)
+    {
+        <div class="ps-card ps-card-tight">
+            Showing references for <a href="@PsUi.ShotUrl(focusShot)"><strong>@focusShot.Title</strong></a> · <a href="photoshoot/references">show all</a>
+        </div>
+    }
+
+    @if (editing != null)
+    {
+        <form class="ps-form ps-card" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <h2 class="ps-h2">@(editing.Id == "" ? "New reference" : "Edit reference")</h2>
+            @if (errors.Count > 0)
+            {
+                <div class="ps-flash ps-flash-error" role="alert">@string.Join(" ", errors)</div>
+            }
+            <label class="ps-label" for="ref-title">Title *</label>
+            <input id="ref-title" class="form-control ps-input" @bind="editing.Title" maxlength="120" placeholder="e.g. Groucho eyebrow raise" required />
+            <label class="ps-label" for="ref-url">Source URL</label>
+            <input id="ref-url" class="form-control ps-input" type="url" @bind="editing.SourceUrl" placeholder="https://…" />
+            <div class="ps-form-grid">
+                <div>
+                    <label class="ps-label" for="ref-credit">Photographer / creator credit</label>
+                    <input id="ref-credit" class="form-control ps-input" @bind="editing.Credit" />
+                </div>
+                <div>
+                    <label class="ps-label" for="ref-who">Performer or character</label>
+                    <input id="ref-who" class="form-control ps-input" @bind="editing.PerformerOrCharacter" />
+                </div>
+            </div>
+            <label class="ps-label" for="ref-imitate">What to imitate</label>
+            <textarea id="ref-imitate" class="form-control ps-input" rows="2" @bind="editing.WhatToImitate"></textarea>
+            <label class="ps-label" for="ref-change">What should be different</label>
+            <textarea id="ref-change" class="form-control ps-input" rows="2" @bind="editing.WhatToChange"></textarea>
+            <label class="ps-label" for="ref-rights">Usage rights / licensing notes</label>
+            <input id="ref-rights" class="form-control ps-input" @bind="editing.UsageRights" placeholder="e.g. Inspiration only — do not publish" />
+
+            <label class="ps-label" for="ref-shot">Linked shots</label>
+            <ul class="ps-chip-list">
+                @foreach (var shotId in editing.ShotIds.ToList())
+                {
+                    var linked = PhotoShootPlanner.FindShot(doc, shotId);
+                    if (linked != null)
+                    {
+                        <li class="ps-chip">@linked.Title <button type="button" class="ps-chip-x" aria-label="Unlink @linked.Title" @onclick="() => editing.ShotIds.Remove(shotId)">×</button></li>
+                    }
+                }
+            </ul>
+            <select id="ref-shot" class="form-select ps-select" value="" @onchange="LinkShot">
+                <option value="">+ Link a shot…</option>
+                @foreach (var shot in PhotoShootPlanner.OrderedShots(doc).Where(s => !editing.ShotIds.Contains(s.Id)))
+                {
+                    <option value="@shot.Id">@PhotoShootPlanner.OrderNumber(doc, shot.Id). @shot.Title</option>
+                }
+            </select>
+
+            <div class="ps-form-actions">
+                <button type="submit" class="ps-btn ps-btn-primary" disabled="@busy">@(busy ? "Saving…" : "Save reference")</button>
+                <button type="button" class="ps-btn ps-btn-ghost" @onclick="() => editing = null">Cancel</button>
+            </div>
+            <p class="ps-muted ps-small">You can attach an image after saving.</p>
+        </form>
+    }
+
+    <input class="form-control ps-input ps-mb" type="search" placeholder="Filter references…" aria-label="Filter references" @bind="filter" @bind:event="oninput" />
+
+    @if (references.Count == 0)
+    {
+        <div class="ps-empty"><p>No references yet. Add links or upload your own photos to show the pose, expression, framing, or lighting you want.</p></div>
+    }
+
+    <div class="ps-ref-list">
+        @foreach (var reference in references)
+        {
+            <article class="ps-ref-item" @key="reference.Id">
+                <div class="ps-ref-thumb">
+                    @if (reference.HasImage)
+                    {
+                        <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="@reference.Title" loading="lazy" />
+                    }
+                    else
+                    {
+                        <i class="bi bi-image" aria-hidden="true"></i>
+                    }
+                </div>
+                <div class="ps-ref-body">
+                    <h3 class="ps-ref-title">@reference.Title</h3>
+                    @if (PsUi.Has(reference.PerformerOrCharacter)) { <div class="ps-small">@reference.PerformerOrCharacter</div> }
+                    @if (PsUi.Has(reference.WhatToImitate)) { <div class="ps-small"><span class="ps-ref-label">Imitate:</span> @reference.WhatToImitate</div> }
+                    @if (PsUi.Has(reference.WhatToChange)) { <div class="ps-small"><span class="ps-ref-label">Different:</span> @reference.WhatToChange</div> }
+                    @if (PsUi.Has(reference.Credit)) { <div class="ps-small ps-muted">Credit: @reference.Credit</div> }
+                    @if (PsUi.Has(reference.UsageRights)) { <div class="ps-small ps-muted">Rights: @reference.UsageRights</div> }
+                    @if (PsUi.Has(reference.SourceUrl))
+                    {
+                        <a class="ps-small" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+                    }
+                    <div class="ps-small">
+                        @foreach (var shotId in reference.ShotIds)
+                        {
+                            var linked = PhotoShootPlanner.FindShot(doc, shotId);
+                            if (linked != null)
+                            {
+                                <a class="ps-chip ps-chip-link" href="@PsUi.ShotUrl(linked)">@linked.Title</a>
+                            }
+                        }
+                    </div>
+                    @if (Store.IsOwner)
+                    {
+                        <div class="ps-ref-actions">
+                            <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" @onclick="() => StartEdit(reference)"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</button>
+                            <label class="ps-btn ps-btn-outline ps-btn-sm ps-file-btn">
+                                <i class="bi bi-upload" aria-hidden="true"></i> @(uploadingId == reference.Id ? "Uploading…" : reference.HasImage ? "Replace image" : "Upload image")
+                                <InputFile accept="image/jpeg,image/png,image/webp,image/gif" OnChange="e => UploadAsync(reference, e)" disabled="@(uploadingId != null)" />
+                            </label>
+                            @if (reference.HasImage)
+                            {
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => RemoveImage(reference)">Remove image</button>
+                            }
+                            @if (deletingId == reference.Id)
+                            {
+                                <button type="button" class="ps-btn ps-btn-danger ps-btn-sm" disabled="@busy" @onclick="() => DeleteAsync(reference)">Delete</button>
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => deletingId = null">Cancel</button>
+                            }
+                            else
+                            {
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm ps-danger-text" @onclick="() => deletingId = reference.Id" aria-label="Delete @reference.Title"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                            }
+                        </div>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Inspiration ideas</h2>
+        <p class="ps-muted ps-small">Starter-catalog shots name an inspiration and suggested search phrases. Searches open in a new tab for research only — those images are not licensed for redistribution.</p>
+        @foreach (var group in InspirationGroups(doc))
+        {
+            <details class="ps-insp">
+                <summary><strong>@group.Key</strong> <span class="ps-muted">(@group.Count())</span></summary>
+                <ul class="ps-insp-list">
+                    @foreach (var shot in group)
+                    {
+                        var refCount = PhotoShootEditor.ReferencesForShot(doc, shot.Id).Count;
+                        <li>
+                            <a href="@PsUi.ShotUrl(shot)">@shot.Title</a>
+                            @if (refCount > 0) { <span class="ps-badge ps-status-done">@refCount ref</span> }
+                            @foreach (var phrase in shot.ReferenceSearchPhrases)
+                            {
+                                <a class="ps-chip ps-chip-link" href="@PsUi.ImageSearchUrl(phrase)" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-search" aria-hidden="true"></i> @phrase</a>
+                            }
+                            @if (Store.IsOwner)
+                            {
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => StartNew(shot)">+ reference</button>
+                            }
+                        </li>
+                    }
+                </ul>
+            </details>
+        }
+    </section>
+}
+
+@code {
+    private const long MaxUploadBytes = 6 * 1024 * 1024;
+
+    [SupplyParameterFromQuery(Name = "shot")] public string? ShotQuery { get; set; }
+
+    private PhotoReference? editing;
+    private List<string> errors = new();
+    private string filter = "";
+    private string? deletingId;
+    private string? uploadingId;
+    private bool busy;
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private static bool Matches(PhotoReference r, string term) =>
+        new[] { r.Title, r.PerformerOrCharacter, r.WhatToImitate, r.Credit }.Any(t => (t ?? "").Contains(term.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static IEnumerable<IGrouping<string, PhotoShot>> InspirationGroups(PhotoShootDocument doc) =>
+        PhotoShootPlanner.OrderedShots(doc)
+            .Where(s => PsUi.Has(s.Inspiration) || s.ReferenceSearchPhrases.Count > 0)
+            .GroupBy(s => PsUi.Has(s.Inspiration) ? s.Inspiration.Trim() : "No named inspiration")
+            .OrderBy(g => g.Key);
+
+    private void StartNew(PhotoShot? shot)
+    {
+        editing = new PhotoReference
+        {
+            ShotIds = shot == null ? new List<string>() : new List<string> { shot.Id },
+            PerformerOrCharacter = shot?.Inspiration ?? "",
+            UsageRights = "Inspiration only — do not publish"
+        };
+        errors.Clear();
+    }
+
+    private void StartEdit(PhotoReference reference)
+    {
+        editing = System.Text.Json.JsonSerializer.Deserialize<PhotoReference>(System.Text.Json.JsonSerializer.Serialize(reference));
+        errors.Clear();
+    }
+
+    private void LinkShot(ChangeEventArgs e)
+    {
+        var id = e.Value?.ToString();
+        if (editing != null && !string.IsNullOrEmpty(id) && !editing.ShotIds.Contains(id))
+        {
+            editing.ShotIds.Add(id);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (editing == null)
+        {
+            return;
+        }
+
+        errors = PhotoShootValidator.ValidateReference(editing);
+        if (errors.Count > 0)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            var reference = editing;
+            var ok = reference.Id == ""
+                ? await Store.RunAsync(id => Store.Api.CreateReferenceAsync(id, reference))
+                : await Store.RunAsync(id => Store.Api.UpdateReferenceAsync(id, reference));
+            if (ok)
+            {
+                editing = null;
+            }
+            else
+            {
+                errors = new List<string> { Store.Flash };
+            }
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task UploadAsync(PhotoReference reference, InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null)
+        {
+            return;
+        }
+
+        uploadingId = reference.Id;
+        try
+        {
+            IBrowserFile upload = file;
+            if (file.ContentType != "image/gif")
+            {
+                try
+                {
+                    // Shrink phone photos before upload; the photographer only needs a screen-sized reference.
+                    upload = await file.RequestImageFileAsync("image/jpeg", 1600, 1600);
+                }
+                catch (Exception)
+                {
+                    upload = file;
+                }
+            }
+
+            if (upload.Size > MaxUploadBytes)
+            {
+                Store.SetFlash("That image is too large (max 6 MB).", isError: true);
+                return;
+            }
+
+            await using var stream = upload.OpenReadStream(MaxUploadBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Position = 0;
+            await Store.RunAsync(id => Store.Api.UploadReferenceImageAsync(id, reference.Id, buffer, upload.ContentType));
+        }
+        catch (IOException)
+        {
+            Store.SetFlash("Could not read that file.", isError: true);
+        }
+        finally
+        {
+            uploadingId = null;
+        }
+    }
+
+    private async Task RemoveImage(PhotoReference reference)
+    {
+        busy = true;
+        try { await Store.RunAsync(id => Store.Api.DeleteReferenceImageAsync(id, reference.Id)); }
+        finally { busy = false; }
+    }
+
+    private async Task DeleteAsync(PhotoReference reference)
+    {
+        busy = true;
+        try
+        {
+            await Store.RunAsync(id => Store.Api.DeleteReferenceAsync(id, reference.Id));
+            deletingId = null;
+        }
+        finally { busy = false; }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

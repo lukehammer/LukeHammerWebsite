@@ -1,0 +1,196 @@
+@page "/photoshoot/shots/{Id}"
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject NavigationManager Nav
+
+<PageTitle>Photo Shoot · @(Shot?.Title ?? "Shot")</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    @if (Shot is not { } shot)
+    {
+        <div class="ps-empty">
+            <p>That shot doesn't exist (it may have been deleted).</p>
+            <a class="ps-btn ps-btn-outline" href="photoshoot/shots">Back to shots</a>
+        </div>
+    }
+    else
+    {
+        var setup = PhotoShootPlanner.FindSetup(doc, shot.SetupId);
+        var previous = PhotoShootPlanner.AdjacentShot(doc, shot.Id, -1);
+        var next = PhotoShootPlanner.AdjacentShot(doc, shot.Id, 1);
+        var notes = doc.Session.Notes.Where(n => n.ShotId == shot.Id).OrderByDescending(n => n.CreatedUtc).ToList();
+
+        <article class="ps-detail @(bigText ? "ps-big" : "")">
+            <div class="ps-detail-top">
+                <a class="ps-back" href="photoshoot/shots"><i class="bi bi-chevron-left" aria-hidden="true"></i> Shots</a>
+                <span class="ps-muted">Shot @PhotoShootPlanner.OrderNumber(doc, shot.Id) of @doc.Shots.Count</span>
+                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => bigText = !bigText" aria-pressed="@bigText">
+                    <i class="bi bi-fonts" aria-hidden="true"></i> @(bigText ? "Normal text" : "Big text")
+                </button>
+            </div>
+
+            <h1 class="ps-detail-title">@shot.Title</h1>
+            <div class="ps-badges">
+                <span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span>
+                <span class="ps-badge @PsUi.StatusClass(shot.Status)"><i class="bi @PsUi.StatusIcon(shot.Status)" aria-hidden="true"></i> @PhotoShootLabels.Status(shot.Status)</span>
+                <span class="ps-badge ps-badge-plain">@PhotoShootLabels.Category(shot.Category)</span>
+                <span class="ps-badge ps-badge-plain"><i class="bi bi-clock" aria-hidden="true"></i> @PsUi.Minutes(shot.EstimatedMinutes)</span>
+                @if (shot.IsFavorite)
+                {
+                    <span class="ps-badge ps-badge-fav"><i class="bi bi-star-fill" aria-hidden="true"></i> Favorite</span>
+                }
+                @if (doc.Session.CurrentShotId == shot.Id)
+                {
+                    <span class="ps-badge ps-status-active">Current shot</span>
+                }
+            </div>
+            <div class="ps-muted ps-detail-setup">@PsUi.SetupLabel(doc, shot)</div>
+            @if (PsUi.Has(shot.Summary))
+            {
+                <p class="ps-detail-summary">@shot.Summary</p>
+            }
+
+            <div class="ps-action-grid">
+                <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@(previous == null)" @onclick="() => Go(previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous</button>
+                <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@(next == null)" @onclick="() => Go(next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                @if (Store.IsOwner)
+                {
+                    <button type="button" class="ps-btn @(shot.Status == ShotStatus.Completed ? "ps-btn-outline" : "ps-btn-success") ps-btn-xl" disabled="@busy" @onclick="() => ToggleComplete(shot)">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i> @(shot.Status == ShotStatus.Completed ? "Reopen" : "Mark complete")
+                    </button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => ToggleSkip(shot)">
+                        <i class="bi bi-skip-forward" aria-hidden="true"></i> @(shot.Status == ShotStatus.Skipped ? "Unskip" : "Skip")
+                    </button>
+                    <a class="ps-btn ps-btn-outline ps-btn-xl" href="photoshoot/shots/@shot.Id/edit"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
+                    <button type="button" class="ps-btn ps-btn-primary ps-btn-xl" disabled="@(busy || doc.Session.CurrentShotId == shot.Id)" @onclick="() => MakeCurrent(shot)">
+                        <i class="bi bi-broadcast" aria-hidden="true"></i> Make current
+                    </button>
+                }
+            </div>
+
+            <div class="ps-detail-cols">
+                <PsShotDirections Shot="shot" Setup="setup" />
+            </div>
+
+            <section class="ps-card">
+                <h2 class="ps-h2">References</h2>
+                <PsShotReferences Shot="shot" />
+                @if (Store.IsOwner)
+                {
+                    <a class="ps-small" href="photoshoot/references?shot=@shot.Id">Add or manage references for this shot →</a>
+                }
+            </section>
+
+            <section class="ps-card">
+                <h2 class="ps-h2">Purpose</h2>
+                <dl class="ps-dl">
+                    @if (PsUi.Has(shot.Objective))
+                    {
+                        <div class="ps-dl-row"><dt>Objective</dt><dd>@shot.Objective</dd></div>
+                    }
+                    @if (PsUi.Has(shot.MarketingPurpose))
+                    {
+                        <div class="ps-dl-row"><dt>Marketing use</dt><dd>@shot.MarketingPurpose</dd></div>
+                    }
+                    @if (PsUi.Has(shot.Inspiration))
+                    {
+                        <div class="ps-dl-row"><dt>Inspiration</dt><dd>@shot.Inspiration</dd></div>
+                    }
+                    @if (shot.Tags.Count > 0)
+                    {
+                        <div class="ps-dl-row"><dt>Tags</dt><dd>@PsUi.Join(shot.Tags)</dd></div>
+                    }
+                </dl>
+            </section>
+
+            @if (PsUi.Has(shot.Notes) || notes.Count > 0 || Store.IsOwner)
+            {
+                <section class="ps-card">
+                    <h2 class="ps-h2">Notes</h2>
+                    @if (PsUi.Has(shot.Notes))
+                    {
+                        <p class="ps-prewrap">@shot.Notes</p>
+                    }
+                    @foreach (var note in notes)
+                    {
+                        <div class="ps-note"><span class="ps-muted ps-small">@note.Author · @PsUi.LocalTime(note.CreatedUtc)</span><div>@note.Text</div></div>
+                    }
+                    @if (Store.IsOwner || Store.IsPhotographer)
+                    {
+                        <div class="ps-note-form">
+                            <input class="form-control ps-input" placeholder="Add a session note…" @bind="noteText" @bind:event="oninput" maxlength="500" aria-label="Session note" />
+                            <button type="button" class="ps-btn ps-btn-outline" disabled="@(busy || string.IsNullOrWhiteSpace(noteText))" @onclick="() => AddNote(shot)">Add</button>
+                        </div>
+                    }
+                    @if (shot.ActualSeconds is int secs)
+                    {
+                        <p class="ps-muted ps-small">Actual time: @TimeSpan.FromSeconds(secs).ToString(@"m\:ss") (planned @PsUi.Minutes(shot.EstimatedMinutes)). Completed @PsUi.LocalTime(shot.CompletedUtc).</p>
+                    }
+                </section>
+            }
+        </article>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+
+    private bool bigText;
+    private bool busy;
+    private string noteText = "";
+
+    private PhotoShot? Shot => Store.Shoot == null ? null : PhotoShootPlanner.FindShot(Store.Shoot, Id);
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Store.StartLive();
+    }
+
+    private void Go(PhotoShot? target)
+    {
+        if (target != null)
+        {
+            Nav.NavigateTo(PsUi.ShotUrl(target));
+        }
+    }
+
+    private async Task Run(Func<string, Task<LiveShootResponse>> call)
+    {
+        busy = true;
+        try { await Store.RunAsync(call); }
+        finally { busy = false; }
+    }
+
+    private Task ToggleComplete(PhotoShot shot) =>
+        Run(id => Store.Api.SetStatusAsync(id, shot.Id, shot.Status == ShotStatus.Completed ? ShotStatus.NotStarted : ShotStatus.Completed));
+
+    private Task ToggleSkip(PhotoShot shot) =>
+        Run(id => Store.Api.SetStatusAsync(id, shot.Id, shot.Status == ShotStatus.Skipped ? ShotStatus.NotStarted : ShotStatus.Skipped));
+
+    private Task MakeCurrent(PhotoShot shot) =>
+        Run(id => Store.Api.SessionAsync(id, new SessionCommand { Action = SessionAction.SetCurrent, ShotId = shot.Id }));
+
+    private async Task AddNote(PhotoShot shot)
+    {
+        var text = noteText;
+        busy = true;
+        try
+        {
+            if (await Store.RunAsync(id => Store.Api.SessionAsync(id, new SessionCommand { Action = SessionAction.AddNote, ShotId = shot.Id, Text = text })))
+            {
+                noteText = "";
+            }
+        }
+        finally { busy = false; }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Store.StopLive();
+        Store.Changed -= OnChanged;
+    }
+}

@@ -1,0 +1,26 @@
+@implements IDisposable
+@inject PhotoShootStore Store
+
+<div class="ps-conn ps-conn-@Store.Connection.ToString().ToLowerInvariant()" role="status" aria-live="polite">
+    <span class="ps-conn-dot" aria-hidden="true"></span>
+    <span class="ps-conn-label">@Label</span>
+    <button type="button" class="ps-icon-btn ps-conn-refresh" @onclick="Store.SyncNowAsync" title="Refresh now" aria-label="Refresh now">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+    </button>
+</div>
+
+@code {
+    private string Label => Store.Connection switch
+    {
+        LiveConnectionState.Connected => "Live",
+        LiveConnectionState.Syncing => "Syncing…",
+        LiveConnectionState.Reconnecting => "Reconnecting…",
+        _ => "Offline"
+    };
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

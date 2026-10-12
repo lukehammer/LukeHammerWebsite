@@ -1,0 +1,74 @@
+@* Performer and photographer directions for one shot, shown separately. *@
+
+@if (ShowPerformer)
+{
+    <section class="ps-directions ps-directions-performer" aria-label="Performer directions">
+        <h3 class="ps-directions-title"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Performer</h3>
+        <dl class="ps-dl">
+            @Row("Expression", Shot.FacialExpression, true)
+            @Row("Body", Shot.BodyPosition, false)
+            @Row("Hands", Shot.HandPosition, false)
+            @Row("Eyes", Shot.EyeDirection, false)
+            @Row("Acting note", Shot.PerformerInstructions, false)
+        </dl>
+    </section>
+}
+
+@if (ShowPhotographer)
+{
+    <section class="ps-directions ps-directions-photographer" aria-label="Photographer directions">
+        <h3 class="ps-directions-title"><i class="bi bi-camera" aria-hidden="true"></i> Photographer</h3>
+        <dl class="ps-dl">
+            @Row("Framing", Combine(Shot.Framing, PhotoShootLabels.Orientation(Shot.Orientation)), true)
+            @Row("Direction", Shot.PhotographerInstructions, false)
+            @Row("Crop", Shot.RecommendedCrop, false)
+            @if (Shot.NegativeSpace != NegativeSpaceDirection.None)
+            {
+                @Row("Negative space", PhotoShootLabels.NegativeSpace(Shot.NegativeSpace), false)
+            }
+            @Row("Lighting", Combine(Setup?.Lighting, Shot.LightingNotes), false)
+            @Row("Background", PsUi.Has(Shot.Background) ? Shot.Background : Setup?.Background, false)
+            @Row("Camera", Setup?.CameraPosition, false)
+        </dl>
+    </section>
+}
+
+@if (ShowProps && Props.Count > 0)
+{
+    <section class="ps-directions ps-directions-props" aria-label="Props">
+        <h3 class="ps-directions-title"><i class="bi bi-magic" aria-hidden="true"></i> Props</h3>
+        <ul class="ps-chip-list">
+            @foreach (var prop in Props)
+            {
+                <li class="ps-chip">@prop</li>
+            }
+        </ul>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public PhotoShot Shot { get; set; } = default!;
+    [Parameter] public PhotoSetup? Setup { get; set; }
+    [Parameter] public bool ShowPerformer { get; set; } = true;
+    [Parameter] public bool ShowPhotographer { get; set; } = true;
+    [Parameter] public bool ShowProps { get; set; } = true;
+
+    private List<string> Props => (Shot.Props ?? new()).ToList();
+
+    private static string Combine(string? a, string? b)
+    {
+        var parts = new[] { a, b }.Where(PsUi.Has).Select(p => p!.Trim()).ToList();
+        return string.Join(" · ", parts);
+    }
+
+    private RenderFragment Row(string label, string? value, bool emphasize) => __builder =>
+    {
+        if (PsUi.Has(value))
+        {
+            <div class="ps-dl-row @(emphasize ? "ps-dl-key" : "")">
+                <dt>@label</dt>
+                <dd>@value</dd>
+            </div>
+        }
+    };
+}

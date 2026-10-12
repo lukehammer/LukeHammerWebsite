@@ -1,0 +1,82 @@
+@page "/photoshoot/print"
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Photo Shoot · Checklist</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var total = PhotoShootPlanner.EstimateTotal(doc);
+    <div class="ps-print-page">
+        <div class="ps-print-controls">
+            <button type="button" class="ps-btn ps-btn-primary" @onclick="Browser.PrintAsync"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+            <label class="ps-toggle"><input type="checkbox" @bind="mustOnly" /> Must-have only</label>
+            <label class="ps-toggle"><input type="checkbox" @bind="detailed" /> Include directions</label>
+        </div>
+
+        <h1 class="ps-print-title">@doc.Name — shot checklist</h1>
+        <p class="ps-print-sub">
+            @(PsUi.Has(doc.ShootDate) ? doc.ShootDate + " · " : "")@doc.Shots.Count shots in @doc.Setups.Count setups · estimated @PhotoShootEstimate.Format(total.TotalMinutes) (estimate)
+            · ★ = must-have
+        </p>
+
+        @foreach (var group in PhotoShootPlanner.Groups(doc, includeEmptySetups: false))
+        {
+            var shots = group.Shots.Where(s => !mustOnly || s.Priority == ShotPriority.MustHave).ToList();
+            if (shots.Count == 0)
+            {
+                continue;
+            }
+
+            <section class="ps-print-setup">
+                <h2>@(group.Setup == null ? "Unassigned" : $"{group.Setup.Sequence}. {group.Setup.Name}")</h2>
+                @if (group.Setup != null)
+                {
+                    <p class="ps-print-setup-meta">
+                        @if (PsUi.Has(group.Setup.Background)) { <span>Background: @group.Setup.Background. </span> }
+                        @if (PsUi.Has(group.Setup.Lighting)) { <span>Lighting: @group.Setup.Lighting. </span> }
+                        @if (PsUi.Has(group.Setup.Outfit)) { <span>Outfit: @group.Setup.Outfit. </span> }
+                        @if (group.Setup.Props.Count > 0) { <span>Props: @PsUi.Join(group.Setup.Props).</span> }
+                        @if (group.Setup.RequiresChildren) { <strong> Children on set — confirm signed guardian consent / model release before shooting.</strong> }
+                    </p>
+                }
+                <table class="ps-print-table">
+                    <tbody>
+                        @foreach (var shot in shots)
+                        {
+                            <tr>
+                                <td class="ps-print-box">@(shot.Status == ShotStatus.Completed ? "☑" : "☐")</td>
+                                <td class="ps-print-num">@PhotoShootPlanner.OrderNumber(doc, shot.Id)</td>
+                                <td>
+                                    <strong>@(shot.Priority == ShotPriority.MustHave ? "★ " : "")@shot.Title</strong>
+                                    <span class="ps-print-meta">· @shot.Framing · @PhotoShootLabels.Orientation(shot.Orientation) · @PsUi.Minutes(shot.EstimatedMinutes)</span>
+                                    @if (detailed)
+                                    {
+                                        <div class="ps-print-detail">
+                                            @if (PsUi.Has(shot.FacialExpression)) { <div><em>Face:</em> @shot.FacialExpression</div> }
+                                            @if (PsUi.Has(shot.BodyPosition)) { <div><em>Body:</em> @shot.BodyPosition</div> }
+                                            @if (PsUi.Has(shot.PhotographerInstructions)) { <div><em>Camera:</em> @shot.PhotographerInstructions</div> }
+                                            @if (shot.Props.Count > 0) { <div><em>Props:</em> @PsUi.Join(shot.Props)</div> }
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private bool mustOnly;
+    private bool detailed = true;
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

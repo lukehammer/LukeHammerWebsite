@@ -1,0 +1,333 @@
+@page "/photoshoot/manage"
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Photo Shoot · Manage</PageTitle>
+
+@if (!Store.IsOwner)
+{
+    <div class="ps-empty"><p>Only the shoot owner can manage shoots.</p></div>
+}
+else
+{
+    var doc = Store.Shoot;
+
+    <header class="ps-page-head">
+        <h1 class="ps-h1">Manage shoots</h1>
+    </header>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Your shoots</h2>
+        @if (Store.Index.Shoots.Count == 0)
+        {
+            <p class="ps-muted">No shoots yet.</p>
+        }
+        <ul class="ps-shoot-list">
+            @foreach (var summary in Store.Index.Shoots)
+            {
+                <li class="@(summary.Id == doc?.Id ? "is-open" : "")" @key="summary.Id">
+                    <div>
+                        <strong>@summary.Name</strong>
+                        @if (summary.IsDefault) { <span class="ps-badge ps-badge-plain">Default</span> }
+                        @if (summary.Id == doc?.Id) { <span class="ps-badge ps-status-active">Open</span> }
+                        <div class="ps-muted ps-small">@summary.ShotCount shots · @summary.SetupCount setups · @summary.CompletedCount done @(PsUi.Has(summary.ShootDate) ? "· " + summary.ShootDate : "")</div>
+                    </div>
+                    @if (summary.Id != doc?.Id)
+                    {
+                        <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => Open(summary.Id)">Open</button>
+                    }
+                </li>
+            }
+        </ul>
+    </section>
+
+    @if (doc != null)
+    {
+        <section class="ps-card">
+            <h2 class="ps-h2">Shoot details</h2>
+            <form class="ps-form" @onsubmit="SaveDetails" @onsubmit:preventDefault>
+                <label class="ps-label" for="m-name">Name</label>
+                <input id="m-name" class="form-control ps-input" @bind="details.Name" maxlength="120" required />
+                <div class="ps-form-grid">
+                    <div>
+                        <label class="ps-label" for="m-date">Shoot date</label>
+                        <input id="m-date" type="date" class="form-control ps-input" value="@details.ShootDate" @onchange="e => details.ShootDate = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+                    <div>
+                        <label class="ps-label" for="m-break-every">Break every (minutes, 0 = none)</label>
+                        <input id="m-break-every" type="number" min="0" max="600" class="form-control ps-input" @bind="details.BreakEveryMinutes" />
+                    </div>
+                    <div>
+                        <label class="ps-label" for="m-break-len">Break length (minutes)</label>
+                        <input id="m-break-len" type="number" min="0" max="120" class="form-control ps-input" @bind="details.BreakDurationMinutes" />
+                    </div>
+                </div>
+                <label class="ps-label" for="m-desc">Description</label>
+                <textarea id="m-desc" class="form-control ps-input" rows="2" @bind="details.Description"></textarea>
+                <label class="ps-toggle"><input type="checkbox" @bind="details.MakeDefault" /> Make this the default shoot for everyone</label>
+                <div class="ps-form-actions">
+                    <button type="submit" class="ps-btn ps-btn-primary" disabled="@busy">Save details</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="ps-card">
+            <h2 class="ps-h2">Starter catalog</h2>
+            <p class="ps-small">Adds any starter-catalog setups and shots missing from this shoot. It never changes shots you've edited and never brings back shots you deleted, so it's safe to run again.</p>
+            <button type="button" class="ps-btn ps-btn-outline" disabled="@busy" @onclick="SeedCurrent"><i class="bi bi-stars" aria-hidden="true"></i> Check for new catalog shots</button>
+        </section>
+
+        <section class="ps-card">
+            <h2 class="ps-h2">Export, print &amp; duplicate</h2>
+            <div class="ps-form-actions">
+                <button type="button" class="ps-btn ps-btn-outline" disabled="@busy" @onclick="ExportAsync"><i class="bi bi-download" aria-hidden="true"></i> Export JSON</button>
+                <a class="ps-btn ps-btn-outline" href="photoshoot/print"><i class="bi bi-printer" aria-hidden="true"></i> Printable checklist</a>
+            </div>
+            <p class="ps-muted ps-small">Exports include shots, setups, order, statuses, notes, and reference details (uploaded image files are not included in the file).</p>
+
+            <form class="ps-form" @onsubmit="DuplicateAsync" @onsubmit:preventDefault>
+                <label class="ps-label" for="m-dup">Duplicate as a new shoot</label>
+                <input id="m-dup" class="form-control ps-input" @bind="duplicateName" placeholder="@($"{doc.Name} (copy)")" maxlength="120" />
+                <label class="ps-toggle"><input type="checkbox" @bind="duplicateReset" /> Reset progress (statuses, favorites, notes)</label>
+                <button type="submit" class="ps-btn ps-btn-outline" disabled="@busy"><i class="bi bi-files" aria-hidden="true"></i> Duplicate</button>
+            </form>
+        </section>
+    }
+
+    <section class="ps-card">
+        <h2 class="ps-h2">Import</h2>
+        <InputFile accept=".json,application/json" OnChange="LoadImportFile" class="form-control ps-input" />
+        @if (importError.Length > 0)
+        {
+            <p class="ps-error-text">@importError</p>
+        }
+        @if (importExport?.Shoot is { } incoming)
+        {
+            <div class="ps-import-preview">
+                <p><strong>@incoming.Name</strong>: @incoming.Setups.Count setups, @incoming.Shots.Count shots, @incoming.References.Count references, @incoming.Shots.Count(s => s.Status == ShotStatus.Completed) completed.</p>
+                @foreach (var w in importWarnings)
+                {
+                    <p class="ps-small ps-warning-text">@w</p>
+                }
+                <label class="ps-toggle"><input type="radio" name="import-mode" checked="@(importMode == ImportMode.CreateNew)" @onchange="() => importMode = ImportMode.CreateNew" /> Create a new shoot (safe — nothing is overwritten)</label>
+                @if (doc != null)
+                {
+                    <label class="ps-toggle"><input type="radio" name="import-mode" checked="@(importMode == ImportMode.ReplaceExisting)" @onchange="() => importMode = ImportMode.ReplaceExisting" /> Replace “@doc.Name”</label>
+                    @if (importMode == ImportMode.ReplaceExisting)
+                    {
+                        <label class="ps-toggle ps-danger-text"><input type="checkbox" @bind="confirmOverwrite" /> I understand this overwrites every shot, setup, status, and note in “@doc.Name”.</label>
+                    }
+                }
+                <button type="button" class="ps-btn ps-btn-primary" disabled="@(busy || (importMode == ImportMode.ReplaceExisting && !confirmOverwrite))" @onclick="ImportAsync">Import</button>
+            </div>
+        }
+    </section>
+
+    <section class="ps-card">
+        <h2 class="ps-h2">New shoot</h2>
+        <form class="ps-form" @onsubmit="CreateBlank" @onsubmit:preventDefault>
+            <label class="ps-label" for="m-new">Name</label>
+            <input id="m-new" class="form-control ps-input" @bind="newName" maxlength="120" placeholder="e.g. Holiday 2027 shoot" />
+            <div class="ps-form-actions">
+                <button type="submit" class="ps-btn ps-btn-outline" disabled="@(busy || string.IsNullOrWhiteSpace(newName))">Create empty shoot</button>
+                @if (Store.Index.Shoots.Count == 0)
+                {
+                    <button type="button" class="ps-btn ps-btn-primary" disabled="@busy" @onclick="() => Seed(null)"><i class="bi bi-stars" aria-hidden="true"></i> Load starter catalog</button>
+                }
+            </div>
+        </form>
+    </section>
+
+    @if (doc != null)
+    {
+        <section class="ps-card ps-danger-zone">
+            <h2 class="ps-h2">Delete this shoot</h2>
+            <p class="ps-small">Permanently deletes “@doc.Name”, its progress, and uploaded reference images. Export first if you might want it back.</p>
+            <label class="ps-label" for="m-del">Type the shoot name to confirm</label>
+            <input id="m-del" class="form-control ps-input" @bind="deleteConfirm" @bind:event="oninput" />
+            <button type="button" class="ps-btn ps-btn-danger" disabled="@(busy || deleteConfirm.Trim() != doc.Name)" @onclick="DeleteAsync">Delete shoot</button>
+        </section>
+    }
+}
+
+@code {
+    private bool busy;
+    private UpdateShootRequest details = new();
+    private string? detailsFor;
+    private string duplicateName = "";
+    private bool duplicateReset = true;
+    private string newName = "";
+    private string deleteConfirm = "";
+    private PhotoShootExport? importExport;
+    private List<string> importWarnings = new();
+    private string importError = "";
+    private ImportMode importMode = ImportMode.CreateNew;
+    private bool confirmOverwrite;
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        SyncDetails();
+    }
+
+    private void SyncDetails()
+    {
+        var doc = Store.Shoot;
+        var key = doc == null ? "" : $"{doc.Id}:{doc.Name}:{doc.ShootDate}:{doc.BreakEveryMinutes}:{doc.BreakDurationMinutes}:{doc.Description}";
+        if (doc == null || key == detailsFor)
+        {
+            return;
+        }
+
+        detailsFor = key;
+        details = new UpdateShootRequest
+        {
+            Name = doc.Name,
+            Description = doc.Description,
+            ShootDate = doc.ShootDate,
+            BreakEveryMinutes = doc.BreakEveryMinutes,
+            BreakDurationMinutes = doc.BreakDurationMinutes,
+            MakeDefault = Store.Index.DefaultShootId == doc.Id
+        };
+    }
+
+    private async Task Busy(Func<Task> work)
+    {
+        busy = true;
+        try { await work(); }
+        catch (PhotoShootApiException ex) { Store.SetFlash(ex.Message, isError: true); }
+        finally { busy = false; }
+    }
+
+    private Task Open(string shootId) => Busy(async () =>
+    {
+        await Store.LoadShootAsync(shootId);
+        Store.SetFlash("Opened.", isError: false);
+    });
+
+    private Task SaveDetails() => Busy(async () =>
+    {
+        var request = details;
+        if (await Store.RunAsync(id => Store.Api.UpdateShootAsync(id, request)))
+        {
+            await Store.RefreshIndexAsync();
+        }
+    });
+
+    private Task SeedCurrent() => Seed(Store.ShootId);
+
+    private Task Seed(string? shootId) => Busy(async () =>
+    {
+        var response = await Store.Api.SeedAsync(shootId);
+        if (response.Shoot != null)
+        {
+            await Store.LoadShootAsync(response.Shoot.Id);
+        }
+
+        await Store.RefreshIndexAsync();
+        Store.SetFlash(response.Message, isError: false);
+    });
+
+    private Task ExportAsync() => Busy(async () =>
+    {
+        var json = await Store.Api.ExportJsonAsync(Store.ShootId);
+        var safeName = new string((Store.Shoot?.Name ?? "photoshoot").Select(c => char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-').ToArray()).Trim('-');
+        await Browser.DownloadTextAsync($"{safeName}-{DateTime.Now:yyyyMMdd-HHmm}.json", json);
+        Store.SetFlash("Export downloaded.", isError: false);
+    });
+
+    private Task DuplicateAsync() => Busy(async () =>
+    {
+        var response = await Store.Api.DuplicateShootAsync(Store.ShootId, new DuplicateShootRequest { Name = duplicateName, ResetProgress = duplicateReset });
+        await Store.RefreshIndexAsync();
+        if (response.Shoot != null)
+        {
+            await Store.LoadShootAsync(response.Shoot.Id);
+        }
+
+        duplicateName = "";
+        Store.SetFlash(response.Message + " It is now open.", isError: false);
+    });
+
+    private Task CreateBlank() => Busy(async () =>
+    {
+        var response = await Store.Api.CreateShootAsync(new CreateShootRequest { Name = newName });
+        await Store.RefreshIndexAsync();
+        if (response.Shoot != null)
+        {
+            await Store.LoadShootAsync(response.Shoot.Id);
+        }
+
+        newName = "";
+        Store.SetFlash(response.Message, isError: false);
+    });
+
+    private async Task LoadImportFile(InputFileChangeEventArgs e)
+    {
+        importExport = null;
+        importWarnings = new();
+        importError = "";
+        confirmOverwrite = false;
+        try
+        {
+            await using var stream = e.File.OpenReadStream(8 * 1024 * 1024);
+            var parsed = await System.Text.Json.JsonSerializer.DeserializeAsync<PhotoShootExport>(stream, PhotoShootApiClient.JsonOptions);
+            if (parsed?.Format != PhotoShootExport.FormatName || parsed.Shoot == null)
+            {
+                importError = "That file isn't a Photo Shoot export.";
+                return;
+            }
+
+            var (errors, warnings) = PhotoShootValidator.ValidateDocument(parsed.Shoot);
+            if (errors.Count > 0)
+            {
+                importError = "The file has problems: " + string.Join(" ", errors.Take(5));
+                return;
+            }
+
+            PhotoShootEditor.Normalize(parsed.Shoot);
+            importExport = parsed;
+            importWarnings = warnings;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            importError = "That file isn't valid JSON.";
+        }
+        catch (IOException)
+        {
+            importError = "Could not read that file (max 8 MB).";
+        }
+    }
+
+    private Task ImportAsync() => Busy(async () =>
+    {
+        var result = await Store.Api.ImportAsync(new ImportRequest
+        {
+            Export = importExport,
+            Mode = importMode,
+            TargetShootId = importMode == ImportMode.ReplaceExisting ? Store.ShootId : "",
+            ConfirmOverwrite = confirmOverwrite
+        });
+        await Store.RefreshIndexAsync();
+        await Store.LoadShootAsync(result.ShootId);
+        importExport = null;
+        Store.SetFlash($"Imported {result.ShotCount} shots in {result.SetupCount} setups." + (result.Warnings.Count > 0 ? " " + string.Join(" ", result.Warnings) : ""), isError: false);
+    });
+
+    private Task DeleteAsync() => Busy(async () =>
+    {
+        await Store.Api.DeleteShootAsync(Store.ShootId);
+        deleteConfirm = "";
+        await Store.ReloadAsync();
+        Store.SetFlash("Shoot deleted.", isError: false);
+    });
+
+    private void OnChanged()
+    {
+        SyncDetails();
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}
