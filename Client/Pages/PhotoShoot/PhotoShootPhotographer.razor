@@ -16,7 +16,7 @@
     var canAdvance = Store.IsOwner || session.PhotographerCanAdvance;
     var heroImage = current == null ? null : PhotoShootEditor.ReferencesForShot(doc, current.Id).FirstOrDefault(r => r.HasImage);
 
-    <div class="ps-photographer">
+    <div class="ps-photographer @(current == null ? "" : canAdvance ? "ps-has-action-bar ps-bar-2" : "ps-has-action-bar")">
         @if (!session.IsActive)
         {
             <div class="ps-waiting" role="status"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Waiting for the director to start the session.@(current == null ? "" : " First up:")</div>
@@ -106,20 +106,24 @@
                 </div>
             </section>
 
-            <div class="ps-live-actions">
-                @if (current.Status != ShotStatus.Completed)
-                {
-                    <button type="button" class="ps-btn ps-btn-success ps-btn-xl ps-span-2" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
-                        <i class="bi bi-check-lg" aria-hidden="true"></i> Got it — mark complete
+            <div class="ps-action-bar" role="group" aria-label="Shot actions">
+                <div class="ps-action-bar-row ps-action-bar-pair">
+                    @if (current.Status != ShotStatus.Completed)
+                    {
+                        <button type="button" class="ps-btn ps-btn-success ps-action-main" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i> Got it — mark complete
+                        </button>
+                    }
+                    <button type="button" class="ps-btn @(session.NextRequestedUtc != null ? "ps-btn-outline" : "ps-btn-teal") ps-action-main" disabled="@(busy || session.NextRequestedUtc != null)" @onclick="() => Do(SessionAction.RequestNext)">
+                        <i class="bi bi-hand-index-thumb" aria-hidden="true"></i> @(session.NextRequestedUtc != null ? "Director notified — waiting…" : "Ready for next shot")
                     </button>
-                }
-                <button type="button" class="ps-btn @(session.NextRequestedUtc != null ? "ps-btn-outline" : "ps-btn-teal") ps-btn-xl ps-span-2" disabled="@(busy || session.NextRequestedUtc != null)" @onclick="() => Do(SessionAction.RequestNext)">
-                    <i class="bi bi-hand-index-thumb" aria-hidden="true"></i> @(session.NextRequestedUtc != null ? "Director notified — waiting…" : "Ready for next shot")
-                </button>
+                </div>
                 @if (canAdvance)
                 {
-                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
-                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    <div class="ps-action-bar-row ps-action-bar-pair">
+                        <button type="button" class="ps-btn ps-btn-outline ps-action-nav" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
+                        <button type="button" class="ps-btn ps-btn-outline ps-action-nav" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    </div>
                 }
             </div>
 

@@ -33,6 +33,7 @@ Photographers only see Dashboard, Shots and Photographer in the sub-navigation; 
 2. The photographer signs in on their phone and opens **Photographer** (their invite gives them the `photoshoot-photographer` role).
 3. The director calls each shot and taps **Complete & next** (or **Skip**). The photographer's screen follows within about 2–3 seconds.
 4. The photographer can tap **Ready for next shot** (shows a banner on the director phone), **Got it — mark complete**, and add notes. Turning on **Photographer can advance** in the director's Options tab also gives them Previous/Next.
+   On both live views these action buttons sit in a bar pinned to the bottom of the screen, so they never need scrolling to reach.
 5. If time gets short, turn on **Must-have only** in Options: "next" then skips non-must-have shots, and the remaining-time estimate updates.
 6. **Keep screen awake** (Options) uses the browser Wake Lock API where supported.
 

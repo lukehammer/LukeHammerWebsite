@@ -26,7 +26,7 @@
         var skipped = PhotoShootPlanner.OrderedShots(doc).Where(s => s.Status == ShotStatus.Skipped).ToList();
         var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, current?.Id, session.MustHaveOnly);
 
-        <div class="ps-director">
+        <div class="ps-director @(current != null ? "ps-has-action-bar ps-bar-2" : "")">
             <section class="ps-live-progress" aria-label="Progress">
                 <div><strong>@progress.Completed</strong>/@progress.Total done</div>
                 <div class="ps-live-progress-must"><i class="bi bi-star-fill" aria-hidden="true"></i> <strong>@progress.MustHaveCompleted</strong>/@progress.MustHaveTotal must-have</div>
@@ -112,14 +112,18 @@
                     </details>
                 </section>
 
-                <div class="ps-live-actions">
-                    <button type="button" class="ps-btn ps-btn-success ps-btn-xl ps-span-2" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
-                        <i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next
-                    </button>
-                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
-                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-                    <button type="button" class="ps-btn ps-btn-warning ps-btn-xl" disabled="@busy" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
-                    <button type="button" class="ps-btn ps-btn-outline ps-btn-xl" disabled="@(busy || nextSetupShot == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
+                <div class="ps-action-bar" role="group" aria-label="Shot actions">
+                    <div class="ps-action-bar-row">
+                        <button type="button" class="ps-btn ps-btn-success ps-action-main" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
+                            <i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next
+                        </button>
+                    </div>
+                    <div class="ps-action-bar-row ps-action-bar-tiles">
+                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
+                        <button type="button" class="ps-btn ps-btn-warning ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
+                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@(busy || nextSetupShot == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
+                    </div>
                 </div>
             }
 
