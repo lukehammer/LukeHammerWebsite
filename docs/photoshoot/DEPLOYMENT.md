@@ -10,7 +10,7 @@ Nothing has been deployed. The feature ships with the normal site deployment (Gi
 | `Client/staticwebapp.config.json`: new route rule for `/api/photoshoot/*` | Only users with `photoshoot-owner` or `photoshoot-photographer` can reach the photo shoot API. Existing routes and `navigationFallback` are unchanged |
 | `Client/wwwroot/service-worker.published.js` | The service worker no longer intercepts `/.auth/*`, so sign-in/out always reaches SWA. No effect on other pages |
 | New Azure Functions under `/api/photoshoot/*` | Existing functions unchanged |
-| New private blob container `photoshoot` | Created automatically on first use in the storage account the site already uses (`LUKE_HAMMER_WEBSITE`). No migration needed |
+| Private blob container `photoshoot` | Already exists in the site's storage account (`lukehammerweb`, the one `LUKE_HAMMER_WEBSITE` points to) and already holds the shoot Luke built locally. See [Local development against production storage](#local-development-against-production-storage). The deployed API uses it as-is, so no migration is needed at deploy time |
 
 No new Azure resources, app settings or secrets are required.
 
@@ -33,7 +33,7 @@ No new Azure resources, app settings or secrets are required.
    - To give someone full edit rights (for example an assistant director), use `photoshoot-owner`.
    - Roles can be changed or removed later under Role management. Removing a role takes effect on their next sign-in, or within about 8 hours as the SWA session expires.
 
-5. **First run.** Sign in, open **Photo Shoot**, and tap **Load starter catalog**. That creates the shoot from the 100-shot catalog. Set the shoot date under **Manage**.
+5. **First run.** Sign in and open **Photo Shoot**. The shoot Luke planned locally (100 shots, 25 setups, 128 reference images) should already be there, because it lives in production storage. Only if the container were empty would you tap **Load starter catalog**. Set the shoot date under **Manage**.
 
 ## Post-deploy checklist
 
@@ -46,6 +46,40 @@ No new Azure resources, app settings or secrets are required.
 
 If a phone still shows an old version after deploy, close and reopen the tab. The service worker updates on the next visit.
 
+## Local development against production storage
+
+The local API can use the production blob container, so whatever Luke plans locally is already in place when the feature deploys. Put the storage account's connection string in **`Api/local.settings.json`** (gitignored; never commit it):
+
+```json
+"Values": {
+  "LUKE_HAMMER_WEBSITE": "<lukehammerweb connection string>"
+}
+```
+
+Get it without printing it, for example `$cs = az storage account show-connection-string -n lukehammerweb -g lukehammer-rg --subscription <Pay-As-You-Go id> --query connectionString -o tsv`. Remove the entry to go back to the `%TEMP%\lukehammer-photoshoot` file store.
+
+> **Warning:** with this setting, local testing reads and writes the **real** shoot data. Every edit, session command, import, reset or delete made on `localhost` changes what the photographer sees in production. Use a duplicate shoot, or remove the setting, for throwaway experiments.
+
+To check which store is active, call `GET /api/photoshoot/shoots/{id}`. Blob mode returns an `eTag` like `"0x8D…"` (the blob's ETag); the local file store returns a 24-character hex hash.
+
+### How the local data was migrated (2026-10-13)
+
+1. Backed up `%TEMP%\lukehammer-photoshoot` to `%LOCALAPPDATA%\LukeHammerPhotoshoot\backups\<timestamp>\`.
+2. Confirmed the `photoshoot` container did not exist yet. The script refuses to run if the container already holds a shoot, and never overwrites existing blobs.
+3. Ran [`scripts/Copy-PhotoShootLocalToBlob.ps1`](../../scripts/Copy-PhotoShootLocalToBlob.ps1) with the connection string in `$env:AZURE_STORAGE_CONNECTION_STRING`. It creates the container as **private** and maps the local store to the blob layout the API uses:
+
+   | Local (`%TEMP%\lukehammer-photoshoot`) | Blob (container `photoshoot`) |
+   | --- | --- |
+   | `shoots\<shootId>.json` | `shoots/<shootId>.json` (`application/json`) |
+   | `settings.json` | `settings.json` (default shoot id) |
+   | `images\<imageId>` + `images\<imageId>.type` | `images/<imageId>`, with the content type taken from the `.type` file |
+
+4. The script verified every blob against its local file (size, MD5 and content type): 1 shoot, the settings file, and 128 images (about 42 MB). Image ids are unchanged, because references store only the image id.
+
+The local folder was left in place as a fallback.
+
+**Export JSON is metadata only.** **Manage → Export** contains the shoot document, and its references point at image ids. It does not contain image bytes. Importing it into a different store (for example local into production) creates the shots and references, but their images will be missing. To move a shoot between stores, copy the `images/` blobs or files with the **same ids** as well, as the script above does.
+
 ## Cost
 
 - Polling only runs while a live page is open: about 2 requests per phone every 2.5 s, mostly cheap "unchanged" checks. A full shoot day with two phones is well under 30k Functions executions and blob operations, typically pennies.
@@ -53,7 +87,7 @@ If a phone still shows an old version after deploy, close and reopen the tab. Th
 
 ## Rollback
 
-Revert the merge commit on `main` and let the workflow redeploy. Shoot data stays in the `photoshoot` container untouched. Delete the container manually if you want it gone.
+Revert the merge commit on `main` and let the workflow redeploy. Shoot data stays in the `photoshoot` container untouched. Delete the container manually if you want it gone. A local backup of the pre-migration data is under `%LOCALAPPDATA%\LukeHammerPhotoshoot\backups\`.
 
 ## Questions for Luke
 

@@ -58,6 +58,7 @@ Open `http://localhost:5000/photoshoot`. With no shoot yet, the owner view offer
 
 - To test the photographer experience, open a second browser tab with `?devRole=photographer` (for example `/photoshoot/photographer?devRole=photographer`). The role sticks for that tab.
 - Without a storage connection string, data is stored as JSON files in `%TEMP%\lukehammer-photoshoot` (override with `PHOTOSHOOT_LOCAL_DIR`).
+- With `LUKE_HAMMER_WEBSITE` set in `Api/local.settings.json`, the local API uses the **production** `photoshoot` blob container, so local edits change real data. See [DEPLOYMENT.md](DEPLOYMENT.md#local-development-against-production-storage).
 - See `Api/local.settings.example.json` for `PHOTOSHOOT_DEV_AUTH` / `PHOTOSHOOT_DEV_ROLE`.
 
 ## Tests
