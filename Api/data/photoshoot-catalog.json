@@ -273,7 +273,7 @@
       "cameraPosition": "70mm at chest height, ~10 ft",
       "outfit": "Colorful patterned/floral long-sleeve dress shirt (sleeves rolled back down, cuffs buttoned), dark charcoal/black textured (subtly sparkly) vest buttoned, purple bow tie, dark plaid/tartan trousers, dark dress shoes. No suit jacket.",
       "props": [],
-      "changeoverMinutes": 15,
+      "changeoverMinutes": 5,
       "requiresChildren": false,
       "notes": "Roll the shirt sleeves back down and button the cuffs before this setup. Brand color is added in design, not on set: these cutouts are made to sit on teal. Shoot a test frame and check the shirt colors and skin tones on the laptop."
     },
@@ -299,7 +299,7 @@
       "cameraPosition": "50mm at chest height, ~10 ft; waist-up to three-quarter",
       "outfit": "Colorful patterned/floral long-sleeve dress shirt, dark charcoal/black textured (subtly sparkly) vest buttoned, purple bow tie, dark plaid/tartan trousers, dark dress shoes. No suit jacket.",
       "props": ["Gold balloons (#CC9511)", "Gold and teal biodegradable confetti", "Party hat (optional)"],
-      "changeoverMinutes": 15,
+      "changeoverMinutes": 8,
       "requiresChildren": false,
       "notes": "Keep balloons clustered to one side so text space remains. Gold balloons and gold/teal confetti separate well from white; avoid white or clear balloons. Sweep confetti off the paper before the next setup."
     },
@@ -312,7 +312,7 @@
       "cameraPosition": "85mm at eye level, ~8 ft; waist-up",
       "outfit": "Stage outfit, extra polished: colorful patterned/floral long-sleeve dress shirt with cuffs buttoned, dark charcoal/black textured (subtly sparkly) vest smoothed and buttoned, purple bow tie perfectly straight, dark plaid/tartan trousers, polished dark dress shoes. No suit jacket.",
       "props": [],
-      "changeoverMinutes": 15,
+      "changeoverMinutes": 8,
       "requiresChildren": false,
       "notes": "Elegant, polished energy. Fewer goofy faces here; sly charm instead. Straighten the bow tie and smooth the vest before every shot."
     },
@@ -325,7 +325,7 @@
       "cameraPosition": "85mm slightly below eye level, ~8 ft; seated three-quarter",
       "outfit": "Colorful patterned/floral long-sleeve dress shirt, dark charcoal/black textured (subtly sparkly) vest buttoned, purple bow tie, dark plaid/tartan trousers, dark dress shoes. No suit jacket.",
       "props": ["Wooden bar stool", "Magic wand (optional)"],
-      "changeoverMinutes": 12,
+      "changeoverMinutes": 6,
       "requiresChildren": false,
       "notes": "Last setup of the day. Make sure the stool is sturdy and rated for a larger adult. Use a dark wooden stool so it separates from the white, and keep its legs on the white floor sweep."
     }

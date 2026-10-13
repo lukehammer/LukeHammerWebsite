@@ -25,7 +25,7 @@ Design principles:
 | MustHave | 32 |
 | Standard | 46 |
 | Bonus | 22 |
-| Estimated shooting time | ~260 min of shots + ~183 min of changeovers |
+| Estimated shooting time | ~260 min of shots + ~153 min of changeovers |
 
 ## Setup organization
 
@@ -59,7 +59,7 @@ Array order in the JSON is the shooting order. Shots are grouped by setup, and w
 | 24 | `24-burgundy-elegant` | White Seamless - Elegant Events | 3 | 0 |
 | 25 | `25-charcoal-seated-stool` | White Seamless - Seated Stool Portraits | 3 | 0 |
 
-Setups 21-25 were originally colored backdrops (teal, soft pink, burgundy, charcoal). They are now shot on white and the brand color is added behind the cutout in design; their keys are unchanged so seeding stays idempotent.
+Setups 21-25 were originally colored backdrops (teal, soft pink, burgundy, charcoal). They are now shot on white and the brand color is added behind the cutout in design; their keys are unchanged so seeding stays idempotent. Their changeover estimates (5, 2, 8, 8, 6 min) only cover sleeves/outfit, props and re-lighting, since no backdrop paper is swapped.
 
 ### Why this order
 

@@ -57,7 +57,7 @@ Revert the merge commit on `main` and let the workflow redeploy. Shoot data stay
 
 ## Questions for Luke
 
-1. **Shoot length.** The full catalog is about 8.5 hours (about 4h20m of shots, 3h of changeovers, plus breaks). Must-have-only is about 3h20m. Do you want to trim the list or merge setups before the day, or rely on **Must-have only** mode during the shoot?
+1. **Shoot length.** The full catalog is about 8 hours (about 4h20m of shots, 2h30m of changeovers, plus breaks). Must-have-only is about 3h20m. Do you want to trim the list or merge setups before the day, or rely on **Must-have only** mode during the shoot?
 2. **Sign-in providers.** The sign-in screen offers GitHub and Microsoft. Will the photographer have one of those? (Google sign-in would need a custom auth provider, which requires the SWA Standard plan.)
 3. **Nav visibility.** The "Photo Shoot" nav item is visible to every visitor (the data is private). Hide it for signed-out visitors, or remove it after the shoot?
 4. **Children in photos.** The two child-volunteer setups are pinned in place in the suggested order. Confirm the time slot works for the families, and that you have signed photo releases.

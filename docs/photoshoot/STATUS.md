@@ -63,4 +63,4 @@ Bug found and fixed during verification: after the network returned, a sync coul
 - Edits made while offline are not queued. The action fails with a message and must be retried once back online. The live views recover automatically.
 - API endpoint code (as opposed to the shared logic it calls) has no automated tests; it was verified with the manual scripts above.
 - The CI workflow only runs on `main`, so these tests won't run in CI until the branch is merged.
-- The full catalog is about 8.5 hours including changeovers and breaks; must-have-only is about 3h20m. See the question in DEPLOYMENT.md.
+- The full catalog is about 8 hours (7h53m) including changeovers and breaks; must-have-only is about 3h20m. See the question in DEPLOYMENT.md.
