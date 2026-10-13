@@ -1,0 +1,96 @@
+@page "/photoshoot/marker"
+@layout PhotoShootLiveLayout
+@implements IAsyncDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Shot marker · Photo Shoot</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var session = doc.Session;
+    var progress = PhotoShootPlanner.Progress(doc);
+    var current = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
+    var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
+
+    <section class="ps-marker" aria-live="polite">
+        @if (!session.IsActive)
+        {
+            <div class="ps-waiting" role="status"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Waiting for the director to start the session.</div>
+        }
+
+        <div class="ps-marker-card">
+            @if (current == null)
+            {
+                <h1 class="ps-marker-title">@(progress.Total > 0 && progress.Completed == progress.Total ? "Every shot is complete" : "No shot selected")</h1>
+            }
+            else
+            {
+                <div @key="current.Id">
+                    <div class="ps-marker-kicker">
+                        <span>Shot marker</span>
+                        <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
+                        <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                    </div>
+                    <h1 class="ps-marker-title">@current.Title</h1>
+                    @if (setup != null)
+                    {
+                        <p class="ps-marker-setup">Setup @setup.Sequence · @setup.Name</p>
+                    }
+                    @if (PsUi.Has(current.Summary))
+                    {
+                        <p class="ps-marker-summary">@current.Summary</p>
+                    }
+                </div>
+            }
+
+            <div class="ps-marker-clock">
+                <div class="ps-marker-date">@now.ToString("dddd, MMMM d, yyyy")</div>
+                <time class="ps-marker-time" datetime="@now.ToString("yyyy-MM-ddTHH:mm:ss")">@now.ToString("h:mm:ss tt")</time>
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    private DateTime now = DateTime.Now;
+    private Timer? clock;
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Store.StartLive();
+        now = DateTime.Now;
+        var due = TimeSpan.FromMilliseconds(Math.Max(1, 1000 - now.Millisecond));
+        clock = new Timer(OnClock, null, due, Timeout.InfiniteTimeSpan);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Browser.KeepAwakeAsync(true);
+        }
+    }
+
+    private void OnClock(object? _)
+    {
+        _ = InvokeAsync(() =>
+        {
+            now = DateTime.Now;
+            StateHasChanged();
+            var due = TimeSpan.FromMilliseconds(Math.Max(1, 1000 - now.Millisecond));
+            clock?.Change(due, Timeout.InfiniteTimeSpan);
+        });
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        clock?.Dispose();
+        Store.StopLive();
+        Store.Changed -= OnChanged;
+        await Browser.KeepAwakeAsync(false);
+    }
+}

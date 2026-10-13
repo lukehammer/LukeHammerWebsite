@@ -25,6 +25,10 @@
         var upcoming = PhotoShootPlanner.Upcoming(doc, current?.Id, 5, session.MustHaveOnly);
         var skipped = PhotoShootPlanner.OrderedShots(doc).Where(s => s.Status == ShotStatus.Skipped).ToList();
         var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, current?.Id, session.MustHaveOnly);
+        var referenceImages = current == null
+            ? new List<PhotoReference>()
+            : PhotoShootEditor.ReferencesForShot(doc, current.Id).Where(r => r.HasImage).ToList();
+        var hero = current == null ? null : GalleryHero(current.Id, referenceImages);
 
         <div class="ps-director @(current != null ? "ps-has-action-bar ps-bar-2" : "")">
             <section class="ps-live-progress" aria-label="Progress">
@@ -55,14 +59,22 @@
 
             @if (setup != null)
             {
-                <section class="ps-live-setup @(setup.RequiresChildren ? "is-kids" : "")">
-                    <div class="ps-live-setup-label">Setup @setup.Sequence of @doc.Setups.Count @(setup.RequiresChildren ? "· children on set" : "")</div>
-                    <div class="ps-live-setup-name">@setup.Name</div>
-                    @if (PsUi.Has(setup.Outfit))
-                    {
-                        <div class="ps-small ps-muted">Outfit: @setup.Outfit</div>
-                    }
-                </section>
+                <details class="ps-live-setup @(setup.RequiresChildren ? "is-kids" : "")" open="@SetupIsOpen(setup.Id)">
+                    <summary @onclick="() => ToggleSetup(setup.Id)" @onclick:preventDefault="true">
+                        <span class="ps-live-setup-label">Setup @setup.Sequence of @doc.Setups.Count@(setup.RequiresChildren ? " · children" : "")</span>
+                        <span class="ps-live-setup-name">@setup.Name</span>
+                    </summary>
+                    <div class="ps-live-setup-body">
+                        @if (PsUi.Has(setup.Outfit))
+                        {
+                            <div><span class="ps-ref-label">Outfit:</span> @setup.Outfit</div>
+                        }
+                        @if (PsUi.Has(setup.Notes))
+                        {
+                            <div>@setup.Notes</div>
+                        }
+                    </div>
+                </details>
             }
 
             @if (current == null)
@@ -85,21 +97,41 @@
             else
             {
                 <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
-                    <div class="ps-live-shot-meta">
-                        <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
-                        <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
-                        <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
-                        @if (current.Status == ShotStatus.InProgress && current.StartedUtc != null)
+                    <div class="ps-dir-top @(hero == null ? "" : "has-gallery")">
+                        <div class="ps-dir-copy">
+                            <h1 class="ps-live-title">@current.Title</h1>
+                            <div class="ps-live-shot-meta">
+                                <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
+                                <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                                <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
+                                @if (current.Status == ShotStatus.InProgress && current.StartedUtc != null)
+                                {
+                                    <span class="ps-timer" title="Time on this shot"><i class="bi bi-stopwatch" aria-hidden="true"></i> @PsUi.Elapsed(current.StartedUtc) / @PsUi.Minutes(current.EstimatedMinutes)</span>
+                                }
+                            </div>
+                            @if (PsUi.Has(current.Summary))
+                            {
+                                <p class="ps-live-summary">@current.Summary</p>
+                            }
+                        </div>
+                        @if (hero != null)
                         {
-                            <span class="ps-timer" title="Time on this shot"><i class="bi bi-stopwatch" aria-hidden="true"></i> @PsUi.Elapsed(current.StartedUtc) / @PsUi.Minutes(current.EstimatedMinutes)</span>
+                            <div class="ps-dir-gallery">
+                                <img class="ps-dir-hero" src="@Store.Api.ImageUrl(doc.Id, hero)" alt="@hero.Title" />
+                                <div class="ps-dir-thumbs" role="listbox" aria-label="Reference photos">
+                                    @foreach (var reference in referenceImages)
+                                    {
+                                        var referenceId = reference.Id;
+                                        var selected = referenceId == hero.Id;
+                                        <button type="button" role="option" class="ps-dir-thumb @(selected ? "is-selected" : "")" aria-selected="@selected" aria-label="Show @reference.Title" @onclick="() => SelectHero(current.Id, referenceId)">
+                                            <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="" />
+                                        </button>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
-                    <h1 class="ps-live-title">@current.Title</h1>
-                    @if (PsUi.Has(current.Summary))
-                    {
-                        <p class="ps-live-summary">@current.Summary</p>
-                    }
-                    <PsShotDirections Shot="current" Setup="setup" ShowPhotographer="false" />
+                    <PsShotDirections Shot="current" Setup="setup" ShowPhotographer="false" ActingNoteAfterExpression="true" />
                     <details class="ps-live-more">
                         <summary>Photographer side, references &amp; purpose</summary>
                         <PsShotDirections Shot="current" Setup="setup" ShowPerformer="false" ShowProps="false" />
@@ -255,12 +287,17 @@
     private bool keepAwake = true;
     private bool confirmEnd;
     private Timer? ticker;
+    private string galleryShotId = "";
+    private string heroReferenceId = "";
+    private bool heroPinned;
+    private List<string> galleryIds = new();
+    private string expandedSetupId = "";
 
     protected override void OnInitialized()
     {
         Store.Changed += OnChanged;
         Store.StartLive();
-        ticker = new Timer(_ => InvokeAsync(StateHasChanged), null, 1000, 1000);
+        ticker = new Timer(_ => InvokeAsync(OnTick), null, 1000, 1000);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -269,6 +306,46 @@
         {
             await Browser.KeepAwakeAsync(keepAwake);
         }
+    }
+
+    private PhotoReference? GalleryHero(string shotId, List<PhotoReference> images)
+    {
+        if (images.Count == 0)
+        {
+            return null;
+        }
+
+        galleryIds = images.Select(r => r.Id).ToList();
+        if (galleryShotId != shotId || !galleryIds.Contains(heroReferenceId))
+        {
+            galleryShotId = shotId;
+            heroReferenceId = galleryIds[0];
+            heroPinned = false;
+        }
+
+        return images.First(r => r.Id == heroReferenceId);
+    }
+
+    private void OnTick()
+    {
+        if (!heroPinned && galleryIds.Count > 1)
+        {
+            var index = galleryIds.IndexOf(heroReferenceId);
+            heroReferenceId = galleryIds[(index < 0 ? 0 : index + 1) % galleryIds.Count];
+        }
+
+        StateHasChanged();
+    }
+
+    private bool SetupIsOpen(string setupId) => expandedSetupId == setupId;
+
+    private void ToggleSetup(string setupId) => expandedSetupId = expandedSetupId == setupId ? "" : setupId;
+
+    private void SelectHero(string shotId, string referenceId)
+    {
+        galleryShotId = shotId;
+        heroReferenceId = referenceId;
+        heroPinned = true;
     }
 
     private static bool IsChecked(ChangeEventArgs e) => e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase);

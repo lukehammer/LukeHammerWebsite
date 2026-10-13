@@ -6,10 +6,17 @@
         <h3 class="ps-directions-title"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Performer</h3>
         <dl class="ps-dl">
             @Row("Expression", Shot.FacialExpression, true)
+            @if (ActingNoteAfterExpression)
+            {
+                @Row("Acting note", Shot.PerformerInstructions, true)
+            }
             @Row("Body", Shot.BodyPosition, false)
             @Row("Hands", Shot.HandPosition, false)
             @Row("Eyes", Shot.EyeDirection, false)
-            @Row("Acting note", Shot.PerformerInstructions, false)
+            @if (!ActingNoteAfterExpression)
+            {
+                @Row("Acting note", Shot.PerformerInstructions, false)
+            }
         </dl>
     </section>
 }
@@ -52,6 +59,8 @@
     [Parameter] public bool ShowPerformer { get; set; } = true;
     [Parameter] public bool ShowPhotographer { get; set; } = true;
     [Parameter] public bool ShowProps { get; set; } = true;
+    /// <summary>Director view: acting note is the next line after the expression.</summary>
+    [Parameter] public bool ActingNoteAfterExpression { get; set; }
 
     private List<string> Props => (Shot.Props ?? new()).ToList();
 

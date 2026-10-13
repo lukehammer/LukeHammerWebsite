@@ -14,7 +14,9 @@
     var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
     var next = PhotoShootPlanner.Upcoming(doc, current?.Id, 1, session.MustHaveOnly).FirstOrDefault();
     var canAdvance = Store.IsOwner || session.PhotographerCanAdvance;
-    var heroImage = current == null ? null : PhotoShootEditor.ReferencesForShot(doc, current.Id).FirstOrDefault(r => r.HasImage);
+    var referenceImages = current == null
+        ? new List<PhotoReference>()
+        : PhotoShootEditor.ReferencesForShot(doc, current.Id).Where(r => r.HasImage).ToList();
 
     <div class="ps-photographer @(current == null ? "" : canAdvance ? "ps-has-action-bar ps-bar-2" : "ps-has-action-bar")">
         @if (!session.IsActive)
@@ -43,13 +45,17 @@
                     <div class="ps-muted ps-small">Setup @setup.Sequence: @setup.Name</div>
                 }
 
-                @if (heroImage != null)
+                @if (referenceImages.Count > 0)
                 {
-                    <button type="button" class="ps-ref-zoom ps-hero-zoom" title="@PsReferenceDetails.Tooltip(heroImage)" aria-label="Enlarge reference image: @heroImage.Title" @onclick="() => enlarged = heroImage">
-                        <img class="ps-hero-ref" src="@Store.Api.ImageUrl(doc.Id, heroImage)" alt="Reference: @heroImage.Title" />
-                        <span class="ps-ref-zoom-icon" aria-hidden="true"><i class="bi bi-arrows-fullscreen"></i></span>
-                    </button>
-                    <PsReferenceDetails Reference="heroImage" />
+                    <div class="ps-ref-quad @(referenceImages.Count == 1 ? "is-single" : "")" aria-label="Reference photos">
+                        @foreach (var reference in referenceImages)
+                        {
+                            <button type="button" class="ps-ref-zoom ps-hero-zoom" title="@PsReferenceDetails.Tooltip(reference)" aria-label="Enlarge reference image: @reference.Title" @onclick="() => enlarged = reference">
+                                <img class="ps-hero-ref" src="@Store.Api.ImageUrl(doc.Id, reference)" alt="Reference: @reference.Title" />
+                                <span class="ps-ref-zoom-icon" aria-hidden="true"><i class="bi bi-arrows-fullscreen"></i></span>
+                            </button>
+                        }
+                    </div>
                 }
                 else if (PsUi.Has(current.Inspiration))
                 {
@@ -161,6 +167,8 @@
                 <button type="button" class="ps-btn ps-btn-outline" disabled="@(busy || string.IsNullOrWhiteSpace(noteText))" @onclick="AddNote">Send</button>
             </div>
         }
+
+        <p class="ps-marker-jump"><a href="photoshoot/marker">Shot marker for the iPad</a></p>
 
         <div class="ps-live-progress ps-live-progress-foot">
             <div><strong>@progress.Completed</strong>/@progress.Total done</div>

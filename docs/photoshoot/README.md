@@ -21,17 +21,18 @@ Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.m
 | `/photoshoot/setups` | Owner | Setups (backdrop, lighting, camera, outfit, props, changeover minutes), reorder, delete, apply suggested order |
 | `/photoshoot/director` | Owner | Full-screen live view: start/resume session, complete & next, skip, previous/next, jump to any shot, next setup, photographer requests, notes, options |
 | `/photoshoot/photographer` | Owner, Photographer | Full-screen live view for the camera operator: current shot, framing/orientation/crop, reference image, "Got it — mark complete", "Ready for next shot", notes |
+| `/photoshoot/marker` | Owner, Photographer | iPad slate. Photograph this screen before each shot so the camera roll shows which pictures belong to which shot. Shot name, setup, one-line summary, and a clock that ticks every second |
 | `/photoshoot/references` | Owner | Reference library: links, credits, what to imitate / change, private image upload, inspiration ideas from the catalog |
 | `/photoshoot/manage` | Owner | Shoots list, shoot details and date, seed/merge catalog, export JSON, import (preview, create new or replace with confirmation), duplicate, delete |
 | `/photoshoot/print` | Owner, Photographer | Printable checklist grouped by setup |
 
-Photographers only see Dashboard, Shots and Photographer in the sub-navigation; the server enforces the same limits.
+Photographers see Dashboard, Shots, Photographer, and Marker in the sub-navigation; the server enforces the same limits.
 
 ## Running a shoot (day-of)
 
 1. Luke opens **Photo Shoot → Director** on his phone and taps **Start session**.
-2. The photographer signs in on their phone and opens **Photographer** (their invite gives them the `photoshoot-photographer` role).
-3. The director calls each shot and taps **Complete & next** (or **Skip**). The photographer's screen follows within about 2–3 seconds.
+2. The photographer signs in on their phone and opens **Photographer** (their invite gives them the `photoshoot-photographer` role). On a second screen (an iPad), open **Shot marker**.
+3. The director calls each shot and taps **Complete & next** (or **Skip**). The photographer's phone and the marker follow within about 2–3 seconds. Before photographing Luke for a shot, the photographer takes one photo of the marker. That frame is the bookmark for the pictures that follow.
 4. The photographer can tap **Ready for next shot** (shows a banner on the director phone), **Got it — mark complete**, and add notes. Turning on **Photographer can advance** in the director's Options tab also gives them Previous/Next.
    On both live views these action buttons sit in a bar pinned to the bottom of the screen, so they never need scrolling to reach.
 5. If time gets short, turn on **Must-have only** in Options: "next" then skips non-must-have shots, and the remaining-time estimate updates.

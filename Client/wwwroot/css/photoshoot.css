@@ -1532,11 +1532,45 @@
 }
 
 .ps-live-setup {
-    padding: 0.5rem 0.75rem;
+    padding: 0.35rem 0.65rem;
     border-left: 5px solid var(--ps-gold);
     background: var(--ps-surface-2);
     border-radius: 0 12px 12px 0;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.45rem;
+}
+
+.ps-live-setup summary {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0.15rem 0.55rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.ps-live-setup summary::-webkit-details-marker {
+    display: none;
+}
+
+.ps-live-setup summary::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-right: 0.15rem;
+    border-right: 2px solid var(--ps-muted);
+    border-bottom: 2px solid var(--ps-muted);
+    transform: rotate(-45deg);
+    align-self: center;
+}
+
+.ps-live-setup[open] summary::before {
+    transform: rotate(45deg);
+}
+
+.ps-live-setup-body {
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    color: var(--ps-muted);
 }
 
 .ps-live-setup.is-kids {
@@ -1544,16 +1578,22 @@
 }
 
 .ps-live-setup-label {
+    flex: none;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--ps-muted);
     font-weight: 700;
+    white-space: nowrap;
 }
 
 .ps-live-setup-name {
     font-weight: 700;
     font-size: 1.05rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .ps-live-shot {
@@ -1570,6 +1610,142 @@
 
 .ps-live-shot.ps-status-done {
     border-color: var(--ps-success);
+}
+
+.ps-dir-top.has-gallery {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "title title"
+        "meta gallery"
+        "summary gallery";
+    gap: 0.2rem 0.45rem;
+    align-items: start;
+}
+
+.ps-dir-top.has-gallery .ps-dir-copy {
+    display: contents;
+}
+
+.ps-dir-top.has-gallery .ps-live-shot-meta {
+    grid-area: meta;
+}
+
+.ps-dir-top.has-gallery .ps-live-title {
+    grid-area: title;
+    align-self: start;
+}
+
+.ps-dir-top.has-gallery .ps-live-summary {
+    grid-area: summary;
+}
+
+.ps-dir-top.has-gallery .ps-dir-gallery {
+    grid-area: gallery;
+}
+
+.ps-dir-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ps-dir-copy > .ps-live-title {
+    order: -1;
+}
+
+.ps-dir-gallery {
+    --ps-dir-stack: calc(4 * var(--ps-tap) + 3 * 0.3rem);
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    margin-left: auto;
+    gap: 0.28rem;
+}
+
+.ps-dir-hero {
+    display: block;
+    flex: 0 0 auto;
+    width: calc(var(--ps-dir-stack) * 3 / 4);
+    height: var(--ps-dir-stack);
+    object-fit: contain;
+    object-position: center center;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px #e4e0e2;
+}
+
+.ps-dark .ps-dir-hero {
+    background: #fff;
+}
+
+.ps-director .ps-live-shot {
+    padding-top: 0.5rem;
+    padding-bottom: 0.55rem;
+}
+
+.ps-director .ps-live-shot .ps-directions {
+    margin-top: 0.2rem;
+    padding: 0.4rem 0.75rem 0.3rem;
+}
+
+.ps-director .ps-directions-title {
+    margin-bottom: 0.1rem;
+}
+
+.ps-director .ps-directions-performer .ps-dl-row {
+    padding: 0.06rem 0;
+}
+
+.ps-dir-thumbs {
+    display: grid;
+    grid-template-columns: var(--ps-tap);
+    grid-auto-rows: var(--ps-tap);
+    align-content: start;
+    gap: 0.3rem;
+    width: var(--ps-tap);
+    height: var(--ps-dir-stack);
+}
+
+.ps-dir-thumb {
+    display: block;
+    width: var(--ps-tap);
+    height: var(--ps-tap);
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    line-height: 0;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px #e4e0e2;
+}
+
+.ps-dir-thumb.is-selected {
+    border-color: var(--ps-burgundy);
+}
+
+.ps-dir-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.ps-dir-top.has-gallery .ps-live-title {
+    min-width: 0;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    margin: 0 0 0.15rem;
+    overflow-wrap: break-word;
+}
+
+.ps-dir-top.has-gallery .ps-live-summary {
+    font-size: 0.95rem;
+    margin: 0;
 }
 
 .ps-live-shot-meta {
@@ -1810,6 +1986,30 @@ html:has(.ps-has-action-bar.ps-bar-2) {
     border-radius: 12px;
     background: var(--ps-surface-2);
     margin: 0.5rem 0;
+}
+
+/* Four reference photos stay a 2 by 2 box on every screen size. */
+.ps-ref-quad {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    margin: 0.55rem 0 0.15rem;
+}
+
+.ps-ref-quad.is-single {
+    grid-template-columns: 1fr;
+}
+
+.ps-ref-quad .ps-hero-ref {
+    aspect-ratio: 1 / 1;
+    max-height: none;
+    height: auto;
+    margin: 0;
+    object-fit: contain;
+    object-position: center center;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px #e4e0e2;
 }
 
 .ps-photo-key {
@@ -2092,6 +2292,110 @@ html:has(.ps-has-action-bar.ps-bar-2) {
     .ps-directions-props {
         grid-column: span 2;
     }
+}
+
+/* ---------- shot marker (iPad slate photographed between shots) ---------- */
+
+.ps-live:has(.ps-marker) {
+    max-width: 1080px;
+    padding-bottom: 0.75rem;
+}
+
+.ps-marker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: calc(100dvh - 4.75rem);
+}
+
+.ps-marker-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.25rem;
+    background: #fff;
+    color: #141414;
+    border: 3px solid #141414;
+    border-radius: 20px;
+    padding: clamp(1rem, 3vw, 2.25rem);
+}
+
+.ps-dark .ps-marker-card {
+    background: #fff;
+    color: #141414;
+}
+
+.ps-marker-kicker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.9rem;
+    font-size: clamp(1rem, 2.2vw, 1.4rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ps-marker .ps-badge {
+    font-size: clamp(0.95rem, 2vw, 1.2rem);
+    padding: 0.2rem 0.7rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.ps-marker-title {
+    font-size: clamp(2.5rem, 6.4vw, 4.6rem);
+    line-height: 1.02;
+    font-weight: 800;
+    margin: 0.35rem 0 0;
+    overflow-wrap: anywhere;
+    color: #141414;
+    animation: ps-marker-in 0.35s ease;
+}
+
+.ps-marker-setup {
+    font-size: clamp(1.2rem, 2.6vw, 1.75rem);
+    font-weight: 700;
+    margin: 0.55rem 0 0;
+}
+
+.ps-marker-summary {
+    font-size: clamp(1.25rem, 2.8vw, 1.9rem);
+    line-height: 1.3;
+    font-weight: 600;
+    margin: 0.7rem 0 0;
+    max-width: 36em;
+}
+
+.ps-marker-clock {
+    margin-top: auto;
+    padding-top: 0.9rem;
+    border-top: 3px solid #141414;
+}
+
+.ps-marker-date {
+    font-size: clamp(1.15rem, 2.5vw, 1.7rem);
+    font-weight: 700;
+}
+
+.ps-marker-time {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: clamp(3rem, 9vw, 5.6rem);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+}
+
+.ps-marker-jump {
+    margin: 0.25rem 0 0.75rem;
+}
+
+@keyframes ps-marker-in {
+    from { opacity: 0.15; }
+    to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
