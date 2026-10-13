@@ -1,0 +1,40 @@
+@* Source link plus a tap-to-expand "Details" disclosure; hover does not exist on phones, so metadata stays collapsed until tapped. *@
+<div class="ps-ref-meta">
+    @if (PsUi.Has(Reference.SourceUrl))
+    {
+        <a class="ps-ref-source" href="@Reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+    }
+    else
+    {
+        <span class="ps-ref-source ps-muted">No source link</span>
+    }
+
+    @if (HasDetails)
+    {
+        <details class="ps-ref-details">
+            <summary>Details</summary>
+            <div class="ps-ref-details-body">
+                @if (PsUi.Has(Reference.Title)) { <div class="ps-ref-details-title">@Reference.Title</div> }
+                @if (PsUi.Has(Reference.PerformerOrCharacter)) { <div><span class="ps-ref-label">Who:</span> @Reference.PerformerOrCharacter</div> }
+                @if (PsUi.Has(Reference.WhatToImitate)) { <div><span class="ps-ref-label">Imitate:</span> @Reference.WhatToImitate</div> }
+                @if (PsUi.Has(Reference.WhatToChange)) { <div><span class="ps-ref-label">Different:</span> @Reference.WhatToChange</div> }
+                @if (PsUi.Has(Reference.Credit)) { <div class="ps-muted">Credit: @Reference.Credit</div> }
+                @if (PsUi.Has(Reference.UsageRights)) { <div class="ps-muted">Rights: @Reference.UsageRights</div> }
+                @ChildContent
+            </div>
+        </details>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PhotoReference Reference { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool HasDetails =>
+        ChildContent != null ||
+        new[] { Reference.Title, Reference.PerformerOrCharacter, Reference.WhatToImitate, Reference.WhatToChange, Reference.Credit, Reference.UsageRights }.Any(PsUi.Has);
+
+    /// <summary>Desktop hover hint; phones use the Details disclosure instead.</summary>
+    public static string Tooltip(PhotoReference reference) =>
+        string.Join(" - ", new[] { reference.Title, reference.Credit }.Where(PsUi.Has));
+}

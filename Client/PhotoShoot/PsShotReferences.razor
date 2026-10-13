@@ -7,33 +7,20 @@
         <div class="ps-ref-grid">
             @foreach (var reference in References)
             {
-                <figure class="ps-ref-card">
+                <figure class="ps-ref-card" title="@PsReferenceDetails.Tooltip(reference)">
                     @if (reference.HasImage)
                     {
-                        <img class="ps-ref-img" src="@Store.Api.ImageUrl(Store.ShootId, reference)" alt="@reference.Title" loading="lazy" />
+                        <button type="button" class="ps-ref-zoom" aria-label="Enlarge reference image: @reference.Title" @onclick="() => enlarged = reference">
+                            <img class="ps-ref-img" src="@Store.Api.ImageUrl(Store.ShootId, reference)" alt="@reference.Title" loading="lazy" />
+                            <span class="ps-ref-zoom-icon" aria-hidden="true"><i class="bi bi-arrows-fullscreen"></i></span>
+                        </button>
                     }
                     else
                     {
                         <div class="ps-ref-img ps-ref-noimg" aria-hidden="true"><i class="bi bi-image"></i></div>
                     }
                     <figcaption>
-                        <strong>@reference.Title</strong>
-                        @if (PsUi.Has(reference.PerformerOrCharacter))
-                        {
-                            <span class="ps-muted"> · @reference.PerformerOrCharacter</span>
-                        }
-                        @if (PsUi.Has(reference.WhatToImitate))
-                        {
-                            <div><span class="ps-ref-label">Imitate:</span> @reference.WhatToImitate</div>
-                        }
-                        @if (PsUi.Has(reference.WhatToChange))
-                        {
-                            <div><span class="ps-ref-label">Different:</span> @reference.WhatToChange</div>
-                        }
-                        @if (PsUi.Has(reference.SourceUrl))
-                        {
-                            <a href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow" class="ps-small">Open source link <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
-                        }
+                        <PsReferenceDetails Reference="reference" />
                     </figcaption>
                 </figure>
             }
@@ -67,7 +54,11 @@
     }
 </section>
 
+<PsLightbox Src="@(enlarged == null ? null : Store.Api.ImageUrl(Store.ShootId, enlarged))" Alt="@(enlarged?.Title ?? "")" SourceUrl="@enlarged?.SourceUrl" OnClose="() => enlarged = null" />
+
 @code {
+    private PhotoReference? enlarged;
+
     [Parameter, EditorRequired] public PhotoShot Shot { get; set; } = default!;
     [Parameter] public bool Large { get; set; }
     [Parameter] public bool ShowSearchPhrases { get; set; } = true;

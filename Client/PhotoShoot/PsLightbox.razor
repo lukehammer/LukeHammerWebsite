@@ -1,0 +1,43 @@
+@* Full-screen image viewer. Tap the backdrop, the close button, or press Escape to dismiss. *@
+@if (PsUi.Has(Src))
+{
+    <div class="ps-lightbox" role="dialog" aria-modal="true" aria-label="@Alt" tabindex="-1" @ref="dialog" @onclick="CloseAsync" @onkeydown="OnKeyDown">
+        <button type="button" class="ps-lightbox-close" aria-label="Close image" @onclick="CloseAsync" @onclick:stopPropagation="true">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <img class="ps-lightbox-img" src="@Src" alt="@Alt" @onclick:stopPropagation="true" />
+        @if (PsUi.Has(SourceUrl))
+        {
+            <a class="ps-lightbox-source" href="@SourceUrl" target="_blank" rel="noopener noreferrer nofollow" @onclick:stopPropagation="true">
+                Source <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+            </a>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Src { get; set; }
+    [Parameter] public string Alt { get; set; } = "";
+    [Parameter] public string? SourceUrl { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ElementReference dialog;
+    private string? focusedSrc;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (PsUi.Has(Src) && Src != focusedSrc)
+        {
+            focusedSrc = Src;
+            await dialog.FocusAsync();
+        }
+        else if (!PsUi.Has(Src))
+        {
+            focusedSrc = null;
+        }
+    }
+
+    private Task CloseAsync() => OnClose.InvokeAsync();
+
+    private Task OnKeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? CloseAsync() : Task.CompletedTask;
+}

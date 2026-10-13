@@ -45,14 +45,11 @@
 
                 @if (heroImage != null)
                 {
-                    <img class="ps-hero-ref" src="@Store.Api.ImageUrl(doc.Id, heroImage)" alt="Reference: @heroImage.Title" />
-                    @if (PsUi.Has(heroImage.WhatToImitate) || PsUi.Has(heroImage.WhatToChange))
-                    {
-                        <p class="ps-small">
-                            @if (PsUi.Has(heroImage.WhatToImitate)) { <span><strong>Match:</strong> @heroImage.WhatToImitate </span> }
-                            @if (PsUi.Has(heroImage.WhatToChange)) { <span><strong>Change:</strong> @heroImage.WhatToChange</span> }
-                        </p>
-                    }
+                    <button type="button" class="ps-ref-zoom ps-hero-zoom" title="@PsReferenceDetails.Tooltip(heroImage)" aria-label="Enlarge reference image: @heroImage.Title" @onclick="() => enlarged = heroImage">
+                        <img class="ps-hero-ref" src="@Store.Api.ImageUrl(doc.Id, heroImage)" alt="Reference: @heroImage.Title" />
+                        <span class="ps-ref-zoom-icon" aria-hidden="true"><i class="bi bi-arrows-fullscreen"></i></span>
+                    </button>
+                    <PsReferenceDetails Reference="heroImage" />
                 }
                 else if (PsUi.Has(current.Inspiration))
                 {
@@ -167,10 +164,13 @@
             <div class="ps-mini-track" aria-hidden="true"><div class="ps-mini-fill" style="width:@(progress.Percent)%"></div></div>
         </div>
     </div>
+
+    <PsLightbox Src="@(enlarged == null ? null : Store.Api.ImageUrl(doc.Id, enlarged))" Alt="@(enlarged?.Title ?? "")" SourceUrl="@enlarged?.SourceUrl" OnClose="() => enlarged = null" />
 }
 
 @code {
     private bool busy;
+    private PhotoReference? enlarged;
     private string noteText = "";
 
     protected override void OnInitialized()

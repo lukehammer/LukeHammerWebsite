@@ -951,12 +951,149 @@
     font-size: 0.88rem;
 }
 
+/* Portrait frame biased toward the top so faces in tall reference photos are not cropped off. */
 .ps-ref-img {
     display: block;
     width: 100%;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 3 / 4;
     object-fit: cover;
+    object-position: center 20%;
     background: var(--ps-surface-2);
+}
+
+.ps-refs-large .ps-ref-img {
+    aspect-ratio: auto;
+    max-height: 60vh;
+    object-fit: contain;
+}
+
+.ps-ref-zoom {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+.ps-ref-zoom-icon {
+    position: absolute;
+    right: 0.4rem;
+    bottom: 0.4rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.ps-hero-zoom .ps-ref-zoom-icon {
+    bottom: 0.9rem;
+}
+
+.ps-ref-meta {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.88rem;
+}
+
+.ps-ref-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 40px;
+    font-weight: 600;
+}
+
+.ps-ref-details summary {
+    cursor: pointer;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 600;
+    color: var(--ps-muted);
+    list-style: none;
+}
+
+.ps-ref-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.ps-ref-details summary::before {
+    content: "\25B8";
+    transition: transform 0.15s;
+}
+
+.ps-ref-details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.ps-ref-details-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding-bottom: 0.35rem;
+    overflow-wrap: anywhere;
+}
+
+.ps-ref-details-title {
+    font-weight: 700;
+}
+
+.ps-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3.5rem 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.9);
+    cursor: zoom-out;
+}
+
+.ps-lightbox:focus {
+    outline: none;
+}
+
+.ps-lightbox-img {
+    max-width: 100%;
+    max-height: calc(100vh - 7rem);
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: default;
+}
+
+.ps-lightbox-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.ps-lightbox-source {
+    color: #fff;
+    font-weight: 600;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .ps-ref-noimg {
@@ -1013,8 +1150,10 @@
 
 .ps-ref-thumb {
     flex-shrink: 0;
-    width: 88px;
-    height: 88px;
+    width: 96px;
+    height: 128px;
+    padding: 0;
+    border: 0;
     border-radius: 10px;
     background: var(--ps-surface-2);
     display: flex;
@@ -1029,6 +1168,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 20%;
 }
 
 .ps-ref-body {

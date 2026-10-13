@@ -99,38 +99,34 @@
     <div class="ps-ref-list">
         @foreach (var reference in references)
         {
-            <article class="ps-ref-item" @key="reference.Id">
-                <div class="ps-ref-thumb">
-                    @if (reference.HasImage)
-                    {
+            <article class="ps-ref-item" @key="reference.Id" title="@PsReferenceDetails.Tooltip(reference)">
+                @if (reference.HasImage)
+                {
+                    <button type="button" class="ps-ref-thumb ps-ref-zoom" aria-label="Enlarge reference image: @reference.Title" @onclick="() => enlarged = reference">
                         <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="@reference.Title" loading="lazy" />
-                    }
-                    else
-                    {
-                        <i class="bi bi-image" aria-hidden="true"></i>
-                    }
-                </div>
+                    </button>
+                }
+                else
+                {
+                    <div class="ps-ref-thumb"><i class="bi bi-image" aria-hidden="true"></i></div>
+                }
                 <div class="ps-ref-body">
-                    <h3 class="ps-ref-title">@reference.Title</h3>
-                    @if (PsUi.Has(reference.PerformerOrCharacter)) { <div class="ps-small">@reference.PerformerOrCharacter</div> }
-                    @if (PsUi.Has(reference.WhatToImitate)) { <div class="ps-small"><span class="ps-ref-label">Imitate:</span> @reference.WhatToImitate</div> }
-                    @if (PsUi.Has(reference.WhatToChange)) { <div class="ps-small"><span class="ps-ref-label">Different:</span> @reference.WhatToChange</div> }
-                    @if (PsUi.Has(reference.Credit)) { <div class="ps-small ps-muted">Credit: @reference.Credit</div> }
-                    @if (PsUi.Has(reference.UsageRights)) { <div class="ps-small ps-muted">Rights: @reference.UsageRights</div> }
-                    @if (PsUi.Has(reference.SourceUrl))
-                    {
-                        <a class="ps-small" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
-                    }
-                    <div class="ps-small">
-                        @foreach (var shotId in reference.ShotIds)
+                    <PsReferenceDetails Reference="reference">
+                        @if (reference.ShotIds.Count > 0)
                         {
-                            var linked = PhotoShootPlanner.FindShot(doc, shotId);
-                            if (linked != null)
-                            {
-                                <a class="ps-chip ps-chip-link" href="@PsUi.ShotUrl(linked)">@linked.Title</a>
-                            }
+                            <div>
+                                <span class="ps-ref-label">Shots:</span>
+                                @foreach (var shotId in reference.ShotIds)
+                                {
+                                    var linked = PhotoShootPlanner.FindShot(doc, shotId);
+                                    if (linked != null)
+                                    {
+                                        <a class="ps-chip ps-chip-link" href="@PsUi.ShotUrl(linked)">@linked.Title</a>
+                                    }
+                                }
+                            </div>
                         }
-                    </div>
+                    </PsReferenceDetails>
                     @if (Store.IsOwner)
                     {
                         <div class="ps-ref-actions">
@@ -187,10 +183,13 @@
             </details>
         }
     </section>
+
+    <PsLightbox Src="@(enlarged == null ? null : Store.Api.ImageUrl(doc.Id, enlarged))" Alt="@(enlarged?.Title ?? "")" SourceUrl="@enlarged?.SourceUrl" OnClose="() => enlarged = null" />
 }
 
 @code {
     private const long MaxUploadBytes = 6 * 1024 * 1024;
+    private PhotoReference? enlarged;
 
     [SupplyParameterFromQuery(Name = "shot")] public string? ShotQuery { get; set; }
 
