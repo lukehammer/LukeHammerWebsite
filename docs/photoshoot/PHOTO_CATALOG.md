@@ -10,7 +10,8 @@ It is imported into the Photo Shoot Planner app. The director and photographer r
 
 Design principles:
 
-- **Luke is the subject, not the props.** Most images are Luke alone on clean white seamless. Many of the most valuable shots are just his face, beard, bow tie, and gestures.
+- **Everything on white.** Every setup is shot on clean white seamless so each image can be cut out to a transparent background later (see [White background](#white-background-for-cutouts)).
+- **Luke is the subject, not the props.** Most images are Luke alone. Many of the most valuable shots are just his face, beard, bow tie, and gestures.
 - **Every shot has a job.** Each entry states what the photo looks like, why it is useful (`marketingPurpose`), the expression, body and hands, framing, crop, and an acting note for Luke.
 - **Family-friendly, polished, expressive.** Comic and absurd shots stay clean, bright, and clearly theatrical.
 - **Minimal changeovers.** Shots are grouped into 25 setups so lighting, background, camera, outfit, and props change as rarely as possible.
@@ -51,21 +52,47 @@ Array order in the JSON is the shooting order. Shots are grouped by setup, and w
 | 17 | `17-white-empty-hands-magic` | White Seamless - Empty Hands Magic | 3 | 0 |
 | 18 | `18-white-absurd-props` | White Seamless - Absurd Comedy Props | 4 | 0 |
 | 19 | `19-white-absurd-gone-wrong` | White Seamless - Trick Gone Wrong | 3 | 0 |
-| 20 | `20-white-vest-sleeves` | Outfit Change - Vest and Rolled Sleeves | 4 | 0 |
-| 21 | `21-teal-family` | Teal Backdrop - Family Event Color | 2 | 0 |
-| 22 | `22-teal-reactions` | Teal Backdrop - Reaction Close-Ups | 3 | 0 |
-| 23 | `23-soft-pink-gold-party` | Soft Pink and Gold Party | 2 | 0 |
-| 24 | `24-burgundy-elegant` | Burgundy Backdrop - Elegant Events | 3 | 0 |
-| 25 | `25-charcoal-seated-stool` | Charcoal Backdrop - Seated Stool Portraits | 3 | 0 |
+| 20 | `20-white-vest-sleeves` | Relaxed Look - Vest and Rolled Sleeves | 4 | 0 |
+| 21 | `21-teal-family` | White Seamless - Family Event Brights | 2 | 0 |
+| 22 | `22-teal-reactions` | White Seamless - Bold Reaction Close-Ups | 3 | 0 |
+| 23 | `23-soft-pink-gold-party` | White Seamless - Party Balloons and Confetti | 2 | 0 |
+| 24 | `24-burgundy-elegant` | White Seamless - Elegant Events | 3 | 0 |
+| 25 | `25-charcoal-seated-stool` | White Seamless - Seated Stool Portraits | 3 | 0 |
+
+Setups 21-25 were originally colored backdrops (teal, soft pink, burgundy, charcoal). They are now shot on white and the brand color is added behind the cutout in design; their keys are unchanged so seeding stays idempotent.
 
 ### Why this order
 
 1. **Must-haves first.** Setups 1-9 hold 25 of the 32 must-haves. If the day runs long, the commercially essential images are already captured.
 2. **Camera moves outward in steps.** Close-up headshots and expression marathons (1-3) share one lighting and lens setup. The camera then backs out to waist-up (4-5), three-quarter (6), full length (7-8), and very wide (9), so each change is a small adjustment rather than a full re-light.
-3. **All white seamless is contiguous (1-20).** Background paper is changed only once the white work is complete. The colored backdrops (21-25) come last, ordered teal, soft pink, burgundy, then charcoal so the darkest, low-key lighting is the final re-light.
+3. **One background all day.** Every setup uses the same white seamless, so the paper never changes. The brand-color setups (21-25) come last and only change the key, fill, and rim lights; the darker, side-lit seated portraits (25) are the final re-light.
 4. **Kids at a fixed mid-session slot (12-13).** The children arrive at a scheduled time, shoot on the same white set with a small magic table, and leave. The table then stays for the adult magic-prop setups (14-16).
-5. **Props escalate late.** Magic props (14-17) and absurd comedy props (18-19) come after the core portraits. The messy "trick gone wrong" setup is right before the outfit change so the suit gets reset anyway.
-6. **Outfit change once.** The jacket-off vest and rolled-sleeves look (20) is the final white setup, and the full suit goes back on for the colored backdrops.
+5. **Props escalate late.** Magic props (14-17) and absurd comedy props (18-19) come after the core portraits. The messy "trick gone wrong" setup is right before the relaxed look so the outfit gets reset anyway.
+6. **One wardrobe tweak.** The shirt sleeves are rolled to the forearm for the relaxed look (20), then rolled back down and cuffed for setups 21-25.
+
+## Wardrobe
+
+Luke wears his current stage outfit for the whole shoot:
+
+- Colorful patterned/floral long-sleeve dress shirt
+- Dark charcoal/black textured (subtly sparkly) vest, buttoned
+- Purple bow tie
+- Dark plaid/tartan trousers
+- Dark dress shoes
+- **No suit jacket.** Directions that would have used a jacket (lapel grabs, buttoning, jacket edges) use the vest, shirt, and bow tie instead: adjusting the bow tie, thumbs in the vest pockets, smoothing or gripping the vest.
+
+Before each setup: straighten the bow tie, smooth the vest, and check cuffs are even. Watch the vest's sparkle for specular hot spots.
+
+## White background (for cutouts)
+
+The whole shoot is on white seamless so every image can be cut out to a transparent background and placed on any color (brand teal, soft pink, burgundy, charcoal) in design.
+
+- Light the paper separately from Luke, evenly, so it blows out to pure white at one consistent exposure all day.
+- Keep Luke 8+ ft off the paper so there are no shadows or color spill on him.
+- Use a rim/hair light to separate the beard and graying hair from the white.
+- The colorful shirt and dark vest give strong edge contrast against white, which makes clean cutouts easy. The trouser plaid and dark shoes read well against the floor sweep.
+- White props (blank signs, whiteboard, rope, jumbo card) need a defined edge: keep them slightly darker than the paper and in front of the shirt and vest where possible. Those shots carry a note.
+- Avoid white confetti or clear balloons, and ask guardians to dress the child volunteers in solid colors, not white.
 
 ## Category breakdown
 
@@ -93,7 +120,7 @@ The 32 must-haves are the images the business cannot do without:
 - **Kids (3):** child amazed by the reveal, shared laughter, child helping with the wand.
 - **Signature magic (2):** playing-card fan reveal and the signature wand pose.
 
-Birthday, wedding, and corporate promos are deliberately shot on white early in the day instead of on colored backdrops later. White cut-outs work in nearly every layout, and keeping them early protects them if time runs short. The colored-backdrop setups at the end are Standard and Bonus variety.
+Birthday, wedding, and corporate promos are deliberately shot early in the day. White cut-outs work in nearly every layout, and keeping them early protects them if time runs short. The brand-color cutout setups at the end are Standard and Bonus variety.
 
 ## Child-volunteer plan
 
@@ -140,6 +167,6 @@ $c.shots | Group-Object category | Select-Object Name, Count
 ($c.shots | Where-Object { $c.setups.key -notcontains $_.setupKey }).key  # unknown setupKey (should be empty)
 ```
 
-### Brand colors used in colored setups
+### Brand colors
 
-Burgundy `#831B3F`, Gold `#CC9511`, Teal `#08AAB9`, Soft Pink `#E4B6B6`, Charcoal `#2B2B2B`.
+Used in props and added behind the cutouts in design: Burgundy `#831B3F`, Gold `#CC9511`, Teal `#08AAB9`, Soft Pink `#E4B6B6`, Charcoal `#2B2B2B`.
