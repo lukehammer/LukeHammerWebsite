@@ -3,5 +3,19 @@
   "azureFunctions.projectLanguage": "C#",
   "azureFunctions.projectRuntime": "~4",
   "debug.internalConsoleOptions": "neverOpen",
-  "azureFunctions.preDeployTask": "publish"
+  "azureFunctions.preDeployTask": "publish",
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#831B3F",
+    "titleBar.activeForeground": "#FFFFFF",
+    "titleBar.inactiveBackground": "#252326",
+    "titleBar.inactiveForeground": "#AFA5AB",
+    "statusBar.background": "#49303C",
+    "statusBar.foreground": "#F1E6EB",
+    "activityBar.background": "#252326",
+    "activityBar.foreground": "#D8B2C1"
+  },
+  "window.title": "PHOTO SHOOT | ${rootName} - ${activeEditorShort}",
+  "window.titleBarStyle": "custom",
+  "editor.formatOnSave": true
 }
