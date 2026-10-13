@@ -48,7 +48,7 @@ Environment: Functions host with `PHOTOSHOOT_DEV_AUTH=true` and the local file s
 - All pages rendered at 390 px with no horizontal overflow and no Blazor error UI: dashboard, shots (100), must-have filter (32), setups (25), references, manage, print (100 rows), new shot, director, photographer.
 - Created a URL reference linked to a shot through the UI. Uploaded and served a PNG via the API. HTML disguised as PNG was rejected (415), and a `javascript:` URL was rejected (400).
 - Export, import as new, replace without confirmation (409), replace with confirmation (OK), bad format (400), and duplicate (fresh ids, progress reset, image copied and served) all behaved as expected.
-- Existing pages (`/`, `/LuckyLuke`, `/Programmer`, `/Chess`, `/Sports`, `/pdxMagicjam`) still render. The photo shoot stylesheet is not loaded on them. The nav shows one new "Photo Shoot" item.
+- Existing pages (`/`, `/LuckyLuke`, `/Programmer`, `/Sports`, `/pdxMagicjam`) still render. The photo shoot stylesheet is not loaded on them. The nav shows one new "Photo Shoot" item.
 - `dotnet publish -c Release` of the client includes `css/photoshoot.css`, `js/photoshoot.js` and the updated `staticwebapp.config.json`.
 
 Bug found and fixed during verification: after the network returned, a sync could be dropped if a background poll was in flight, leaving the phone waiting out its backoff (about 8.6 s observed). It now cuts the backoff short and queues behind the in-flight poll (about 2 s).
