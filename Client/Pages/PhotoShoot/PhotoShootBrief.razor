@@ -7,16 +7,18 @@
 
 @if (Store.Shoot is { } doc)
 {
-    var brief = PhotographBriefWriter.Write(doc);
+    var brief = PhotographBriefWriter.Build(doc, reference => Store.Api.ImageUrl(doc.Id, reference));
+    var text = PhotographBriefWriter.WriteText(brief);
 
     <header class="ps-page-head">
         <div>
             <h1 class="ps-h1">Photograph brief</h1>
-            <p class="ps-muted">The full list of photographs to take, written so another AI can read it without guessing from pictures or names.</p>
+            <p class="ps-muted">What each photograph is for, with links to the reference photos. Lighting, timing, and other shoot-day details are left out.</p>
         </div>
         <div class="ps-brief-actions">
-            <button type="button" class="ps-btn ps-btn-primary" @onclick="() => CopyAsync(brief)"><i class="bi bi-clipboard" aria-hidden="true"></i> Copy</button>
-            <button type="button" class="ps-btn ps-btn-outline" @onclick="() => DownloadAsync(doc, brief)"><i class="bi bi-download" aria-hidden="true"></i> Download</button>
+            <a class="ps-btn ps-btn-outline" href="photoshoot/brief/json"><i class="bi bi-code-slash" aria-hidden="true"></i> JSON</a>
+            <button type="button" class="ps-btn ps-btn-primary" @onclick="() => CopyAsync(text)"><i class="bi bi-clipboard" aria-hidden="true"></i> Copy</button>
+            <button type="button" class="ps-btn ps-btn-outline" @onclick="() => DownloadAsync(doc, text)"><i class="bi bi-download" aria-hidden="true"></i> Download</button>
         </div>
     </header>
     @if (PsUi.Has(notice))
@@ -24,7 +26,7 @@
         <p class="ps-muted ps-small" role="status">@notice</p>
     }
 
-    <pre class="ps-brief-doc">@brief</pre>
+    <pre class="ps-brief-doc">@text</pre>
 }
 
 @code {

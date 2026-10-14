@@ -16,7 +16,8 @@ Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.m
 | --- | --- | --- |
 | `/photoshoot` | Owner, Photographer | Dashboard: progress, must-have progress, current shot, setup summary, links to the live views |
 | `/photoshoot/shots` | Owner, Photographer | Shot list with search, priority/status/category filters, group-by-setup, favorites, quick complete/skip, reorder (owner) |
-| `/photoshoot/brief` | Owner, Photographer | Plain-text brief of every photograph to take, labeled for another AI to read. Copy or download the same text |
+| `/photoshoot/brief` | Owner, Photographer | What each photograph is for, with links to reference photos. Copy or download the text. Lighting, timing, and other shoot-day details are left out |
+| `/photoshoot/brief/json` | Owner, Photographer | The same brief as JSON |
 | `/photoshoot/shots/{id}` | Owner, Photographer | Full shot detail: performer and photographer directions, references, notes, big-text mode |
 | `/photoshoot/shots/new`, `/photoshoot/shots/{id}/edit` | Owner | Create / edit / delete a shot |
 | `/photoshoot/setups` | Owner | Setups (backdrop, lighting, camera, outfit, props, changeover minutes), reorder, delete, apply suggested order |
