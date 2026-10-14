@@ -2393,6 +2393,28 @@ html:has(.ps-has-action-bar.ps-bar-2) {
     margin: 0.25rem 0 0.75rem;
 }
 
+/* ---------- photograph brief ---------- */
+
+.ps-brief-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.ps-brief-doc {
+    margin: 0;
+    padding: 1rem;
+    border: 1px solid var(--ps-border);
+    border-radius: var(--ps-radius);
+    background: var(--ps-surface);
+    color: var(--ps-text);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 @keyframes ps-marker-in {
     from { opacity: 0.15; }
     to { opacity: 1; }
