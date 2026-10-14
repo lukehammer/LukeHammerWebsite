@@ -98,6 +98,24 @@ namespace BlazorApp.Client.PhotoShoot
             }
         }
 
+        public async Task<bool> CopyTextAsync(string text)
+        {
+            var module = await ModuleAsync();
+            if (module == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return await module.InvokeAsync<bool>("copyText", text);
+            }
+            catch (JSException)
+            {
+                return false;
+            }
+        }
+
         public async Task PrintAsync()
         {
             var module = await ModuleAsync();

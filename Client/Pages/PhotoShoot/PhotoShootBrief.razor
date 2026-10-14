@@ -1,0 +1,55 @@
+@page "/photoshoot/brief"
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+<PageTitle>Photo Shoot · Photograph brief</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var brief = PhotographBriefWriter.Write(doc);
+
+    <header class="ps-page-head">
+        <div>
+            <h1 class="ps-h1">Photograph brief</h1>
+            <p class="ps-muted">The full list of photographs to take, written so another AI can read it without guessing from pictures or names.</p>
+        </div>
+        <div class="ps-brief-actions">
+            <button type="button" class="ps-btn ps-btn-primary" @onclick="() => CopyAsync(brief)"><i class="bi bi-clipboard" aria-hidden="true"></i> Copy</button>
+            <button type="button" class="ps-btn ps-btn-outline" @onclick="() => DownloadAsync(doc, brief)"><i class="bi bi-download" aria-hidden="true"></i> Download</button>
+        </div>
+    </header>
+    @if (PsUi.Has(notice))
+    {
+        <p class="ps-muted ps-small" role="status">@notice</p>
+    }
+
+    <pre class="ps-brief-doc">@brief</pre>
+}
+
+@code {
+    private string notice = "";
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task CopyAsync(string brief)
+    {
+        notice = await Browser.CopyTextAsync(brief) ? "Copied." : "Could not copy. Use Download instead.";
+    }
+
+    private async Task DownloadAsync(PhotoShootDocument doc, string brief)
+    {
+        var name = string.Join("-", (doc.Name ?? "photo-brief").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+        if (string.IsNullOrEmpty(name))
+        {
+            name = "photo-brief";
+        }
+
+        await Browser.DownloadTextAsync(name + "-photograph-brief.txt", brief, "text/plain");
+        notice = "Downloaded.";
+    }
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

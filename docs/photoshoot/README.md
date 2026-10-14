@@ -16,6 +16,7 @@ Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.m
 | --- | --- | --- |
 | `/photoshoot` | Owner, Photographer | Dashboard: progress, must-have progress, current shot, setup summary, links to the live views |
 | `/photoshoot/shots` | Owner, Photographer | Shot list with search, priority/status/category filters, group-by-setup, favorites, quick complete/skip, reorder (owner) |
+| `/photoshoot/brief` | Owner, Photographer | Plain-text brief of every photograph to take, labeled for another AI to read. Copy or download the same text |
 | `/photoshoot/shots/{id}` | Owner, Photographer | Full shot detail: performer and photographer directions, references, notes, big-text mode |
 | `/photoshoot/shots/new`, `/photoshoot/shots/{id}/edit` | Owner | Create / edit / delete a shot |
 | `/photoshoot/setups` | Owner | Setups (backdrop, lighting, camera, outfit, props, changeover minutes), reorder, delete, apply suggested order |
@@ -26,7 +27,7 @@ Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.m
 | `/photoshoot/manage` | Owner | Shoots list, shoot details and date, seed/merge catalog, export JSON, import (preview, create new or replace with confirmation), duplicate, delete |
 | `/photoshoot/print` | Owner, Photographer | Printable checklist grouped by setup |
 
-Photographers see Dashboard, Shots, Photographer, and Marker in the sub-navigation; the server enforces the same limits.
+Photographers see Dashboard, Shots, Brief, Photographer, and Marker in the sub-navigation; the server enforces the same limits.
 
 ## Running a shoot (day-of)
 
