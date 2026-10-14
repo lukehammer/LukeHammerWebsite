@@ -121,6 +121,23 @@ public class PhotoShootAuthorizationTests
     }
 
     [Fact]
+    public void Resolve_MasterPassword_GrantsOwnerEvenInProduction()
+    {
+        var header = PhotoShootAuthorization.Resolve(null, "photographer", "lukehammer-swa", "true", "owner", PhotoShootAuthorization.MasterPassword, null);
+        header.Access.Should().Be(PhotoShootAccess.Owner);
+        header.UserName.Should().Be("Luke");
+        header.DevBypass.Should().BeFalse();
+
+        var cookie = "theme=dark; " + PhotoShootAuthorization.PasswordCookie + "=" + Uri.EscapeDataString(PhotoShootAuthorization.MasterPassword);
+        var fromCookie = PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, null, cookie);
+        fromCookie.Access.Should().Be(PhotoShootAccess.Owner);
+
+        PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, "nope", null).Access.Should().Be(PhotoShootAccess.None);
+        PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, "luke", null).Access.Should().Be(PhotoShootAccess.None);
+        PhotoShootAuthorization.HasMasterPassword(null, "other=Luke").Should().BeFalse();
+    }
+
+    [Fact]
     public void NewIds_AreValidAndUnique()
     {
         var ids = Enumerable.Range(0, 500).Select(_ => PhotoShootIds.New()).ToList();

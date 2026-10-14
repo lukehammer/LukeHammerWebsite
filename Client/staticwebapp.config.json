@@ -1,10 +1,4 @@
 {
-    "routes": [
-        {
-            "route": "/api/photoshoot/*",
-            "allowedRoles": [ "photoshoot-owner", "photoshoot-photographer" ]
-        }
-    ],
     "navigationFallback": {
         "rewrite": "/index.html"
     }

@@ -18,10 +18,15 @@ namespace ApiIsolated
                 Header(req, PhotoShootAuthorization.DevRoleHeader),
                 Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME"),
                 Environment.GetEnvironmentVariable("PHOTOSHOOT_DEV_AUTH"),
-                Environment.GetEnvironmentVariable("PHOTOSHOOT_DEV_ROLE"));
+                Environment.GetEnvironmentVariable("PHOTOSHOOT_DEV_ROLE"),
+                Header(req, PhotoShootAuthorization.PasswordHeader),
+                Header(req, "Cookie"));
 
         public static bool IsAuthenticated(HttpRequestData req) =>
-            PhotoShootAuthorization.IsAuthenticated(Header(req, PhotoShootAuthorization.PrincipalHeader));
+            PhotoShootAuthorization.IsAuthenticated(
+                Header(req, PhotoShootAuthorization.PrincipalHeader),
+                Header(req, PhotoShootAuthorization.PasswordHeader),
+                Header(req, "Cookie"));
 
         private static string? Header(HttpRequestData req, string name) =>
             req.Headers.TryGetValues(name, out var values) ? values.FirstOrDefault() : null;

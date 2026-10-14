@@ -15,17 +15,14 @@
     case PhotoShootLoadState.NeedsSignIn:
         <div class="ps-panel ps-gate">
             <h1 class="ps-gate-title"><i class="bi bi-camera" aria-hidden="true"></i> Photo Shoot Planner</h1>
-            <p>This is a private planning tool. Sign in with an invited account to continue.</p>
-            <div class="ps-gate-actions">
-                <a class="ps-btn ps-btn-primary ps-btn-lg" href="@LoginUrl("github")"><i class="bi bi-github" aria-hidden="true"></i> Sign in with GitHub</a>
-                <a class="ps-btn ps-btn-outline ps-btn-lg" href="@LoginUrl("aad")"><i class="bi bi-microsoft" aria-hidden="true"></i> Sign in with Microsoft</a>
-            </div>
-            @if (IsLocalhost)
+            <p>Enter the password to open the shoot.</p>
+            <form class="ps-gate-actions" @onsubmit="SignInAsync" @onsubmit:preventDefault="true">
+                <input class="form-control ps-input" type="password" @bind="password" @bind:event="oninput" autocomplete="current-password" aria-label="Password" />
+                <button type="submit" class="ps-btn ps-btn-primary ps-btn-lg" disabled="@busy">@(busy ? "Checking…" : "Continue")</button>
+            </form>
+            @if (!string.IsNullOrEmpty(Store.ErrorMessage))
             {
-                <p class="ps-muted ps-small">
-                    Running locally? Sign-in only exists on Azure Static Web Apps. Start the API with
-                    <code>PHOTOSHOOT_DEV_AUTH=true</code> to use the local developer bypass (see docs/photoshoot/README.md).
-                </p>
+                <p class="ps-error-text">@Store.ErrorMessage</p>
             }
         </div>
         break;
@@ -95,13 +92,21 @@
 
     private bool busy;
     private string error = "";
+    private string password = "";
 
     private bool IsLocalhost => new Uri(Nav.Uri).IsLoopback;
 
-    private string LoginUrl(string provider)
+    private async Task SignInAsync()
     {
-        var path = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('#')[0];
-        return $"/.auth/login/{provider}?post_login_redirect_uri={Uri.EscapeDataString(path)}";
+        busy = true;
+        try
+        {
+            await Store.SignInWithPasswordAsync(password);
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     protected override async Task OnInitializedAsync()

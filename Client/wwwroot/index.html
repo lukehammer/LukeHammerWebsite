@@ -92,8 +92,25 @@
             startBlazor();
         })();
 
+        window.photoshootSetPasswordCookie = function (value) {
+            var secure = location.protocol === 'https:' ? '; Secure' : '';
+            if (!value) {
+                document.cookie = 'photoshoot_password=; Path=/; Max-Age=0; SameSite=Lax' + secure;
+                return;
+            }
+            document.cookie = 'photoshoot_password=' + encodeURIComponent(value) + '; Path=/; Max-Age=2592000; SameSite=Lax' + secure;
+        };
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js');
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshing) {
+                    return;
+                }
+                refreshing = true;
+                window.location.reload();
+            });
         }
     </script>
 </body>

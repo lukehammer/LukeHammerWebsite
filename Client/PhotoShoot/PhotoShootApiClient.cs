@@ -31,6 +31,7 @@ namespace BlazorApp.Client.PhotoShoot
 
         /// <summary>Only honoured by the API when its local dev bypass is enabled (never in Azure).</summary>
         public string DevRole { get; set; } = "";
+        public string Password { get; set; } = "";
 
         public string ImageUrl(string shootId, PhotoReference reference) =>
             new Uri(_http.BaseAddress!, $"api/photoshoot/shoots/{shootId}/references/{reference.Id}/image?v={reference.UpdatedUtc.Ticks}").ToString();
@@ -136,6 +137,11 @@ namespace BlazorApp.Client.PhotoShoot
             if (!string.IsNullOrEmpty(DevRole))
             {
                 request.Headers.TryAddWithoutValidation(PhotoShootAuthorization.DevRoleHeader, DevRole);
+            }
+
+            if (!string.IsNullOrEmpty(Password))
+            {
+                request.Headers.TryAddWithoutValidation(PhotoShootAuthorization.PasswordHeader, Password);
             }
 
             HttpResponseMessage response;

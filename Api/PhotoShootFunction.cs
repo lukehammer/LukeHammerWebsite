@@ -14,8 +14,8 @@ using Microsoft.Extensions.Logging;
 namespace ApiIsolated
 {
     /// <summary>
-    /// Private photo shoot planner API. Every endpoint requires the photoshoot-owner or photoshoot-photographer
-    /// role (SWA route rules enforce this too); editing requires owner.
+    /// Private photo shoot planner API. Callers need the master password, or a photoshoot-owner /
+    /// photoshoot-photographer role. Editing requires owner.
     /// </summary>
     public class PhotoShootFunction
     {

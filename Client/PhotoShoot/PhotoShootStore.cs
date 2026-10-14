@@ -30,6 +30,7 @@ namespace BlazorApp.Client.PhotoShoot
     {
         private const string SelectedShootKey = "photoshoot.selectedShoot";
         private const string DevRoleKey = "photoshoot.devRole";
+        private const string PasswordKey = "photoshoot.password";
         private static readonly TimeSpan LiveInterval = TimeSpan.FromMilliseconds(2500);
         private static readonly TimeSpan IdleInterval = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(15);
@@ -83,6 +84,12 @@ namespace BlazorApp.Client.PhotoShoot
                 }
 
                 _api.DevRole = await SessionGetAsync(DevRoleKey) ?? "";
+                _api.Password = await LocalGetAsync(PasswordKey) ?? "";
+                if (!string.IsNullOrEmpty(_api.Password))
+                {
+                    await SetPasswordCookieAsync(_api.Password);
+                }
+
                 await InitializeCoreAsync();
                 _initialized = true;
             }
@@ -118,7 +125,12 @@ namespace BlazorApp.Client.PhotoShoot
             }
             catch (PhotoShootApiException ex) when (ex.Status == HttpStatusCode.Unauthorized)
             {
+                var hadPassword = !string.IsNullOrEmpty(_api.Password);
+                _api.Password = "";
+                await LocalSetAsync(PasswordKey, "");
+                await SetPasswordCookieAsync("");
                 State = PhotoShootLoadState.NeedsSignIn;
+                ErrorMessage = hadPassword ? "That password isn't right." : "";
             }
             catch (PhotoShootApiException ex) when (ex.Status == HttpStatusCode.Forbidden)
             {
@@ -136,6 +148,16 @@ namespace BlazorApp.Client.PhotoShoot
 
         public async Task ReloadAsync()
         {
+            _initialized = false;
+            await EnsureInitializedAsync();
+        }
+
+        public async Task SignInWithPasswordAsync(string password)
+        {
+            var trimmed = (password ?? "").Trim();
+            _api.Password = trimmed;
+            await LocalSetAsync(PasswordKey, trimmed);
+            await SetPasswordCookieAsync(trimmed);
             _initialized = false;
             await EnsureInitializedAsync();
         }
@@ -367,6 +389,12 @@ namespace BlazorApp.Client.PhotoShoot
         private async Task LocalSetAsync(string key, string value)
         {
             try { await _js.InvokeVoidAsync("localStorage.setItem", key, value); }
+            catch (JSException) { }
+        }
+
+        private async Task SetPasswordCookieAsync(string value)
+        {
+            try { await _js.InvokeVoidAsync("photoshootSetPasswordCookie", value ?? ""); }
             catch (JSException) { }
         }
 

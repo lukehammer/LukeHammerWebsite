@@ -31,6 +31,7 @@ async function onInstall(event) {
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+    await self.skipWaiting();
 }
 
 async function onActivate(event) {
@@ -41,9 +42,30 @@ async function onActivate(event) {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+    await self.clients.claim();
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    await Promise.all(windows.map(function (client) {
+        if (typeof client.navigate !== 'function') {
+            return Promise.resolve();
+        }
+        return client.navigate(client.url).catch(function () { });
+    }));
 }
 
 async function onFetch(event) {
+    if (event.request.method === 'GET' && event.request.mode === 'navigate') {
+        try {
+            return await fetch(event.request);
+        } catch (err) {
+            const cache = await caches.open(cacheName);
+            const offline = await cache.match('index.html');
+            if (offline) {
+                return offline;
+            }
+            throw err;
+        }
+    }
+
     let cachedResponse = null;
     if (event.request.method === 'GET') {
         // For all navigation requests, try to serve index.html from cache,

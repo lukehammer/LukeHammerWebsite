@@ -21,6 +21,11 @@ namespace BlazorApp.Shared.PhotoShoot
         public const string PhotographerRole = "photoshoot-photographer";
         public const string PrincipalHeader = "x-ms-client-principal";
         public const string DevRoleHeader = "X-PhotoShoot-Dev-Role";
+        public const string PasswordHeader = "X-PhotoShoot-Password";
+        public const string PasswordCookie = "photoshoot_password";
+
+        /// <summary>Shared door password for the private planner. Intentionally simple.</summary>
+        public const string MasterPassword = "Luke";
 
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
@@ -98,10 +103,53 @@ namespace BlazorApp.Shared.PhotoShoot
             }
         }
 
+        public static bool PasswordMatches(string? value) =>
+            string.Equals((value ?? "").Trim(), MasterPassword, StringComparison.Ordinal);
+
+        public static string? PasswordFromCookie(string? cookieHeader)
+        {
+            if (string.IsNullOrEmpty(cookieHeader))
+            {
+                return null;
+            }
+
+            foreach (var part in cookieHeader!.Split(';'))
+            {
+                var piece = part.Trim();
+                var eq = piece.IndexOf('=');
+                if (eq <= 0)
+                {
+                    continue;
+                }
+
+                var name = piece.Substring(0, eq).Trim();
+                if (!string.Equals(name, PasswordCookie, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var raw = piece.Substring(eq + 1).Trim();
+                try
+                {
+                    return Uri.UnescapeDataString(raw);
+                }
+                catch (UriFormatException)
+                {
+                    return raw;
+                }
+            }
+
+            return null;
+        }
+
+        public static bool HasMasterPassword(string? passwordHeader, string? cookieHeader) =>
+            PasswordMatches(passwordHeader) || PasswordMatches(PasswordFromCookie(cookieHeader));
+
         /// <summary>
-        /// Resolves the caller's access from request inputs. In production only the SWA principal header counts.
+        /// Resolves the caller's access. The master password works in production. The local developer
+        /// bypass does not. A Static Web Apps principal is used when no password is presented.
         /// </summary>
-        public static PhotoShootMe Resolve(string? principalHeader, string? devRoleHeader, string? websiteSiteName, string? devAuthSetting, string? devRoleSetting)
+        public static PhotoShootMe Resolve(string? principalHeader, string? devRoleHeader, string? websiteSiteName, string? devAuthSetting, string? devRoleSetting, string? passwordHeader = null, string? cookieHeader = null)
         {
             if (IsDevBypassEnabled(websiteSiteName, devAuthSetting))
             {
@@ -113,6 +161,16 @@ namespace BlazorApp.Shared.PhotoShoot
                     UserName = access == PhotoShootAccess.Photographer ? "Local photographer" : "Local developer",
                     IdentityProvider = "dev",
                     DevBypass = true
+                };
+            }
+
+            if (HasMasterPassword(passwordHeader, cookieHeader))
+            {
+                return new PhotoShootMe
+                {
+                    Access = PhotoShootAccess.Owner,
+                    UserName = "Luke",
+                    IdentityProvider = "password"
                 };
             }
 
@@ -129,6 +187,7 @@ namespace BlazorApp.Shared.PhotoShoot
             };
         }
 
-        public static bool IsAuthenticated(string? principalHeader) => TryDecodePrincipal(principalHeader, out _);
+        public static bool IsAuthenticated(string? principalHeader, string? passwordHeader = null, string? cookieHeader = null) =>
+            HasMasterPassword(passwordHeader, cookieHeader) || TryDecodePrincipal(principalHeader, out _);
     }
 }
