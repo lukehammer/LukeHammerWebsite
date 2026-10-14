@@ -10,7 +10,7 @@ namespace BlazorApp.Shared.PhotoShoot
     /// </summary>
     public static class PhotoShootPlanUpgrade
     {
-        public const int CurrentPlanVersion = 1;
+        public const int CurrentPlanVersion = 2;
         public const string PortraitCloseUrl = "https://lukehammer.com/favicon-96x96.png";
         public const string PortraitWideUrl = "https://lukehammer.com/apple-icon.png";
 
@@ -417,6 +417,7 @@ namespace BlazorApp.Shared.PhotoShoot
                 ("21-teal-family", 2, "Waist-up advertising gestures"),
                 ("10-white-physical-comedy", 2, "Waist-up advertising gestures"),
                 ("06-white-three-quarter", 3, "Three-quarter standing portraits"),
+                ("24-burgundy-elegant", 3, "Three-quarter standing portraits"),
                 ("09-white-wide-hero", 4, "Wide website and banner photographs"),
                 ("07-white-full-length-portrait", 5, "Full-length portraits and comedy"),
                 ("08-white-full-length-comedy", 5, "Full-length portraits and comedy"),
@@ -431,8 +432,7 @@ namespace BlazorApp.Shared.PhotoShoot
                 ("19-white-absurd-gone-wrong", 10, "Magic props"),
                 ("12-kids-volunteer-reactions", 11, "Children and volunteers"),
                 ("13-kids-volunteer-trick", 11, "Children and volunteers"),
-                ("20-white-vest-sleeves", 12, "Rolled-sleeve wardrobe"),
-                ("24-burgundy-elegant", 3, "Three-quarter standing portraits")
+                ("20-white-vest-sleeves", 12, "Rolled-sleeve wardrobe")
             };
 
             var map = new Dictionary<string, (int Block, int Sort, string Name)>(StringComparer.Ordinal);
