@@ -16,6 +16,8 @@ namespace BlazorApp.Shared.PhotoShoot
         public int MustHaveCompleted { get; set; }
         public int MustHaveRemaining => MustHaveTotal - MustHaveCompleted;
         public int Favorites { get; set; }
+        public int Finished { get; set; }
+        public const int FinishedGoal = 100;
 
         public int Percent => Total == 0 ? 0 : (int)Math.Round(Completed * 100.0 / Total);
         public int MustHavePercent => MustHaveTotal == 0 ? 0 : (int)Math.Round(MustHaveCompleted * 100.0 / MustHaveTotal);
@@ -289,7 +291,8 @@ namespace BlazorApp.Shared.PhotoShoot
                 NotStarted = shots.Count(s => s.Status == ShotStatus.NotStarted),
                 MustHaveTotal = shots.Count(s => s.Priority == ShotPriority.MustHave),
                 MustHaveCompleted = shots.Count(s => s.Priority == ShotPriority.MustHave && s.Status == ShotStatus.Completed),
-                Favorites = shots.Count(s => s.IsFavorite)
+                Favorites = shots.Count(s => s.IsFavorite),
+                Finished = shots.Count(s => s.DeliverableStatus == DeliverableStatus.Final)
             };
         }
 

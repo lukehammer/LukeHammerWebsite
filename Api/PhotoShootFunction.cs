@@ -97,6 +97,7 @@ namespace ApiIsolated
                 if (string.IsNullOrEmpty(shootId))
                 {
                     var doc = PhotoShootSeeder.CreateFromCatalog(catalog, PhotoShootIds.New(), DateTime.UtcNow);
+                    PhotoShootPlanUpgrade.Apply(doc, DateTime.UtcNow);
                     var stored = await PhotoShootStorage.CreateAsync(doc);
                     await EnsureDefaultAsync(doc.Id);
                     _logger.LogInformation("Seeded new photo shoot {ShootId} with {Shots} shots.", doc.Id, doc.Shots.Count);
@@ -109,7 +110,8 @@ namespace ApiIsolated
                 var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
                 {
                     seed = PhotoShootSeeder.Merge(doc, catalog, DateTime.UtcNow);
-                    return seed.AddedSetups + seed.AddedShots > 0 ? MutationOutcome.Saved() : MutationOutcome.NoChange();
+                    var plan = PhotoShootPlanUpgrade.Apply(doc, DateTime.UtcNow);
+                    return seed.AddedSetups + seed.AddedShots > 0 || plan ? MutationOutcome.Saved() : MutationOutcome.NoChange();
                 });
                 if (!outcome.Ok) return await Failure(req, outcome);
                 outcome.Message = $"Catalog check complete: added {seed?.AddedSetups ?? 0} setups and {seed?.AddedShots ?? 0} shots; " +
@@ -137,6 +139,23 @@ namespace ApiIsolated
 
                 var stored = await PhotoShootStorage.LoadAsync(shootId);
                 if (stored == null) return await Text(req, HttpStatusCode.NotFound, "Photo shoot not found.");
+                if (PhotoShootPlanUpgrade.NeedsWork(stored.Document))
+                {
+                    var catalog = await LoadCatalogAsync();
+                    var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
+                    {
+                        var seed = PhotoShootSeeder.Merge(doc, catalog, DateTime.UtcNow);
+                        var plan = PhotoShootPlanUpgrade.Apply(doc, DateTime.UtcNow);
+                        return seed.AddedSetups + seed.AddedShots > 0 || plan
+                            ? MutationOutcome.Saved("Shooting plan updated.")
+                            : MutationOutcome.NoChange();
+                    });
+                    if (outcome.Ok && outcome.Document != null)
+                    {
+                        stored = new StoredPhotoShoot { Document = outcome.Document, ETag = outcome.ETag };
+                    }
+                }
+
                 return await ShootResponse(req, stored.Document, stored.ETag);
             });
 

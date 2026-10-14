@@ -34,6 +34,7 @@
             <div class="ps-badges">
                 <span class="ps-badge @PsUi.PriorityClass(shot.Priority)">@PhotoShootLabels.Priority(shot.Priority)</span>
                 <span class="ps-badge @PsUi.StatusClass(shot.Status)"><i class="bi @PsUi.StatusIcon(shot.Status)" aria-hidden="true"></i> @PhotoShootLabels.Status(shot.Status)</span>
+                <span class="ps-badge ps-badge-plain">@PhotoShootLabels.Deliverable(shot.DeliverableStatus)</span>
                 <span class="ps-badge ps-badge-plain">@PhotoShootLabels.Category(shot.Category)</span>
                 <span class="ps-badge ps-badge-plain"><i class="bi bi-clock" aria-hidden="true"></i> @PsUi.Minutes(shot.EstimatedMinutes)</span>
                 @if (shot.IsFavorite)
@@ -46,6 +47,19 @@
                 }
             </div>
             <div class="ps-muted ps-detail-setup">@PsUi.SetupLabel(doc, shot)</div>
+            @if (setup?.ShootingBlock > 0)
+            {
+                <div class="ps-muted">Block @setup.ShootingBlock: @setup.BlockName</div>
+            }
+            @if (Store.IsOwner)
+            {
+                <div class="ps-action-grid">
+                    @foreach (var deliverable in Enum.GetValues<DeliverableStatus>())
+                    {
+                        <button type="button" class="ps-btn @(shot.DeliverableStatus == deliverable ? "ps-btn-primary" : "ps-btn-outline") ps-btn-sm" disabled="@busy" @onclick="() => SetDeliverable(shot, deliverable)">@PhotoShootLabels.Deliverable(deliverable)</button>
+                    }
+                </div>
+            }
             @if (PsUi.Has(shot.Summary))
             {
                 <p class="ps-detail-summary">@shot.Summary</p>
@@ -161,6 +175,12 @@
         busy = true;
         try { await Store.RunAsync(call); }
         finally { busy = false; }
+    }
+
+    private Task SetDeliverable(PhotoShot shot, DeliverableStatus status)
+    {
+        shot.DeliverableStatus = status;
+        return Run(id => Store.Api.UpdateShotAsync(id, shot));
     }
 
     private Task ToggleComplete(PhotoShot shot) =>

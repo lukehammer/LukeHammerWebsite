@@ -24,6 +24,8 @@ namespace BlazorApp.Shared.PhotoShoot
         public DateTime UpdatedUtc { get; set; }
         /// <summary>Incremented on every saved change; lets clients detect stale views cheaply.</summary>
         public long Revision { get; set; }
+        /// <summary>0 until the non-destructive shooting-block upgrade has been applied.</summary>
+        public int PlanVersion { get; set; }
 
         /// <summary>Catalog this shoot was seeded from (empty for hand-built or imported shoots).</summary>
         public string SeedCatalogId { get; set; } = "";
@@ -53,6 +55,9 @@ namespace BlazorApp.Shared.PhotoShoot
         public bool RequiresChildren { get; set; }
         public string Notes { get; set; } = "";
         public string SeedKey { get; set; } = "";
+        /// <summary>1–12 shooting block. 0 means not assigned.</summary>
+        public int ShootingBlock { get; set; }
+        public string BlockName { get; set; } = "";
     }
 
     public class PhotoShot
@@ -71,6 +76,7 @@ namespace BlazorApp.Shared.PhotoShoot
         public ShotCategory Category { get; set; }
         public ShotPriority Priority { get; set; } = ShotPriority.Standard;
         public ShotStatus Status { get; set; } = ShotStatus.NotStarted;
+        public DeliverableStatus DeliverableStatus { get; set; } = DeliverableStatus.Planned;
 
         public string FacialExpression { get; set; } = "";
         public string BodyPosition { get; set; } = "";
@@ -116,6 +122,7 @@ namespace BlazorApp.Shared.PhotoShoot
         /// <summary>Private storage name for an uploaded image (served only through the authorized API).</summary>
         public string ImageId { get; set; } = "";
         public string ImageContentType { get; set; } = "";
+        public ReferenceProvenance Provenance { get; set; } = ReferenceProvenance.Unspecified;
         public DateTime CreatedUtc { get; set; }
         public DateTime UpdatedUtc { get; set; }
 

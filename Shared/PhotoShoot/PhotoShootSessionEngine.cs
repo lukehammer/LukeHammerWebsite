@@ -29,6 +29,10 @@ namespace BlazorApp.Shared.PhotoShoot
                     shot.ActualSeconds = shot.StartedUtc.HasValue && shot.Status == ShotStatus.InProgress
                         ? Math.Max(0, (int)(nowUtc - shot.StartedUtc.Value).TotalSeconds)
                         : (int?)null;
+                    if (shot.DeliverableStatus == DeliverableStatus.Planned)
+                    {
+                        shot.DeliverableStatus = DeliverableStatus.Captured;
+                    }
                     break;
                 case ShotStatus.NotStarted:
                 case ShotStatus.Skipped:

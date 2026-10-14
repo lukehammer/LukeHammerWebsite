@@ -37,14 +37,16 @@
 
     <section class="ps-stats" aria-label="Totals">
         <div class="ps-stat"><span class="ps-stat-num">@progress.Total</span><span class="ps-stat-label">Planned</span></div>
-        <div class="ps-stat ps-stat-done"><span class="ps-stat-num">@progress.Completed</span><span class="ps-stat-label">Completed</span></div>
+        <div class="ps-stat ps-stat-done"><span class="ps-stat-num">@progress.Finished</span><span class="ps-stat-label">Finished</span></div>
+        <div class="ps-stat"><span class="ps-stat-num">@progress.Completed</span><span class="ps-stat-label">Captured</span></div>
         <div class="ps-stat"><span class="ps-stat-num">@progress.Remaining</span><span class="ps-stat-label">Remaining</span></div>
         <div class="ps-stat ps-stat-skip"><span class="ps-stat-num">@progress.Skipped</span><span class="ps-stat-label">Skipped</span></div>
     </section>
 
     <section class="ps-card">
-        <PsProgress Label="Must-have shots" Value="progress.MustHaveCompleted" Max="progress.MustHaveTotal" CssClass="ps-progress-must" />
-        <PsProgress Label="All shots" Value="progress.Completed" Max="progress.Total" />
+        <PsProgress Label="Finished photographs" Value="progress.Finished" Max="PhotoShootProgress.FinishedGoal" CssClass="ps-progress-must" />
+        <PsProgress Label="Captured on set" Value="progress.Completed" Max="progress.Total" />
+        <PsProgress Label="Must-have shots captured" Value="progress.MustHaveCompleted" Max="progress.MustHaveTotal" />
         <div class="ps-link-row">
             <a href="photoshoot/shots?priority=MustHave&status=Remaining">Remaining must-haves (@progress.MustHaveRemaining) →</a>
             @if (progress.Skipped > 0)
@@ -94,6 +96,10 @@
                         @if (group.Setup?.RequiresChildren == true)
                         {
                             <i class="bi bi-people-fill ps-kids-icon" title="Children on set" aria-label="Children on set"></i>
+                        }
+                        @if (group.Setup?.ShootingBlock > 0)
+                        {
+                            <span class="ps-muted">Block @group.Setup.ShootingBlock. </span>
                         }
                         @group.Name
                     </span>

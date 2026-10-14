@@ -15,6 +15,12 @@
                             <span class="ps-ref-zoom-icon" aria-hidden="true"><i class="bi bi-arrows-fullscreen"></i></span>
                         </button>
                     }
+                    else if (PhotoShootPlanUpgrade.LooksLikeImageUrl(reference.SourceUrl))
+                    {
+                        <a class="ps-ref-zoom" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">
+                            <img class="ps-ref-img" src="@reference.SourceUrl" alt="@reference.Title" loading="lazy" />
+                        </a>
+                    }
                     else
                     {
                         <div class="ps-ref-img ps-ref-noimg" aria-hidden="true"><i class="bi bi-image"></i></div>

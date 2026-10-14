@@ -197,6 +197,7 @@ namespace BlazorApp.Shared.PhotoShoot
             to.MarketingPurpose = from.MarketingPurpose;
             to.Category = from.Category;
             to.Priority = from.Priority;
+            to.DeliverableStatus = from.DeliverableStatus;
             to.FacialExpression = from.FacialExpression;
             to.BodyPosition = from.BodyPosition;
             to.HandPosition = from.HandPosition;

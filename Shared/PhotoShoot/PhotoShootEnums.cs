@@ -11,6 +11,29 @@ namespace BlazorApp.Shared.PhotoShoot
         Skipped = 3
     }
 
+    /// <summary>Where a planned photograph is in editing. Captured on set is not the same as finished.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum DeliverableStatus
+    {
+        Planned = 0,
+        Captured = 1,
+        Selected = 2,
+        Edited = 3,
+        Final = 4
+    }
+
+    /// <summary>How a reference relates to the planned photograph. Unspecified leaves older references unlabeled.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum ReferenceProvenance
+    {
+        Unspecified = 0,
+        ExactUserProvided = 1,
+        ClosePublicMatch = 2,
+        AlternateInspiration = 3,
+        MissingOriginal = 4,
+        SubjectPortrait = 5
+    }
+
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum ShotPriority
     {
@@ -69,6 +92,26 @@ namespace BlazorApp.Shared.PhotoShoot
             ShotStatus.Completed => "Completed",
             ShotStatus.Skipped => "Skipped",
             _ => status.ToString()
+        };
+
+        public static string Deliverable(DeliverableStatus status) => status switch
+        {
+            DeliverableStatus.Planned => "Planned",
+            DeliverableStatus.Captured => "Captured",
+            DeliverableStatus.Selected => "Selected",
+            DeliverableStatus.Edited => "Edited",
+            DeliverableStatus.Final => "Final",
+            _ => status.ToString()
+        };
+
+        public static string Provenance(ReferenceProvenance provenance) => provenance switch
+        {
+            ReferenceProvenance.ExactUserProvided => "Exact reference",
+            ReferenceProvenance.ClosePublicMatch => "Close public match",
+            ReferenceProvenance.AlternateInspiration => "Alternate inspiration",
+            ReferenceProvenance.MissingOriginal => "Missing original",
+            ReferenceProvenance.SubjectPortrait => "Luke portrait",
+            _ => ""
         };
 
         public static string Priority(ShotPriority priority) => priority switch

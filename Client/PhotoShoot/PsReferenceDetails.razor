@@ -15,6 +15,10 @@
             <summary>Details</summary>
             <div class="ps-ref-details-body">
                 @if (PsUi.Has(Reference.Title)) { <div class="ps-ref-details-title">@Reference.Title</div> }
+                @if (PsUi.Has(PhotoShootLabels.Provenance(Reference.Provenance)))
+                {
+                    <div><span class="ps-ref-label">Match:</span> @PhotoShootLabels.Provenance(Reference.Provenance)</div>
+                }
                 @if (PsUi.Has(Reference.PerformerOrCharacter)) { <div><span class="ps-ref-label">Who:</span> @Reference.PerformerOrCharacter</div> }
                 @if (PsUi.Has(Reference.WhatToImitate)) { <div><span class="ps-ref-label">Imitate:</span> @Reference.WhatToImitate</div> }
                 @if (PsUi.Has(Reference.WhatToChange)) { <div><span class="ps-ref-label">Different:</span> @Reference.WhatToChange</div> }
@@ -32,6 +36,7 @@
 
     private bool HasDetails =>
         ChildContent != null ||
+        PsUi.Has(PhotoShootLabels.Provenance(Reference.Provenance)) ||
         new[] { Reference.Title, Reference.PerformerOrCharacter, Reference.WhatToImitate, Reference.WhatToChange, Reference.Credit, Reference.UsageRights }.Any(PsUi.Has);
 
     /// <summary>Desktop hover hint; phones use the Details disclosure instead.</summary>
