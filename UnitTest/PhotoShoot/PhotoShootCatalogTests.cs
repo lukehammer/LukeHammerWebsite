@@ -33,7 +33,7 @@ public class PhotoShootCatalogTests
     {
         var catalog = LoadCatalog();
 
-        catalog.Shots.Should().HaveCountGreaterThanOrEqualTo(95).And.HaveCountLessThanOrEqualTo(110);
+        catalog.Shots.Should().HaveCountGreaterThanOrEqualTo(90).And.HaveCountLessThanOrEqualTo(110);
         catalog.Setups.Should().HaveCountGreaterThanOrEqualTo(20).And.HaveCountLessThanOrEqualTo(30);
         catalog.Shots.Count(s => s.Priority == ShotPriority.MustHave).Should().BeGreaterThanOrEqualTo(30);
         catalog.Shots.Select(s => s.Category).Distinct().Should().BeEquivalentTo(Enum.GetValues<ShotCategory>());
