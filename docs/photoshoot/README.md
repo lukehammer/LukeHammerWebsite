@@ -71,3 +71,5 @@ dotnet test UnitTest/UnitTest.csproj --filter "FullyQualifiedName~PhotoShoot"
 ```
 
 Covers planning/grouping/ordering/estimates, session commands and status transitions, permissions, seeding idempotency, import/duplicate, validation, authorization header parsing, and validation of the real 100-shot catalog. See [STATUS.md](STATUS.md) for the latest counts and the manual verification that was done.
+
+Commits in this repository are signed with an SSH key.
