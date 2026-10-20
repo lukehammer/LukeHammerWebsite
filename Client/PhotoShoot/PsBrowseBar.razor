@@ -18,19 +18,24 @@
         {
             <div class="ps-browse-menu">
                 <input class="form-control ps-input" placeholder="Search number, title, group, or tag" @bind="query" @bind:event="oninput" aria-label="Search shots" />
-                @foreach (var group in PhotoShootPlanner.Groups(Doc, includeEmptySetups: false))
+                @foreach (var block in PhotoShootDisplay.Blocks(Doc))
                 {
-                    var hits = group.Shots.Where(shot => Matches(shot, group.Name)).ToList();
+                    var hits = block.Sections.SelectMany(section => section.Shots.Select(shot => (section, shot))).Where(item => Matches(item.shot, block.Title + " " + item.section.Name)).ToList();
                     if (hits.Count == 0)
                     {
                         continue;
                     }
 
-                    <details class="ps-browse-group" open="@(string.IsNullOrWhiteSpace(query) ? group.Setup?.Id == shown.SetupId : true)">
-                        <summary>@(group.Setup?.ShootingBlock > 0 ? $"Block {group.Setup.ShootingBlock}. " : "")@group.Name <span class="ps-muted">@hits.Count</span></summary>
+                    <details class="ps-browse-group" open="@(string.IsNullOrWhiteSpace(query) ? block.Sections.Any(section => section.Setup?.Id == shown.SetupId) : true)">
+                        <summary>
+                            <span>@block.Title</span>
+                            <span class="ps-count-badge">@hits.Count</span>
+                        </summary>
                         <ul>
-                            @foreach (var shot in hits)
+                            @foreach (var item in hits)
                             {
+                                var shot = item.shot;
+                                var sectionTitle = PhotoShootDisplay.SectionTitle(item.section.Setup, block.Title);
                                 var number = PhotoShootPlanner.OrderNumber(Doc, shot.Id);
                                 var thumb = PhotoShootEditor.ReferencesForShot(Doc, shot.Id).FirstOrDefault(reference => reference.HasImage);
                                 <li>
@@ -41,6 +46,10 @@
                                         }
                                         <span>
                                             <strong>@number. @shot.Title</strong>
+                                            @if (sectionTitle.Length > 0)
+                                            {
+                                                <span class="ps-muted">@sectionTitle</span>
+                                            }
                                             <span class="ps-muted">@PhotoShootLabels.Status(shot.Status)</span>
                                         </span>
                                     </button>

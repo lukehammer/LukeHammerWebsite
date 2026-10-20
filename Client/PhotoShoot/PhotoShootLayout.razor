@@ -21,6 +21,7 @@
         }
         <NavLink class="ps-subnav-link" href="photoshoot/photographer"><i class="bi bi-camera" aria-hidden="true"></i><span>Photographer</span></NavLink>
         <NavLink class="ps-subnav-link" href="photoshoot/marker"><i class="bi bi-bookmark" aria-hidden="true"></i><span>Marker</span></NavLink>
+        <NavLink class="ps-subnav-link" href="photoshoot/uploads"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><span>Uploads</span></NavLink>
         @if (Store.Me?.Access != PhotoShootAccess.Photographer)
         {
             <NavLink class="ps-subnav-link" href="photoshoot/manage"><i class="bi bi-gear" aria-hidden="true"></i><span>Manage</span></NavLink>

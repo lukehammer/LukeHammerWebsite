@@ -20,6 +20,7 @@ namespace ApiIsolated
     public class PhotoShootFunction
     {
         private const int MaxImageBytes = 6 * 1024 * 1024;
+        private const int MaxFinishedBytes = 100 * 1024 * 1024;
         private const int MaxJsonBytes = 8 * 1024 * 1024;
         private readonly ILogger _logger;
 
@@ -639,8 +640,12 @@ namespace ApiIsolated
                 return await ShootResponse(req, outcome);
             });
 
-        private static string ActorName(PhotoShootMe me) =>
-            me.Access == PhotoShootAccess.Photographer ? "Photographer" : "Director";
+        private static string ActorName(PhotoShootMe me) => me.Access switch
+        {
+            PhotoShootAccess.Photographer => "Photographer",
+            PhotoShootAccess.Admin => "Admin",
+            _ => "Director"
+        };
 
         private async Task EnsureDefaultAsync(string shootId)
         {
@@ -684,6 +689,7 @@ namespace ApiIsolated
             to.Setups = from.Setups;
             to.Shots = from.Shots;
             to.References = from.References;
+            to.FinishedPhotos = from.FinishedPhotos;
             to.Session = from.Session;
             foreach (var shot in to.Shots)
             {
@@ -778,7 +784,7 @@ namespace ApiIsolated
             {
                 Changed = true,
                 ETag = etag,
-                Shoot = doc,
+                Shoot = PhotoShootFinished.ForCaller(doc, PhotoShootAuth.Resolve(req).Access),
                 Message = message ?? "",
                 CreatedId = PhotoShootIds.IsValid(createdId) ? createdId : ""
             });
@@ -797,6 +803,261 @@ namespace ApiIsolated
             response.Headers.Add("Cache-Control", "no-store");
             await response.WriteStringAsync(JsonSerializer.Serialize(value, PhotoShootStorage.JsonOptions));
             return response;
+        }
+
+        // ---------- finished photos ----------
+
+        [Function("PhotoShootAddFinished")]
+        public Task<HttpResponseData> AddFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished")] HttpRequestData req, string shootId) =>
+            SaveFinished(req, shootId, "");
+
+        [Function("PhotoShootAddFinishedToShot")]
+        public Task<HttpResponseData> AddFinishedToShot(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/shots/{shotId}/finished")] HttpRequestData req, string shootId, string shotId) =>
+            SaveFinished(req, shootId, shotId);
+
+        [Function("PhotoShootPlaceFinished")]
+        public Task<HttpResponseData> PlaceFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/place")] HttpRequestData req, string shootId) =>
+            MutatePhotos(req, shootId, (me, request) => Task.FromResult<Func<PhotoShootDocument, MutationOutcome>>(doc =>
+            {
+                var placed = PhotoShootFinished.PlaceInbox(doc);
+                return MutationOutcome.Saved(placed == 0 ? "No photos were waiting to be placed." : $"Placed {placed} photo{(placed == 1 ? "" : "s")}.");
+            }));
+
+        [Function("PhotoShootMoveFinished")]
+        public Task<HttpResponseData> MoveFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/move")] HttpRequestData req, string shootId, string photoId) =>
+            MutatePhotos(req, shootId, async (me, request) =>
+            {
+                var body = await ReadJson<FinishedMove>(request);
+                return doc =>
+                {
+                    var result = PhotoShootFinished.Move(doc, photoId, body ?? new FinishedMove());
+                    return result.Ok ? MutationOutcome.Saved("Photo moved.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                };
+            });
+
+        [Function("PhotoShootReplaceFinished")]
+        public Task<HttpResponseData> ReplaceFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/image")] HttpRequestData req, string shootId, string photoId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootAuthorization.CanUploadPhotos(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner or photographer can do that.");
+                if (!PhotoShootIds.IsValid(shootId) || !PhotoShootIds.IsValid(photoId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid id.");
+                var prepared = await ReadFinishedImage(req);
+                if (prepared.Error != null) return prepared.Error;
+                var imageId = PhotoShootIds.New();
+                await PhotoShootStorage.Store.WriteImageAsync(imageId, prepared.Bytes!, prepared.ContentType!);
+                var oldImage = "";
+                var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
+                {
+                    var result = PhotoShootFinished.Replace(doc, photoId, imageId, prepared.ContentType!, out oldImage);
+                    return result.Ok ? MutationOutcome.Saved("Photo replaced.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                });
+                if (!outcome.Ok)
+                {
+                    await PhotoShootStorage.Store.DeleteImageAsync(imageId);
+                    return await Failure(req, outcome);
+                }
+
+                if (PhotoShootIds.IsValid(oldImage)) await PhotoShootStorage.Store.DeleteImageAsync(oldImage);
+                return await ShootResponse(req, outcome);
+            });
+
+        [Function("PhotoShootHideFinished")]
+        public Task<HttpResponseData> HideFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/hide")] HttpRequestData req, string shootId, string photoId) =>
+            MutatePhotos(req, shootId, (me, request) => Task.FromResult<Func<PhotoShootDocument, MutationOutcome>>(doc =>
+            {
+                var result = PhotoShootFinished.Hide(doc, photoId, ActorName(me), DateTime.UtcNow);
+                return result.Ok ? MutationOutcome.Saved("Photo removed.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+            }));
+
+        [Function("PhotoShootRestoreFinished")]
+        public Task<HttpResponseData> RestoreFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/restore")] HttpRequestData req, string shootId, string photoId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the admin login can do that.");
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
+                {
+                    var result = PhotoShootFinished.Restore(doc, photoId);
+                    return result.Ok ? MutationOutcome.Saved("Photo restored.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                });
+                return outcome.Ok ? await ShootResponse(req, outcome) : await Failure(req, outcome);
+            });
+
+        [Function("PhotoShootHardDeleteFinished")]
+        public Task<HttpResponseData> HardDeleteFinished(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "photoshoot/shoots/{shootId}/finished/{photoId}")] HttpRequestData req, string shootId, string photoId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootAuthorization.CanHardDelete(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the admin login can permanently delete a photo.");
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var imageId = "";
+                var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
+                {
+                    var result = PhotoShootFinished.HardDelete(doc, photoId, out imageId);
+                    return result.Ok ? MutationOutcome.Saved("Photo deleted.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                });
+                if (!outcome.Ok) return await Failure(req, outcome);
+                if (PhotoShootIds.IsValid(imageId)) await PhotoShootStorage.Store.DeleteImageAsync(imageId);
+                return await ShootResponse(req, outcome);
+            });
+
+        [Function("PhotoShootSetMarkets")]
+        public Task<HttpResponseData> SetMarkets(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/shots/{shotId}/markets")] HttpRequestData req, string shootId, string shotId) =>
+            Mutate(req, shootId, ownerOnly: true, async (me, request) =>
+            {
+                var body = await ReadJson<MarketUpdate>(request);
+                return doc =>
+                {
+                    var result = PhotoShootFinished.SetMarkets(doc, shotId, body?.Markets ?? new System.Collections.Generic.List<ShowMarket>());
+                    return result.Ok ? MutationOutcome.Saved("Shows saved.") : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                };
+            });
+
+        [Function("PhotoShootGetFinishedImage")]
+        public Task<HttpResponseData> GetFinishedImage(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/image")] HttpRequestData req, string shootId, string photoId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var stored = await PhotoShootStorage.LoadAsync(shootId);
+                var photo = stored?.Document.FinishedPhotos.FirstOrDefault(item => item.Id == photoId);
+                if (photo == null || !PhotoShootIds.IsValid(photo.ImageId) || (photo.IsHidden && !PhotoShootAuthorization.CanSeeRemoved(me.Access)))
+                {
+                    return await Text(req, HttpStatusCode.NotFound, "Image not found.");
+                }
+
+                var image = await PhotoShootStorage.Store.ReadImageAsync(photo.ImageId);
+                if (image == null) return await Text(req, HttpStatusCode.NotFound, "Image not found.");
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                response.Headers.Add("Content-Type", image.ContentType);
+                response.Headers.Add("Cache-Control", "private, max-age=86400");
+                response.Headers.Add("X-Content-Type-Options", "nosniff");
+                var download = Query(req, "download");
+                if (download == "1")
+                {
+                    response.Headers.Add("Content-Disposition", "attachment; filename=\"" + PhotoShootFinished.ZipName(stored!.Document, photo, stored.Document.Shots.FirstOrDefault(shot => shot.Id == photo.ShotId)) + "\"");
+                }
+
+                await response.Body.WriteAsync(image.Bytes, 0, image.Bytes.Length);
+                return response;
+            });
+
+        [Function("PhotoShootDownloadFinishedZip")]
+        public Task<HttpResponseData> DownloadFinishedZip(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoshoot/shoots/{shootId}/finished.zip")] HttpRequestData req, string shootId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                var removed = Query(req, "removed") == "1";
+                if (removed && !PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the admin login can download removed photos.");
+                if (!removed && !PhotoShootAuthorization.CanDownloadFinals(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner can download the photo set.");
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var stored = await PhotoShootStorage.LoadAsync(shootId);
+                if (stored == null) return await Text(req, HttpStatusCode.NotFound, "Photo shoot not found.");
+
+                var photos = stored.Document.FinishedPhotos.Where(photo => photo.HasImage && photo.IsHidden == removed && photo.ShotId.Length > 0).ToList();
+                using var buffer = new System.IO.MemoryStream();
+                using (var zip = new System.IO.Compression.ZipArchive(buffer, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    var used = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var photo in photos)
+                    {
+                        var image = await PhotoShootStorage.Store.ReadImageAsync(photo.ImageId);
+                        if (image == null) continue;
+                        var shot = stored.Document.Shots.FirstOrDefault(item => item.Id == photo.ShotId);
+                        var markets = shot?.Markets == null || shot.Markets.Count == 0 ? new System.Collections.Generic.List<ShowMarket> { ShowMarket.AnyShow } : shot.Markets;
+                        foreach (var market in markets)
+                        {
+                            var name = PhotoShootFinished.ZipFolder(market) + "/" + PhotoShootFinished.ZipName(stored.Document, photo, shot);
+                            var unique = name;
+                            var n = 2;
+                            while (!used.Add(unique))
+                            {
+                                unique = name.Substring(0, name.Length - 4) + "-" + n + ".jpg";
+                                n++;
+                            }
+
+                            var entry = zip.CreateEntry(unique, System.IO.Compression.CompressionLevel.NoCompression);
+                            using var entryStream = entry.Open();
+                            await entryStream.WriteAsync(image.Bytes, 0, image.Bytes.Length);
+                        }
+                    }
+                }
+
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                response.Headers.Add("Content-Type", "application/zip");
+                response.Headers.Add("Content-Disposition", "attachment; filename=\"" + (removed ? "removed-photos.zip" : "final-photos.zip") + "\"");
+                response.Headers.Add("Cache-Control", "no-store");
+                var payload = buffer.ToArray();
+                await response.Body.WriteAsync(payload, 0, payload.Length);
+                return response;
+            });
+
+        private Task<HttpResponseData> SaveFinished(HttpRequestData req, string shootId, string shotId) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootAuthorization.CanUploadPhotos(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner or photographer can do that.");
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var prepared = await ReadFinishedImage(req);
+                if (prepared.Error != null) return prepared.Error;
+                var imageId = PhotoShootIds.New();
+                await PhotoShootStorage.Store.WriteImageAsync(imageId, prepared.Bytes!, prepared.ContentType!);
+                var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
+                {
+                    var result = PhotoShootFinished.Add(doc, shotId, imageId, prepared.ContentType!, prepared.CapturedUtc, ActorName(me), DateTime.UtcNow);
+                    return result.Ok ? new MutationOutcome { Message = "Photo added.", CreatedId = result.Value!.Id } : MutationOutcome.Fail(result.NotFound ? 404 : 400, result.Errors);
+                });
+                if (!outcome.Ok)
+                {
+                    await PhotoShootStorage.Store.DeleteImageAsync(imageId);
+                    return await Failure(req, outcome);
+                }
+
+                return await ShootResponse(req, outcome);
+            });
+
+        private Task<HttpResponseData> MutatePhotos(
+            HttpRequestData req,
+            string shootId,
+            Func<PhotoShootMe, HttpRequestData, Task<Func<PhotoShootDocument, MutationOutcome>>> prepare) =>
+            Guarded(req, ownerOnly: false, async me =>
+            {
+                if (!PhotoShootAuthorization.CanUploadPhotos(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner or photographer can do that.");
+                if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
+                var mutate = await prepare(me, req);
+                var outcome = await PhotoShootStorage.UpdateAsync(shootId, mutate);
+                return outcome.Ok ? await ShootResponse(req, outcome) : await Failure(req, outcome);
+            });
+
+        private async Task<(byte[]? Bytes, string? ContentType, DateTime? CapturedUtc, HttpResponseData? Error)> ReadFinishedImage(HttpRequestData req)
+        {
+            var bytes = await ReadBytes(req.Body, MaxFinishedBytes);
+            if (bytes == null) return (null, null, null, await Text(req, HttpStatusCode.RequestEntityTooLarge, "Photos must be 100 MB or smaller."));
+            var contentType = PhotoShootImageTypes.Detect(bytes);
+            if (contentType == null) return (null, null, null, await Text(req, HttpStatusCode.UnsupportedMediaType, "Only a still photo can be uploaded. Video and raw camera files are not accepted."));
+            if (contentType == "image/heic")
+            {
+                var jpeg = PhotoShootHeic.ToJpeg(bytes);
+                if (jpeg == null) return (null, null, null, await Text(req, HttpStatusCode.UnsupportedMediaType, "This HEIC photo could not be converted. Export it as a JPEG from the camera and upload that."));
+                return (jpeg, "image/jpeg", PhotoShootExif.CapturedUtc(bytes) ?? HeaderCaptured(req), null);
+            }
+
+            return (bytes, contentType, PhotoShootExif.CapturedUtc(bytes) ?? HeaderCaptured(req), null);
+        }
+
+        private static DateTime? HeaderCaptured(HttpRequestData req)
+        {
+            if (!req.Headers.TryGetValues("X-Photo-Captured", out var values)) return null;
+            return DateTime.TryParse(values.FirstOrDefault(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsed)
+                ? parsed
+                : null;
         }
 
         private static async Task<HttpResponseData> Text(HttpRequestData req, HttpStatusCode status, string message)
@@ -819,7 +1080,101 @@ namespace ApiIsolated
             if (bytes.Length >= 6 && bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38) return "image/gif";
             if (bytes.Length >= 12 && bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x46
                 && bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42 && bytes[11] == 0x50) return "image/webp";
+            if (bytes.Length >= 12 && bytes[4] == (byte)'f' && bytes[5] == (byte)'t' && bytes[6] == (byte)'y' && bytes[7] == (byte)'p')
+            {
+                var brand = System.Text.Encoding.ASCII.GetString(bytes, 8, 4);
+                if (brand is "heic" or "heix" or "hevc" or "heim" or "heis" or "mif1" or "msf1") return "image/heic";
+            }
             return null;
         }
+    }
+
+    internal sealed class PreparedPhoto
+    {
+        public byte[] Bytes { get; set; } = Array.Empty<byte>();
+        public string ContentType { get; set; } = "";
+        public DateTime? CapturedUtc { get; set; }
+    }
+
+    internal static class PhotoShootExif
+    {
+        public static DateTime? CapturedUtc(byte[] bytes)
+        {
+            if (bytes.Length < 4 || bytes[0] != 0xFF || bytes[1] != 0xD8) return null;
+            var offset = 2;
+            while (offset + 4 < bytes.Length && bytes[offset] == 0xFF)
+            {
+                var marker = bytes[offset + 1];
+                if (marker == 0xDA || marker == 0xD9) break;
+                var size = (bytes[offset + 2] << 8) + bytes[offset + 3];
+                if (size < 2 || offset + 2 + size > bytes.Length) break;
+                if (marker == 0xE1 && size > 14
+                    && bytes[offset + 4] == (byte)'E' && bytes[offset + 5] == (byte)'x' && bytes[offset + 6] == (byte)'i' && bytes[offset + 7] == (byte)'f')
+                {
+                    return ReadTiffDate(bytes, offset + 10, offset + 2 + size);
+                }
+
+                offset += 2 + size;
+            }
+
+            return null;
+        }
+
+        private static DateTime? ReadTiffDate(byte[] bytes, int start, int end)
+        {
+            if (start + 8 > end) return null;
+            var little = bytes[start] == (byte)'I';
+            int U16(int at) => little ? bytes[at] | (bytes[at + 1] << 8) : (bytes[at] << 8) | bytes[at + 1];
+            int U32(int at) => little
+                ? bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] << 16) | (bytes[at + 3] << 24)
+                : (bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3];
+            if (U16(start + 2) != 42) return null;
+            var ifd = start + U32(start + 4);
+            int? exifOffset = null;
+            if (!Walk(bytes, start, end, ifd, U16, U32, (tag, value) => { if (tag == 0x8769) exifOffset = U32(value); })) return null;
+            if (exifOffset == null) return null;
+            DateTime? found = null;
+            Walk(bytes, start, end, start + exifOffset.Value, U16, U32, (tag, value) =>
+            {
+                if (tag == 0x9003 && found == null)
+                {
+                    var text = System.Text.Encoding.ASCII.GetString(bytes, value, Math.Min(19, end - value));
+                    if (DateTime.TryParseExact(text, "yyyy:MM:dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsed))
+                    {
+                        found = parsed;
+                    }
+                }
+            });
+            return found;
+        }
+
+        private static bool Walk(byte[] bytes, int tiff, int end, int ifd, Func<int, int> u16, Func<int, int> u32, Action<int, int> visit)
+        {
+            if (ifd < tiff || ifd + 2 > end) return false;
+            var count = u16(ifd);
+            for (var i = 0; i < count; i++)
+            {
+                var entry = ifd + 2 + i * 12;
+                if (entry + 12 > end) return false;
+                var tag = u16(entry);
+                var type = u16(entry + 2);
+                var components = u32(entry + 4);
+                var size = type == 2 ? components : 4;
+                var valueAt = size <= 4 ? entry + 8 : tiff + u32(entry + 8);
+                if (valueAt < tiff || valueAt >= end) continue;
+                visit(tag, valueAt);
+            }
+
+            return true;
+        }
+    }
+
+    internal static class PhotoShootHeic
+    {
+        /// <summary>
+        /// The browser converts HEIC before upload when it can decode it. There is no safe server decoder
+        /// in this host, so a raw HEIC that arrives here is refused instead of being stored unviewable.
+        /// </summary>
+        public static byte[]? ToJpeg(byte[] heic) => null;
     }
 }

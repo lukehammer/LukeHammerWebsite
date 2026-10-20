@@ -44,6 +44,18 @@ namespace BlazorApp.Shared.PhotoShoot
 
         public static bool CanEdit(PhotoShootAccess access) => access == PhotoShootAccess.Owner;
 
+        public static bool CanUploadPhotos(PhotoShootAccess access) =>
+            access == PhotoShootAccess.Photographer || access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
+
+        public static bool CanSeeRemoved(PhotoShootAccess access) => access == PhotoShootAccess.Admin;
+
+        public static bool CanHardDelete(PhotoShootAccess access) => access == PhotoShootAccess.Admin;
+
+        public static bool CanDownloadFinals(PhotoShootAccess access) =>
+            access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
+
+        public const string AdminPassword = "LukeAdmin";
+
         /// <summary>Decodes the base64 JSON principal header. Returns false for missing or malformed values.</summary>
         public static bool TryDecodePrincipal(string? headerValue, out SwaClientPrincipal principal)
         {
@@ -94,6 +106,8 @@ namespace BlazorApp.Shared.PhotoShoot
                 case "owner":
                 case "director":
                     return PhotoShootAccess.Owner;
+                case "admin":
+                    return PhotoShootAccess.Admin;
                 case "photographer":
                     return PhotoShootAccess.Photographer;
                 case "none":
@@ -105,6 +119,9 @@ namespace BlazorApp.Shared.PhotoShoot
 
         public static bool PasswordMatches(string? value) =>
             string.Equals((value ?? "").Trim(), MasterPassword, StringComparison.Ordinal);
+
+        public static bool PasswordMatchesAdmin(string? value) =>
+            string.Equals((value ?? "").Trim(), AdminPassword, StringComparison.Ordinal);
 
         public static string? PasswordFromCookie(string? cookieHeader)
         {
@@ -145,6 +162,9 @@ namespace BlazorApp.Shared.PhotoShoot
         public static bool HasMasterPassword(string? passwordHeader, string? cookieHeader) =>
             PasswordMatches(passwordHeader) || PasswordMatches(PasswordFromCookie(cookieHeader));
 
+        public static bool HasAdminPassword(string? passwordHeader, string? cookieHeader) =>
+            PasswordMatchesAdmin(passwordHeader) || PasswordMatchesAdmin(PasswordFromCookie(cookieHeader));
+
         /// <summary>
         /// Resolves the caller's access. The master password works in production. The local developer
         /// bypass does not. A Static Web Apps principal is used when no password is presented.
@@ -161,6 +181,16 @@ namespace BlazorApp.Shared.PhotoShoot
                     UserName = access == PhotoShootAccess.Photographer ? "Local photographer" : "Local developer",
                     IdentityProvider = "dev",
                     DevBypass = true
+                };
+            }
+
+            if (HasAdminPassword(passwordHeader, cookieHeader))
+            {
+                return new PhotoShootMe
+                {
+                    Access = PhotoShootAccess.Admin,
+                    UserName = "Luke",
+                    IdentityProvider = "password"
                 };
             }
 
@@ -188,6 +218,6 @@ namespace BlazorApp.Shared.PhotoShoot
         }
 
         public static bool IsAuthenticated(string? principalHeader, string? passwordHeader = null, string? cookieHeader = null) =>
-            HasMasterPassword(passwordHeader, cookieHeader) || TryDecodePrincipal(principalHeader, out _);
+            HasAdminPassword(passwordHeader, cookieHeader) || HasMasterPassword(passwordHeader, cookieHeader) || TryDecodePrincipal(principalHeader, out _);
     }
 }

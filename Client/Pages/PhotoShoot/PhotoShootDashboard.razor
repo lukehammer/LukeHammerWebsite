@@ -98,31 +98,18 @@
     <section class="ps-card">
         <h2 class="ps-h2">Setups <a class="ps-small" href="photoshoot/brief">Photograph brief</a></h2>
         <ol class="ps-setup-summary">
-            @foreach (var group in PhotoShootPlanner.Groups(doc, includeEmptySetups: false))
+            @foreach (var block in PhotoShootDisplay.Blocks(doc))
             {
-                <li class="@(group.IsDone ? "is-done" : "") @(currentSetup != null && group.Setup?.Id == currentSetup.Id ? "is-current" : "")">
-                    <span class="ps-setup-summary-name">
-                        @if (group.Setup?.RequiresChildren == true)
-                        {
-                            <i class="bi bi-people-fill ps-kids-icon" title="Children on set" aria-label="Children on set"></i>
-                        }
-                        @if (group.Setup?.ShootingBlock > 0)
-                        {
-                            <span class="ps-muted">Block @group.Setup.ShootingBlock. </span>
-                        }
-                        @group.Name
-                    </span>
-                    <span class="ps-setup-summary-count">@group.CompletedCount/@group.Shots.Count</span>
-                    @{
-                        var gear = PhotoShootGear.ForSetup(doc, group.Setup?.Id);
-                    }
-                    @if (gear.Count == 0)
+                <li class="@(block.Sections.All(group => group.IsDone) ? "is-done" : "") @(currentSetup != null && block.Sections.Any(group => group.Setup?.Id == currentSetup.Id) ? "is-current" : "")">
+                    <span class="ps-setup-summary-name">@block.Title</span>
+                    <span class="ps-count-badge">@block.Sections.Sum(group => group.CompletedCount)/@block.ShotCount</span>
+                    @foreach (var group in block.Sections)
                     {
-                        <div class="ps-small ps-muted">No special props required.</div>
-                    }
-                    else
-                    {
-                        <div class="ps-small">Equipment: @string.Join(", ", gear.Select(item => item.Name))</div>
+                        var section = PhotoShootDisplay.SectionTitle(group.Setup, block.Title);
+                        if (section.Length > 0)
+                        {
+                            <div class="ps-small ps-muted">@section</div>
+                        }
                     }
                 </li>
             }
