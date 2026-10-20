@@ -880,7 +880,7 @@ namespace ApiIsolated
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/finished/{photoId}/restore")] HttpRequestData req, string shootId, string photoId) =>
             Guarded(req, ownerOnly: false, async me =>
             {
-                if (!PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the admin login can do that.");
+                if (!PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner can do that.");
                 if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
                 var outcome = await PhotoShootStorage.UpdateAsync(shootId, doc =>
                 {
@@ -956,7 +956,7 @@ namespace ApiIsolated
             Guarded(req, ownerOnly: false, async me =>
             {
                 var removed = Query(req, "removed") == "1";
-                if (removed && !PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the admin login can download removed photos.");
+                if (removed && !PhotoShootAuthorization.CanSeeRemoved(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner can download removed photos.");
                 if (!removed && !PhotoShootAuthorization.CanDownloadFinals(me.Access)) return await Text(req, HttpStatusCode.Forbidden, "Only the shoot owner can download the photo set.");
                 if (!PhotoShootIds.IsValid(shootId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid shoot id.");
                 var stored = await PhotoShootStorage.LoadAsync(shootId);

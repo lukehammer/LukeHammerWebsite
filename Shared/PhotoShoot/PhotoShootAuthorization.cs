@@ -42,12 +42,12 @@ namespace BlazorApp.Shared.PhotoShoot
 
         public static bool CanRead(PhotoShootAccess access) => access >= PhotoShootAccess.Photographer;
 
-        public static bool CanEdit(PhotoShootAccess access) => access == PhotoShootAccess.Owner;
+        public static bool CanEdit(PhotoShootAccess access) => access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
 
         public static bool CanUploadPhotos(PhotoShootAccess access) =>
             access == PhotoShootAccess.Photographer || access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
 
-        public static bool CanSeeRemoved(PhotoShootAccess access) => access == PhotoShootAccess.Admin;
+        public static bool CanSeeRemoved(PhotoShootAccess access) => access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
 
         public static bool CanHardDelete(PhotoShootAccess access) => access == PhotoShootAccess.Admin;
 
