@@ -149,14 +149,15 @@ namespace BlazorApp.Shared.PhotoShoot
             }
 
             var title = reference.Title ?? "";
-            return title.Contains("AI mock-up", StringComparison.OrdinalIgnoreCase)
-                || title.Contains("AI mockup", StringComparison.OrdinalIgnoreCase)
-                || title.Contains("AI-generated", StringComparison.OrdinalIgnoreCase);
+            return Has(title, "AI mock-up") || Has(title, "AI mockup") || Has(title, "AI-generated");
         }
 
         public static bool IsSubject(PhotoReference reference) =>
             reference.Provenance == ReferenceProvenance.SubjectPortrait
-            || (reference.Title ?? "").Contains("Luke cartoon portrait", StringComparison.OrdinalIgnoreCase);
+            || Has(reference.Title ?? "", "Luke cartoon portrait");
+
+        private static bool Has(string hay, string needle) =>
+            hay.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
 
         public static bool IsMissing(PhotoReference reference) =>
             reference.Provenance == ReferenceProvenance.MissingOriginal;

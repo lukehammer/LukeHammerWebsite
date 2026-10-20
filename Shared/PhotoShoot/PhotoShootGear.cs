@@ -302,9 +302,10 @@ namespace BlazorApp.Shared.PhotoShoot
         }
 
         private static bool SuppressSetupProps(string own) =>
-            own.Contains("no prop", StringComparison.OrdinalIgnoreCase)
-            || own.Contains("empty hand", StringComparison.OrdinalIgnoreCase)
-            || own.Contains("prop-free", StringComparison.OrdinalIgnoreCase);
+            Has(own, "no prop") || Has(own, "empty hand") || Has(own, "prop-free");
+
+        private static bool Has(string hay, string needle) =>
+            hay.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
 
         private static string Join(params object?[] parts)
         {
