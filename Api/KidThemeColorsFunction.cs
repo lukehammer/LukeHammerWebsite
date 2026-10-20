@@ -91,6 +91,12 @@ namespace ApiIsolated
                 var githubPath = Environment.GetEnvironmentVariable("GITHUB_KID_THEME_FILE_PATH")
                     ?? "Api/data/kid-theme-colors.json";
                 await SportsSchedulesGitHubBackup.TryBackupAsync(_logger, json, commitMessage, githubPath);
+                await Notifications.NotificationDispatcher.NotifyChangeAsync(_logger, submittedBy, new Notifications.NotificationMessage
+                {
+                    Title = "Sports: kid colors changed",
+                    Body = $"{submittedBy} updated the kid row colors.",
+                    ClickUrl = Notifications.NotificationDispatcher.SiteUrl("Sports")
+                });
 
                 return await OkJson(req, json);
             }

@@ -228,6 +228,9 @@ namespace BlazorApp.Client.PhotoShoot
         public Task<bool> SessionAsync(SessionAction action, string shotId = "", bool flag = false, string text = "") =>
             RunAsync(id => _api.SessionAsync(id, new SessionCommand { Action = action, ShotId = shotId, Flag = flag, Text = text }));
 
+        public Task<bool> PackingAsync(PackingCommand command) =>
+            RunAsync(id => _api.PackingAsync(id, command));
+
         public void SetFlash(string? message, bool isError)
         {
             Flash = message ?? "";

@@ -1414,6 +1414,91 @@
     text-overflow: ellipsis;
 }
 
+.ps-live-modes {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.ps-live .ps-live-modes-btn {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 36px;
+    padding: 0 0.65rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 999px;
+    background: var(--ps-surface-2);
+    color: var(--ps-text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ps-live .ps-live-modes-btn:hover {
+    background: var(--ps-border);
+}
+
+.ps-live .ps-live-modes-btn:focus-visible,
+.ps-live .ps-live-modes-item:focus-visible {
+    outline: 3px solid var(--ps-gold);
+    outline-offset: 2px;
+}
+
+.ps-live .ps-live-modes-btn[aria-expanded="true"] .ps-live-modes-chevron {
+    transform: rotate(180deg);
+}
+
+.ps-live-modes-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: default;
+}
+
+.ps-live-modes-menu {
+    position: absolute;
+    top: calc(100% + 0.3rem);
+    right: 0;
+    z-index: 2;
+    min-width: 12rem;
+    margin: 0;
+    padding: 0.3rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 12px;
+    background: var(--ps-surface);
+    box-shadow: 0 8px 24px rgba(43, 43, 43, 0.16);
+}
+
+.ps-live .ps-live-modes-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--ps-tap);
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    color: var(--ps-text);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ps-live .ps-live-modes-item:hover,
+.ps-live .ps-live-modes-item.is-current {
+    background: var(--ps-surface-2);
+    color: var(--ps-text);
+}
+
+.ps-live-modes-check {
+    margin-left: auto;
+}
+
 .ps-live-main {
     padding-top: 0.5rem;
 }
@@ -2425,4 +2510,434 @@ html:has(.ps-has-action-bar.ps-bar-2) {
         transition: none !important;
         animation: none !important;
     }
+}
+
+.ps-browse-row, .ps-packing-filters, .ps-packing-head, .ps-packing-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.ps-browse-count {
+    border: 1px solid var(--ps-line, #ccc);
+    background: #fff;
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    font-weight: 700;
+}
+
+.ps-browse-preview, .ps-browse-menu {
+    margin-top: 0.5rem;
+}
+
+.ps-browse-shot {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    padding: 0.35rem 0;
+}
+
+.ps-browse-shot.is-current {
+    font-weight: 700;
+}
+
+.ps-browse-shot img, .ps-slot img {
+    width: 4.5rem;
+    height: 4.5rem;
+    object-fit: cover;
+    border-radius: 0.4rem;
+}
+
+.ps-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.6rem;
+    margin: 0.6rem 0;
+}
+
+.ps-slot {
+    border: 1px solid var(--ps-line, #ddd);
+    border-radius: 0.6rem;
+    padding: 0.4rem;
+    min-width: 0;
+}
+
+.ps-slot.is-missing {
+    background: #fff8e8;
+}
+
+.ps-slot-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ps-slot button, .ps-slot a {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.ps-packing-items {
+    list-style: none;
+    padding: 0;
+}
+
+.ps-packing-items li {
+    border-top: 1px solid var(--ps-line, #eee);
+    padding: 0.45rem 0;
+}
+
+.ps-packing-items li.is-packed span {
+    text-decoration: line-through;
+}
+
+@media (max-width: 700px) {
+    .ps-browse-row .ps-btn, .ps-browse-count {
+        flex: 1 1 auto;
+    }
+}
+
+/* Photographer live view fills the screen. The page itself does not scroll. */
+html:has(.ps-photographer),
+body:has(.ps-photographer),
+body:has(.ps-photographer) #app {
+    height: 100%;
+    overflow: hidden;
+}
+
+.ps-live:has(.ps-photographer) {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+}
+
+.ps-live:has(.ps-photographer) .ps-live-bar {
+    flex: none;
+    padding-top: max(0.15rem, env(safe-area-inset-top));
+    padding-bottom: 0.15rem;
+}
+
+.ps-live:has(.ps-photographer) .ps-live-exit {
+    width: 36px;
+    height: 36px;
+}
+
+.ps-live:has(.ps-photographer) .ps-flash {
+    flex: none;
+    margin-bottom: 0.25rem;
+}
+
+.ps-live:has(.ps-photographer) .ps-live-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.25rem;
+    overflow: hidden;
+}
+
+.ps-photographer {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    overflow: hidden;
+}
+
+.ps-photographer.ps-has-action-bar,
+.ps-photographer.ps-has-action-bar.ps-bar-2 {
+    padding-bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.ps-photographer .ps-waiting {
+    flex: none;
+    margin: 0;
+    padding: 0.28rem 0.55rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-photographer .ps-browse {
+    position: relative;
+    flex: none;
+    z-index: 6;
+}
+
+.ps-photographer .ps-browse-row {
+    flex-wrap: nowrap;
+}
+
+.ps-photographer .ps-browse-row .ps-btn,
+.ps-photographer .ps-browse-count {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.82rem;
+}
+
+.ps-photographer .ps-browse-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 7;
+    max-height: min(50dvh, 22rem);
+    overflow: auto;
+    margin: 0;
+    padding: 0.5rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 12px;
+    background: var(--ps-surface);
+    box-shadow: 0 8px 24px rgba(43, 43, 43, 0.16);
+}
+
+.ps-photographer .ps-live-shot {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0.4rem 0.5rem 0.45rem;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-live-shot-meta {
+    flex: none;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+}
+
+.ps-photographer .ps-seq-big {
+    font-size: 1.05rem;
+}
+
+.ps-photographer .ps-live-title {
+    flex: none;
+    margin: 0.05rem 0;
+    font-size: clamp(1.15rem, 3.2vh, 1.65rem);
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-live-shot > .ps-muted {
+    flex: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-photographer .ps-slots {
+    flex: 1 1 auto;
+    min-height: 4.5rem;
+    margin: 0.25rem 0 0;
+    gap: 0.35rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+}
+
+.ps-photographer .ps-slot {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.2rem;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-slot-label {
+    flex: none;
+    font-size: 0.62rem;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-photographer .ps-slot .ps-ref-zoom,
+.ps-photographer .ps-slot > a {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ps-photographer .ps-slot img {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.ps-photographer .ps-slot-meta {
+    flex: none;
+    max-height: 2.2em;
+    overflow: hidden;
+    font-size: 0.68rem;
+    line-height: 1.15;
+}
+
+.ps-photographer .ps-photo-key {
+    flex: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.28rem;
+    margin-top: 0.3rem;
+}
+
+.ps-photographer .ps-key-wide {
+    grid-column: span 2;
+}
+
+.ps-photographer .ps-key-card {
+    padding: 0.22rem 0.4rem;
+    max-height: 4.2rem;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-key-label {
+    font-size: 0.68rem;
+}
+
+.ps-photographer .ps-key-value {
+    font-size: 0.88rem;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-key-sub {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ps-photographer .ps-action-bar {
+    gap: 0;
+    padding-top: 0.3rem;
+    padding-bottom: max(0.3rem, env(safe-area-inset-bottom));
+}
+
+.ps-photographer .ps-action-bar-pair .ps-action-main {
+    min-height: 44px;
+    font-size: clamp(0.78rem, 2.5vw, 0.95rem);
+}
+
+.ps-photographer .ps-photo-foot {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 0;
+}
+
+.ps-photographer .ps-up-next {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0.22rem 0.5rem;
+    font-size: 0.82rem;
+    overflow: hidden;
+}
+
+.ps-photographer .ps-up-next > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ps-photographer .ps-live-more {
+    margin: 0;
+}
+
+.ps-photographer .ps-live-more summary {
+    min-height: 0;
+    padding: 0.1rem 0;
+    font-size: 0.82rem;
+}
+
+.ps-photographer .ps-live-more[open] {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 25;
+    max-height: min(55dvh, 24rem);
+    overflow: auto;
+    padding: 0.45rem 0.65rem 0.6rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 12px;
+    background: var(--ps-surface);
+    box-shadow: 0 8px 24px rgba(43, 43, 43, 0.18);
+}
+
+.ps-photographer .ps-note-form {
+    margin: 0;
+    gap: 0.35rem;
+}
+
+.ps-photographer .ps-note-form .ps-input,
+.ps-photographer .ps-note-form .ps-btn {
+    min-height: 34px;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
+}
+
+.ps-photographer .ps-photo-status {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.ps-photographer .ps-marker-jump {
+    margin: 0;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.ps-photographer .ps-live-progress-foot {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 0.8rem;
+    flex-wrap: nowrap;
+}
+
+.ps-photographer .ps-mini-track {
+    flex: 1 1 3rem;
+    min-width: 2.5rem;
+    height: 6px;
+}
+
+.ps-photographer > .ps-panel {
+    flex: 1 1 auto;
+    min-height: 0;
 }

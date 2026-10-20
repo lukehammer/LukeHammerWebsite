@@ -101,6 +101,9 @@ namespace BlazorApp.Client.PhotoShoot
         public Task<LiveShootResponse> SessionAsync(string shootId, SessionCommand command) =>
             SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/session", command);
 
+        public Task<LiveShootResponse> PackingAsync(string shootId, PackingCommand command) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/packing", command);
+
         public Task<LiveShootResponse> CreateReferenceAsync(string shootId, PhotoReference reference) =>
             SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/references", reference);
 

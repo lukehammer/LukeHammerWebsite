@@ -99,3 +99,28 @@ export async function copyText(text) {
 export function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+let shotKeyHandler = null;
+
+export function bindShotKeys(dotnetRef) {
+    unbindShotKeys();
+    shotKeyHandler = (event) => {
+        const tag = event.target && event.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+            return;
+        }
+
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'Home' || event.key === 'End') {
+            event.preventDefault();
+            dotnetRef.invokeMethodAsync('OnShotKey', event.key);
+        }
+    };
+    window.addEventListener('keydown', shotKeyHandler);
+}
+
+export function unbindShotKeys() {
+    if (shotKeyHandler) {
+        window.removeEventListener('keydown', shotKeyHandler);
+        shotKeyHandler = null;
+    }
+}

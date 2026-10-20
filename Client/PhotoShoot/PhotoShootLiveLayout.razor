@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject PhotoShootStore Store
+@inject NavigationManager Nav
 @inject IJSRuntime JS
 
 <HeadContent>
@@ -12,6 +13,31 @@
     <header class="ps-live-bar">
         <a class="ps-live-exit" href="photoshoot" title="Back to the planner" aria-label="Back to the planner"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
         <div class="ps-live-bar-title">@Store.Shoot?.Name</div>
+        <div class="ps-live-modes" @onkeydown="OnModesKey">
+            <button type="button" class="ps-live-modes-btn" aria-haspopup="menu" aria-expanded="@modesOpen" aria-label="Choose live mode" @onclick="ToggleModes">
+                <i class="bi @CurrentIcon" aria-hidden="true"></i>
+                <span>@CurrentLabel</span>
+                <i class="bi bi-chevron-down ps-live-modes-chevron" aria-hidden="true"></i>
+            </button>
+            @if (modesOpen)
+            {
+                <button type="button" class="ps-live-modes-backdrop" aria-label="Close mode menu" @onclick="CloseModes"></button>
+                <div class="ps-live-modes-menu" role="menu" aria-label="Live modes">
+                    @foreach (var mode in VisibleModes)
+                    {
+                        var current = mode.Href.Equals(RelativePath, StringComparison.OrdinalIgnoreCase);
+                        <a class="ps-live-modes-item @(current ? "is-current" : "")" role="menuitem" href="@mode.Href" aria-current="@(current ? "page" : null)" @onclick="() => Go(mode.Href)" @onclick:preventDefault="true">
+                            <i class="bi @mode.Icon" aria-hidden="true"></i>
+                            <span>@mode.Label</span>
+                            @if (current)
+                            {
+                                <i class="bi bi-check2 ps-live-modes-check" aria-hidden="true"></i>
+                            }
+                        </a>
+                    }
+                </div>
+            }
+        </div>
         <PsConnection />
         <button type="button" class="ps-icon-btn" @onclick="ToggleTheme" title="Toggle dark mode" aria-label="Toggle dark mode">
             <i class="bi @(dark ? "bi-sun" : "bi-moon-stars")" aria-hidden="true"></i>
@@ -30,8 +56,13 @@
 @code {
     private const string ThemeKey = "photoshoot.theme";
     private bool dark;
+    private bool modesOpen;
 
-    protected override void OnInitialized() => Store.Changed += OnChanged;
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -62,7 +93,50 @@
         }
     }
 
+    private string RelativePath => Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/');
+
+    private IEnumerable<PhotoShootLiveMode> VisibleModes =>
+        PhotoShootLiveModes.All.Where(mode => !mode.OwnerOnly || Store.IsOwner);
+
+    private PhotoShootLiveMode? CurrentMode =>
+        PhotoShootLiveModes.All.FirstOrDefault(mode => mode.Href.Equals(RelativePath, StringComparison.OrdinalIgnoreCase));
+
+    private string CurrentLabel => CurrentMode?.Label ?? "Mode";
+
+    private string CurrentIcon => CurrentMode?.Icon ?? "bi-display";
+
+    private void ToggleModes() => modesOpen = !modesOpen;
+
+    private void CloseModes() => modesOpen = false;
+
+    private void Go(string href)
+    {
+        modesOpen = false;
+        if (!href.Equals(RelativePath, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(href);
+        }
+    }
+
+    private void OnModesKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            modesOpen = false;
+        }
+    }
+
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
-    public void Dispose() => Store.Changed -= OnChanged;
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        modesOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Store.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
 }

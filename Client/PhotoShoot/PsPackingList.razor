@@ -1,0 +1,130 @@
+@inject PhotoShootStore Store
+@inject PhotoShootBrowser Browser
+
+@if (Store.Shoot is { } doc)
+{
+    var lines = PhotoShootGear.PackingList(doc).Where(Matches).ToList();
+    var all = PhotoShootGear.PackingList(doc);
+    var packed = all.Count(line => line.Packed);
+    var bring = all.Where(line => line.Supplier == EquipmentSupplier.Bring).ToList();
+
+    <section class="ps-card ps-packing" id="packing-list">
+        <div class="ps-packing-head">
+            <h2 class="ps-h2">Photo shoot packing list</h2>
+            <button type="button" class="ps-btn ps-btn-outline" @onclick="Browser.PrintAsync"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+        </div>
+        <p><strong>Packing progress:</strong> @packed of @all.Count items packed. <strong>Bring:</strong> @bring.Count(line => !line.Packed) still to pack of @bring.Count.</p>
+        <div class="ps-packing-filters" role="group" aria-label="Filter the packing list">
+            @Filter("all", "All equipment")
+            @Filter("bring", "What I bring")
+            @Filter("photographer", "Photographer")
+            @Filter("confirm", "Needs confirmation")
+            @Filter("packed", "Packed")
+            @Filter("unpacked", "Not packed")
+        </div>
+        @if (lines.Count == 0)
+        {
+            <p class="ps-muted">Nothing in this view.</p>
+        }
+        else
+        {
+            @foreach (var group in lines.GroupBy(line => line.Supplier))
+            {
+                <h3 class="ps-h3">@PhotoShootLabels.Supplier(group.Key)</h3>
+                <ul class="ps-packing-items">
+                    @foreach (var line in group)
+                    {
+                        <li class="@(line.Packed ? "is-packed" : "")">
+                            <label>
+                                <input type="checkbox" checked="@line.Packed" disabled="@(!Store.IsOwner || busy)" @onchange="() => Toggle(line)" />
+                                <span>@line.Name — @line.Quantity @(line.Optional ? "(optional)" : "")</span>
+                            </label>
+                            <div class="ps-muted ps-small">@PhotoShootLabels.EquipmentCategoryName(line.Category)@(line.Custom ? " · added by hand" : "")</div>
+                            @if (line.ShotTitles.Count > 0)
+                            {
+                                <div class="ps-small">Shots: @string.Join(", ", line.ShotTitles.Take(12))@(line.ShotTitles.Count > 12 ? $" +{line.ShotTitles.Count - 12} more" : "")</div>
+                            }
+                            @if (PsUi.Has(line.Preparation))
+                            {
+                                <div class="ps-small">@line.Preparation</div>
+                            }
+                            @if (Store.IsOwner)
+                            {
+                                <input class="form-control ps-input" placeholder="Preparation note" value="@line.Notes" @onchange="e => SaveNote(line, e)" aria-label="@("Note for " + line.Name)" />
+                                @if (line.Custom)
+                                {
+                                    <button type="button" class="ps-btn ps-btn-ghost" disabled="@busy" @onclick="() => Remove(line)">Remove</button>
+                                }
+                            }
+                            else if (PsUi.Has(line.Notes))
+                            {
+                                <div class="ps-small">@line.Notes</div>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        }
+        @if (Store.IsOwner)
+        {
+            <form class="ps-packing-add" @onsubmit="Add" @onsubmit:preventDefault="true">
+                <input class="form-control ps-input" placeholder="Add an item" @bind="customName" aria-label="Item to add" />
+                <input class="form-control ps-input" type="number" min="1" max="20" @bind="customQty" aria-label="Quantity" />
+                <button type="submit" class="ps-btn ps-btn-outline" disabled="@busy">Add</button>
+            </form>
+        }
+    </section>
+}
+
+@code {
+    private string filter = "all";
+    private string customName = "";
+    private int customQty = 1;
+    private bool busy;
+
+    private RenderFragment Filter(string id, string label) => @<button type="button" class="ps-btn @(filter == id ? "ps-btn-primary" : "ps-btn-outline")" @onclick="() => filter = id">@label</button>;
+
+    private bool Matches(GearLine line) => filter switch
+    {
+        "bring" => line.Supplier == EquipmentSupplier.Bring,
+        "photographer" => line.Supplier == EquipmentSupplier.Photographer,
+        "confirm" => line.Supplier == EquipmentSupplier.Confirm,
+        "packed" => line.Packed,
+        "unpacked" => !line.Packed,
+        _ => true
+    };
+
+    private Task Toggle(GearLine line) => Send(new PackingCommand { Action = line.Packed ? "unpack" : "pack", Key = line.Key });
+    private Task Note(GearLine line, string notes) => Send(new PackingCommand { Action = "note", Key = line.Key, Notes = notes });
+    private Task SaveNote(GearLine line, ChangeEventArgs change) => Note(line, change.Value?.ToString() ?? "");
+    private Task Remove(GearLine line) => Send(new PackingCommand { Action = "remove", Key = line.Key });
+
+    private async Task Add()
+    {
+        var name = customName;
+        var qty = customQty;
+        if (await Send(new PackingCommand { Action = "add", Name = name, Quantity = qty, Supplier = EquipmentSupplier.Bring }))
+        {
+            customName = "";
+            customQty = 1;
+        }
+    }
+
+    private async Task<bool> Send(PackingCommand command)
+    {
+        if (busy)
+        {
+            return false;
+        }
+
+        busy = true;
+        try
+        {
+            return await Store.PackingAsync(command);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

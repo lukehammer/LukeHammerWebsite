@@ -36,6 +36,8 @@ namespace BlazorApp.Shared.PhotoShoot
         public List<PhotoSetup> Setups { get; set; } = new List<PhotoSetup>();
         public List<PhotoShot> Shots { get; set; } = new List<PhotoShot>();
         public List<PhotoReference> References { get; set; } = new List<PhotoReference>();
+        /// <summary>Packed checkboxes, notes, and items added by hand. Shot requirements are calculated separately.</summary>
+        public List<PackingNote> Packing { get; set; } = new List<PackingNote>();
         public PhotoShootSession Session { get; set; } = new PhotoShootSession();
     }
 
@@ -91,6 +93,9 @@ namespace BlazorApp.Shared.PhotoShoot
         /// <summary>Overrides the setup background when not empty.</summary>
         public string Background { get; set; } = "";
         public List<string> Props { get; set; } = new List<string>();
+        /// <summary>True after equipment has been read from the shot text. An empty list then means no special props.</summary>
+        public bool EquipmentSpecified { get; set; }
+        public List<EquipmentNeed> Equipment { get; set; } = new List<EquipmentNeed>();
         public string LightingNotes { get; set; } = "";
         public int EstimatedMinutes { get; set; } = 3;
         public string Inspiration { get; set; } = "";
@@ -123,6 +128,8 @@ namespace BlazorApp.Shared.PhotoShoot
         public string ImageId { get; set; } = "";
         public string ImageContentType { get; set; } = "";
         public ReferenceProvenance Provenance { get; set; } = ReferenceProvenance.Unspecified;
+        /// <summary>Which required slot this photo fills on each linked shot. Extra links stay unassigned.</summary>
+        public List<ReferenceRole> Roles { get; set; } = new List<ReferenceRole>();
         public DateTime CreatedUtc { get; set; }
         public DateTime UpdatedUtc { get; set; }
 
@@ -154,6 +161,38 @@ namespace BlazorApp.Shared.PhotoShoot
         public string Text { get; set; } = "";
         public string Author { get; set; } = "";
         public DateTime CreatedUtc { get; set; }
+    }
+
+    /// <summary>One photo's job on one shot. The same file can fill different slots on different shots.</summary>
+    public class ReferenceRole
+    {
+        public string ShotId { get; set; } = "";
+        public ReferenceSlot Slot { get; set; }
+    }
+
+    public class EquipmentNeed
+    {
+        public string Key { get; set; } = "";
+        public string Name { get; set; } = "";
+        public int Quantity { get; set; } = 1;
+        public EquipmentCategory Category { get; set; }
+        public EquipmentSupplier Supplier { get; set; }
+        public bool Optional { get; set; }
+        public string Preparation { get; set; } = "";
+    }
+
+    /// <summary>Manual packing state. Calculated requirements are not stored here.</summary>
+    public class PackingNote
+    {
+        public string Key { get; set; } = "";
+        public string Name { get; set; } = "";
+        public bool Custom { get; set; }
+        public bool Packed { get; set; }
+        public string Notes { get; set; } = "";
+        /// <summary>0 means use the quantity calculated from the shots.</summary>
+        public int Quantity { get; set; }
+        public EquipmentCategory Category { get; set; }
+        public EquipmentSupplier Supplier { get; set; } = EquipmentSupplier.Bring;
     }
 
     public class PhotoShootSummary

@@ -15,6 +15,9 @@ namespace BlazorApp.Shared
 
         public static DateTime PacificToday => Now.Date;
 
+        public static DateTimeOffset ToPacific(DateTimeOffset value) =>
+            TimeZoneInfo.ConvertTime(value, Pacific);
+
         public static DateTimeOffset ToEventInstant(DateTime date, TimeSpan? startTime)
         {
             var day = date.Date;

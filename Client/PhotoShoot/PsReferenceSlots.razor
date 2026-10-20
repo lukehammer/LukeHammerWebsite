@@ -1,0 +1,80 @@
+@if (Doc != null && Shot != null)
+{
+    var slots = PhotoShootReferenceSlots.ForShot(Doc, Shot.Id);
+    @if (slots.Filled > 0)
+    {
+        <section class="ps-slots" aria-label="Required reference photos">
+            @if (slots.AiA != null)
+            {
+                @Card(slots.AiA, PhotoShootLabels.Slot(ReferenceSlot.AiA))
+            }
+            @if (slots.AiB != null)
+            {
+                @Card(slots.AiB, PhotoShootLabels.Slot(ReferenceSlot.AiB))
+            }
+            @if (slots.Celebrity != null)
+            {
+                @Card(slots.Celebrity, PhotoShootLabels.Slot(ReferenceSlot.Celebrity))
+            }
+            @if (slots.RealWorld != null)
+            {
+                @Card(slots.RealWorld, PhotoShootLabels.Slot(ReferenceSlot.RealWorld))
+            }
+        </section>
+    }
+    @if (slots.Additional.Count > 0)
+    {
+        <details class="ps-live-more">
+            <summary>Additional references (@slots.Additional.Count)</summary>
+            <div class="ps-slots">
+                @foreach (var reference in slots.Additional)
+                {
+                    @Card(reference, "Additional")
+                }
+            </div>
+        </details>
+    }
+}
+
+@code {
+    [Parameter] public PhotoShootDocument? Doc { get; set; }
+    [Parameter] public PhotoShot? Shot { get; set; }
+    [Parameter] public Func<PhotoReference, string>? ImageUrl { get; set; }
+    [Parameter] public EventCallback<PhotoReference> OnEnlarge { get; set; }
+
+    private RenderFragment Card(PhotoReference reference, string label) => @<div class="ps-slot">
+        <div class="ps-slot-label">@label</div>
+        @if (reference.HasImage && ImageUrl != null)
+        {
+            <button type="button" class="ps-ref-zoom" title="@reference.Title" @onclick="() => OnEnlarge.InvokeAsync(reference)">
+                <img src="@ImageUrl(reference)" alt="@reference.Title" />
+            </button>
+        }
+        else if (PhotoShootPlanUpgrade.LooksLikeImageUrl(reference.SourceUrl))
+        {
+            <a href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer"><img src="@reference.SourceUrl" alt="@reference.Title" /></a>
+        }
+        else
+        {
+            <p class="ps-muted">@reference.Title</p>
+        }
+        <div class="ps-slot-meta">
+            @if (PsUi.Has(reference.PerformerOrCharacter))
+            {
+                <div>@reference.PerformerOrCharacter</div>
+            }
+            @if (PsUi.Has(reference.WhatToImitate))
+            {
+                <div>@reference.WhatToImitate</div>
+            }
+            @if (PsUi.Has(reference.SourceUrl))
+            {
+                <a href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer">Source</a>
+            }
+            @if (PsUi.Has(reference.Credit))
+            {
+                <div class="ps-muted">@reference.Credit</div>
+            }
+        </div>
+    </div>;
+}

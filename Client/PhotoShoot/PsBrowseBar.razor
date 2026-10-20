@@ -1,0 +1,169 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+
+@if (Doc != null && ordered.Count > 0 && shown != null)
+{
+    <div class="ps-browse">
+        <div class="ps-browse-row" role="group" aria-label="Browse the shoot">
+            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="() => Go(0)">First</button>
+            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="Previous">Previous</button>
+            <button type="button" class="ps-browse-count" aria-expanded="@open" @onclick="() => open = !open">
+                Photo @(index + 1) of @ordered.Count <span aria-hidden="true">▼</span>
+            </button>
+            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="Next">Next</button>
+            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="() => Go(ordered.Count - 1)">Last</button>
+        </div>
+        @if (open)
+        {
+            <div class="ps-browse-menu">
+                <input class="form-control ps-input" placeholder="Search number, title, group, or tag" @bind="query" @bind:event="oninput" aria-label="Search shots" />
+                @foreach (var group in PhotoShootPlanner.Groups(Doc, includeEmptySetups: false))
+                {
+                    var hits = group.Shots.Where(shot => Matches(shot, group.Name)).ToList();
+                    if (hits.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    <details class="ps-browse-group" open="@(string.IsNullOrWhiteSpace(query) ? group.Setup?.Id == shown.SetupId : true)">
+                        <summary>@(group.Setup?.ShootingBlock > 0 ? $"Block {group.Setup.ShootingBlock}. " : "")@group.Name <span class="ps-muted">@hits.Count</span></summary>
+                        <ul>
+                            @foreach (var shot in hits)
+                            {
+                                var number = PhotoShootPlanner.OrderNumber(Doc, shot.Id);
+                                var thumb = PhotoShootEditor.ReferencesForShot(Doc, shot.Id).FirstOrDefault(reference => reference.HasImage);
+                                <li>
+                                    <button type="button" class="ps-browse-shot @(shot.Id == shown.Id ? "is-current" : "")" @onclick="() => Select(shot.Id)">
+                                        @if (thumb != null && ImageUrl != null)
+                                        {
+                                            <img src="@ImageUrl(thumb)" alt="" />
+                                        }
+                                        <span>
+                                            <strong>@number. @shot.Title</strong>
+                                            <span class="ps-muted">@PhotoShootLabels.Status(shot.Status)</span>
+                                        </span>
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private readonly List<PhotoShot> ordered = new();
+    private bool open;
+    private string query = "";
+    private IJSObjectReference? module;
+    private DotNetObjectReference<PsBrowseBar>? self;
+
+    [Parameter] public PhotoShootDocument? Doc { get; set; }
+    [Parameter] public string? CurrentId { get; set; }
+    [Parameter] public EventCallback<string> Navigate { get; set; }
+    [Parameter] public Func<PhotoReference, string>? ImageUrl { get; set; }
+
+    private PhotoShot? shown => PhotoShootPlanner.FindShot(Doc!, CurrentId);
+    private int index => shown == null ? -1 : ordered.FindIndex(shot => shot.Id == shown.Id);
+
+    protected override void OnParametersSet()
+    {
+        ordered.Clear();
+        if (Doc != null)
+        {
+            ordered.AddRange(PhotoShootPlanner.OrderedShots(Doc));
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || self != null)
+        {
+            return;
+        }
+
+        try
+        {
+            module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/photoshoot.js");
+            self = DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("bindShotKeys", self);
+        }
+        catch (JSException)
+        {
+            module = null;
+        }
+    }
+
+    [JSInvokable]
+    public Task OnShotKey(string key)
+    {
+        if (key == "ArrowLeft") return Previous();
+        if (key == "ArrowRight") return Next();
+        if (key == "Home") return Go(0);
+        if (key == "End") return Go(ordered.Count - 1);
+        return Task.CompletedTask;
+    }
+
+    private Task Previous() => index > 0 ? Go(index - 1) : Task.CompletedTask;
+    private Task Next() => index >= 0 && index < ordered.Count - 1 ? Go(index + 1) : Task.CompletedTask;
+
+    private Task Go(int target)
+    {
+        if (target < 0 || target >= ordered.Count)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Select(ordered[target].Id);
+    }
+
+    private Task Select(string shotId)
+    {
+        open = false;
+        if (string.IsNullOrEmpty(shotId) || shotId == CurrentId)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Navigate.InvokeAsync(shotId);
+    }
+
+    private bool Matches(PhotoShot shot, string groupName)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return true;
+        }
+
+        var term = query.Trim();
+        var number = PhotoShootPlanner.OrderNumber(Doc!, shot.Id).ToString();
+        if (number == term || shot.Title.Contains(term, StringComparison.OrdinalIgnoreCase) || groupName.Contains(term, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return shot.Tags.Any(tag => tag.Contains(term, StringComparison.OrdinalIgnoreCase))
+            || (shot.Inspiration ?? "").Contains(term, StringComparison.OrdinalIgnoreCase)
+            || (shot.Summary ?? "").Contains(term, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (module != null)
+            {
+                await module.InvokeVoidAsync("unbindShotKeys");
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+
+        self?.Dispose();
+    }
+}

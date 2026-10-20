@@ -243,6 +243,195 @@ a, .btn-link {
     line-height: 1.5;
 }
 
+.family-event-picker {
+    max-width: 32rem;
+}
+
+.family-event-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+}
+
+.family-event-row .camping-field {
+    flex: 1 1 12rem;
+}
+
+.family-event-when {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.family-event-location,
+.family-event-description {
+    margin-bottom: 0.25rem;
+    color: #444;
+    white-space: pre-line;
+}
+
+.family-event-status {
+    margin: 0.75rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.family-event-status.is-locked {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.family-event-check {
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.family-rsvp-summary {
+    margin-bottom: 0.5rem;
+}
+
+.family-rsvp-goal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.family-rsvp-bar {
+    flex: 1 1 10rem;
+    max-width: 20rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: #e9ecef;
+    overflow: hidden;
+}
+
+.family-rsvp-bar-fill {
+    height: 100%;
+    background: #198754;
+}
+
+.family-rsvp-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.family-rsvp-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+}
+
+.family-rsvp-list li {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #e9ecef;
+    overflow-wrap: anywhere;
+}
+
+.family-rsvp-badge {
+    display: inline-block;
+    min-width: 6.5rem;
+    margin-right: 0.5rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    text-align: center;
+    background: #e9ecef;
+    color: #495057;
+}
+
+.family-rsvp-badge.is-going {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.family-rsvp-badge.is-maybe {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.family-notify-results {
+    flex-basis: 100%;
+    margin-top: 0;
+}
+
+.family-rsvp-note {
+    color: #555;
+}
+
+.family-qa-empty {
+    margin: 1rem 0 0;
+    color: #555;
+}
+
+.family-qa-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.family-qa-question {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.family-qa-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.family-qa-author {
+    font-weight: 600;
+    color: #222;
+}
+
+.family-qa-text {
+    margin: 0.25rem 0 0.5rem;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.family-qa-unanswered {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    font-style: italic;
+    color: #888;
+}
+
+.family-qa-answers {
+    border-left: 3px solid #cfe2ff;
+    padding-left: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.family-qa-answer + .family-qa-answer {
+    margin-top: 0.5rem;
+}
+
+.family-qa-reply textarea {
+    resize: vertical;
+}
+
+.family-event-organizer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
 .camping-card {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -667,6 +856,10 @@ a, .btn-link {
 
     .camping-table-wrap {
         display: none;
+    }
+
+    .camping-table-wrap.family-event-bring-table {
+        display: block;
     }
 }
 

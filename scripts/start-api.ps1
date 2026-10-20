@@ -17,6 +17,6 @@ if (-not (Get-Command func -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "Starting API at http://localhost:7071"
-Write-Host "Camping survey: GET/POST http://localhost:7071/api/camping/potluck"
+Write-Host "Family events: GET/POST http://localhost:7071/api/family-events"
 Set-Location $apiDir
 func start --port 7071

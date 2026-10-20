@@ -31,7 +31,39 @@ namespace BlazorApp.Shared.PhotoShoot
         ClosePublicMatch = 2,
         AlternateInspiration = 3,
         MissingOriginal = 4,
-        SubjectPortrait = 5
+        SubjectPortrait = 5,
+        AiGenerated = 6
+    }
+
+    /// <summary>Which required reference slot a photo fills for one shot. Unassigned keeps older links as extra references.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum ReferenceSlot
+    {
+        Unassigned = 0,
+        AiA = 1,
+        AiB = 2,
+        Celebrity = 3,
+        RealWorld = 4,
+        Additional = 5
+    }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum EquipmentCategory
+    {
+        Magic = 0,
+        Furniture = 1,
+        Wardrobe = 2,
+        Studio = 3,
+        Miscellaneous = 4
+    }
+
+    /// <summary>Who is responsible for having the item on set.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum EquipmentSupplier
+    {
+        Bring = 0,
+        Photographer = 1,
+        Confirm = 2
     }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -111,7 +143,34 @@ namespace BlazorApp.Shared.PhotoShoot
             ReferenceProvenance.AlternateInspiration => "Alternate inspiration",
             ReferenceProvenance.MissingOriginal => "Missing original",
             ReferenceProvenance.SubjectPortrait => "Luke portrait",
+            ReferenceProvenance.AiGenerated => "AI-generated",
             _ => ""
+        };
+
+        public static string Slot(ReferenceSlot slot) => slot switch
+        {
+            ReferenceSlot.AiA => "AI Reference A",
+            ReferenceSlot.AiB => "AI Reference B",
+            ReferenceSlot.Celebrity => "Celebrity reference",
+            ReferenceSlot.RealWorld => "Real-world reference",
+            ReferenceSlot.Additional => "Additional",
+            _ => ""
+        };
+
+        public static string EquipmentCategoryName(EquipmentCategory category) => category switch
+        {
+            EquipmentCategory.Magic => "Magic props",
+            EquipmentCategory.Furniture => "Furniture",
+            EquipmentCategory.Wardrobe => "Wardrobe",
+            EquipmentCategory.Studio => "Studio equipment",
+            _ => "Miscellaneous"
+        };
+
+        public static string Supplier(EquipmentSupplier supplier) => supplier switch
+        {
+            EquipmentSupplier.Bring => "Bring",
+            EquipmentSupplier.Photographer => "Photographer provides",
+            _ => "Confirm availability"
         };
 
         public static string Priority(ShotPriority priority) => priority switch

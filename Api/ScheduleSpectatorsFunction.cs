@@ -65,6 +65,12 @@ namespace ApiIsolated
                 var current = await ScheduleSpectatorsStorage.LoadAsync();
                 var merged = ScheduleSpectators.MergeCustomNames(current, request.AddNames);
                 await ScheduleSpectatorsStorage.SaveAsync(merged);
+                await Notifications.NotificationDispatcher.NotifyChangeAsync(_logger, "Someone", new Notifications.NotificationMessage
+                {
+                    Title = "Sports: spectator names added",
+                    Body = $"Someone added {string.Join(", ", request.AddNames)} to the spectator list.",
+                    ClickUrl = Notifications.NotificationDispatcher.SiteUrl("Sports")
+                });
 
                 var response = new ScheduleSpectatorsResponse
                 {

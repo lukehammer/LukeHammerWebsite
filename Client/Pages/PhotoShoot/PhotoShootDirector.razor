@@ -20,11 +20,12 @@
         var session = doc.Session;
         var progress = PhotoShootPlanner.Progress(doc);
         var remaining = PhotoShootPlanner.EstimateRemaining(doc, session.MustHaveOnly);
-        var current = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
+        var live = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
+        var current = live;
         var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
-        var upcoming = PhotoShootPlanner.Upcoming(doc, current?.Id, 5, session.MustHaveOnly);
+        var upcoming = PhotoShootPlanner.Upcoming(doc, live?.Id, 5, session.MustHaveOnly);
         var skipped = PhotoShootPlanner.OrderedShots(doc).Where(s => s.Status == ShotStatus.Skipped).ToList();
-        var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, current?.Id, session.MustHaveOnly);
+        var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, live?.Id, session.MustHaveOnly);
         var referenceImages = current == null
             ? new List<PhotoReference>()
             : PhotoShootEditor.ReferencesForShot(doc, current.Id).Where(r => r.HasImage).ToList();
@@ -96,6 +97,7 @@
             }
             else
             {
+                <PsBrowseBar Doc="doc" CurrentId="@live?.Id" Navigate="GoTo" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" />
                 <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
                     <div class="ps-dir-top @(hero == null ? "" : "has-gallery")">
                         <div class="ps-dir-copy">
@@ -131,6 +133,21 @@
                             </div>
                         }
                     </div>
+                    <PsReferenceSlots Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
+                    @if (current.Equipment.Count == 0)
+                    {
+                        <p><strong>Equipment / props required:</strong> No special props required.</p>
+                    }
+                    else
+                    {
+                        <p><strong>Equipment / props required</strong></p>
+                        <ul>
+                            @foreach (var item in current.Equipment)
+                            {
+                                <li>@item.Name × @item.Quantity · @PhotoShootLabels.Supplier(item.Supplier)@(item.Optional ? " · optional" : "")</li>
+                            }
+                        </ul>
+                    }
                     <PsShotDirections Shot="current" Setup="setup" ShowPhotographer="false" ActingNoteAfterExpression="true" />
                     <details class="ps-live-more">
                         <summary>Photographer side, references &amp; purpose</summary>
@@ -279,8 +296,22 @@
     }
 }
 
+@if (Store.Shoot is { } openDoc)
+{
+    <PsLightbox Src="@(enlarged == null ? null : Store.Api.ImageUrl(openDoc.Id, enlarged))" Alt="@(enlarged?.Title ?? "")" SourceUrl="@enlarged?.SourceUrl" OnClose="() => enlarged = null" />
+}
+
 @code {
     private bool busy;
+    private PhotoReference? enlarged;
+
+    private Task GoTo(string shotId) => Do(SessionAction.SetCurrent, shotId);
+
+    private Task ShowReference(PhotoReference reference)
+    {
+        enlarged = reference;
+        return Task.CompletedTask;
+    }
     private string tab = "next";
     private string findText = "";
     private string noteText = "";

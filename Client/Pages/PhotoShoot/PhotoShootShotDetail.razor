@@ -89,6 +89,20 @@
 
             <section class="ps-card">
                 <h2 class="ps-h2">References</h2>
+                <PsReferenceSlots Doc="doc" Shot="shot" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
+                @if (shot.Equipment.Count == 0)
+                {
+                    <p><strong>Equipment / props required:</strong> No special props required.</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var item in shot.Equipment)
+                        {
+                            <li>@item.Name × @item.Quantity · @PhotoShootLabels.Supplier(item.Supplier)</li>
+                        }
+                    </ul>
+                }
                 <PsShotReferences Shot="shot" />
                 @if (Store.IsOwner)
                 {
@@ -145,13 +159,21 @@
             }
         </article>
     }
+    <PsLightbox Src="@(enlarged == null ? null : Store.Api.ImageUrl(doc.Id, enlarged))" Alt="@(enlarged?.Title ?? "")" SourceUrl="@enlarged?.SourceUrl" OnClose="() => enlarged = null" />
 }
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
     private bool bigText;
+    private PhotoReference? enlarged;
     private bool busy;
+
+    private Task ShowReference(PhotoReference reference)
+    {
+        enlarged = reference;
+        return Task.CompletedTask;
+    }
     private string noteText = "";
 
     private PhotoShot? Shot => Store.Shoot == null ? null : PhotoShootPlanner.FindShot(Store.Shoot, Id);

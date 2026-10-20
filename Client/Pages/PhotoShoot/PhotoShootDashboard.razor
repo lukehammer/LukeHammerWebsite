@@ -11,6 +11,7 @@
     var mustRemaining = PhotoShootPlanner.EstimateRemaining(doc, mustHaveOnly: true);
     var total = PhotoShootPlanner.EstimateTotal(doc);
     var current = PhotoShootPlanner.FindShot(doc, doc.Session.CurrentShotId);
+    var coverage = PhotoShootReferenceSlots.Coverage(doc);
     var currentSetup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
 
     <header class="ps-page-head">
@@ -87,6 +88,14 @@
     </section>
 
     <section class="ps-card">
+        <h2 class="ps-h2">Reference coverage</h2>
+        <p><strong>@coverage.Filled</strong> of @coverage.Required required slots filled. <strong>@coverage.CompleteShots</strong> of @coverage.Shots shots have all four.</p>
+        <p class="ps-small">AI A @coverage.AiA · AI B @coverage.AiB · Celebrity @coverage.Celebrity · Real-world @coverage.RealWorld</p>
+    </section>
+
+    <PsPackingList />
+
+    <section class="ps-card">
         <h2 class="ps-h2">Setups <a class="ps-small" href="photoshoot/brief">Photograph brief</a></h2>
         <ol class="ps-setup-summary">
             @foreach (var group in PhotoShootPlanner.Groups(doc, includeEmptySetups: false))
@@ -104,6 +113,17 @@
                         @group.Name
                     </span>
                     <span class="ps-setup-summary-count">@group.CompletedCount/@group.Shots.Count</span>
+                    @{
+                        var gear = PhotoShootGear.ForSetup(doc, group.Setup?.Id);
+                    }
+                    @if (gear.Count == 0)
+                    {
+                        <div class="ps-small ps-muted">No special props required.</div>
+                    }
+                    else
+                    {
+                        <div class="ps-small">Equipment: @string.Join(", ", gear.Select(item => item.Name))</div>
+                    }
                 </li>
             }
         </ol>

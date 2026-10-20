@@ -15,6 +15,12 @@
     "SMTP_USER": "",
     "SMTP_PASSWORD": "",
 
+    "NTFY_TOPIC": "",
+    "NTFY_SERVER": "https://ntfy.sh",
+    "NTFY_TOKEN": "",
+    "NOTIFY_CHANNELS": "",
+    "SITE_BASE_URL": "https://lukehammer.com",
+
     "NOTIFY_SMS_TO": "+15035053005",
     "TWILIO_ACCOUNT_SID": "",
     "TWILIO_AUTH_TOKEN": "",
@@ -30,7 +36,7 @@
     "PHOTOSHOOT_DEV_ROLE": "owner"
   },
   "_comment_storage": "LUKE_HAMMER_WEBSITE (or AzureWebJobsStorage) persists camping potluck, sports schedules, and kid-theme-colors blobs. Local dev without a connection string uses temp JSON and seeds from Api/data/*.json on first read.",
-  "_comment_notifications": "When someone other than Luke (see LUKE_NAME_ALIASES) adds/updates/deletes a schedule event, email and SMS are sent. If SendGrid/Twilio/SMTP are not configured, the notification payload is logged and CRUD still succeeds.",
+  "_comment_notifications": "When someone other than Luke (see LUKE_NAME_ALIASES) changes Sports or Family Events, every configured channel is notified at once: ntfy push (NTFY_TOPIC), email (SendGrid/SMTP), SMS (Twilio). NOTIFY_CHANNELS (e.g. \"ntfy,email\") limits which are used. Unconfigured channels are skipped and the change still succeeds.",
   "_comment_github": "GITHUB_TOKEN needs repo scope (contents write) to commit Api/data/sports-schedules.json via the GitHub Contents API after each mutation. If unset, blob/local storage is still updated and a warning is logged.",
   "_comment_photoshoot": "Photo shoot planner (/photoshoot). Requires SWA roles photoshoot-owner or photoshoot-photographer. For local dev only, set PHOTOSHOOT_DEV_AUTH=true to bypass sign-in (PHOTOSHOOT_DEV_ROLE = owner|photographer; ?devRole=photographer in the browser overrides per tab). The bypass is ignored whenever WEBSITE_SITE_NAME is set (i.e. in Azure). Data is stored in the private 'photoshoot' blob container, or %TEMP%/lukehammer-photoshoot without a connection string.",
   "Host": {

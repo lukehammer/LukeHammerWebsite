@@ -464,6 +464,21 @@ namespace ApiIsolated
                 };
             });
 
+        [Function("PhotoShootPacking")]
+        public Task<HttpResponseData> UpdatePacking(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "photoshoot/shoots/{shootId}/packing")] HttpRequestData req, string shootId) =>
+            Mutate(req, shootId, ownerOnly: true, async (me, request) =>
+            {
+                var body = await ReadJson<PackingCommand>(request);
+                return doc =>
+                {
+                    var message = PhotoShootGear.ApplyCommand(doc, body);
+                    return message.StartsWith("Invalid") || message.StartsWith("Name") || message.StartsWith("That item") || message.StartsWith("Only items")
+                        ? MutationOutcome.Fail(400, message)
+                        : MutationOutcome.Saved(message);
+                };
+            });
+
         // ---------- references ----------
 
         [Function("PhotoShootCreateReference")]

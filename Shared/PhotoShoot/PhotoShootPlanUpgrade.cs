@@ -10,7 +10,7 @@ namespace BlazorApp.Shared.PhotoShoot
     /// </summary>
     public static class PhotoShootPlanUpgrade
     {
-        public const int CurrentPlanVersion = 2;
+        public const int CurrentPlanVersion = 3;
         public const string PortraitCloseUrl = "https://lukehammer.com/favicon-96x96.png";
         public const string PortraitWideUrl = "https://lukehammer.com/apple-icon.png";
 
@@ -65,6 +65,12 @@ namespace BlazorApp.Shared.PhotoShoot
             changed |= MoveWeddingCardShot(doc);
             changed |= Arrange(doc);
             changed |= AttachReferences(doc, nowUtc);
+            if (doc.PlanVersion < 3)
+            {
+                changed |= PhotoShootReferenceSlots.AssignExisting(doc);
+                changed |= PhotoShootGear.SpecifyFromExistingText(doc);
+            }
+
             if (doc.PlanVersion != CurrentPlanVersion)
             {
                 doc.PlanVersion = CurrentPlanVersion;

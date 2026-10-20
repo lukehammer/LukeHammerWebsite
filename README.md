@@ -55,6 +55,34 @@ Once you clone the project, open the solution in the latest release of [Visual S
 
 This application can be deployed to [Azure Static Web Apps](https://docs.microsoft.com/azure/static-web-apps), to learn how, check out [our quickstart guide](https://aka.ms/blazor-swa/quickstart).
 
+## Family events (potlucks)
+
+The **Family Events** page (`/FamilyEvents`, or `/FamilyEvents/{id}` for a specific event) opens on the next upcoming event, and a picker lists both upcoming and past events. Each event has its own potluck theme voting and "what I'm bringing" list. `/camping` redirects to the original camping potluck, which is imported as a past event the first time the API loads.
+
+- Only Luke (organizer code, same session as Sports) can create, edit, or delete events. Anyone who enters a name can vote, sign up, ask questions, and answer them. People can delete their own questions and answers; Luke can delete any.
+- An event locks at midnight Pacific **3 days after its last day** (`FamilyEventRules`; multi-day events use `endDate`). After that the API rejects every change to it with `409 Conflict`, including Luke's.
+- Per event, Luke can turn on RSVPs (with an optional "families needed" goal and reply-by date), turn theme voting off, customize the potluck question, and add extra sign-up lists (e.g. skits).
+- `Api/FamilyEventsSeed.cs` holds built-in events (Christmas Party 2026, Mayfield Lake camping 2027). Each is added once and recorded in `appliedSeedIds`, so deleting one on the site does not bring it back.
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/family-events` | All events plus the server's Pacific `today` |
+| POST | `/api/family-events` | Create event (Luke) |
+| PUT | `/api/family-events/{id}` | Edit title, date, time, location, details (Luke) |
+| DELETE | `/api/family-events/{id}?submittedBy=` | Delete event (Luke) |
+| POST | `/api/family-events/{id}/participant` | Save what someone is bringing |
+| POST | `/api/family-events/{id}/rate` | Upvote / downvote / clear a theme |
+| POST | `/api/family-events/{id}/options` | Suggest a theme |
+| POST | `/api/family-events/{id}/options/remove` | Remove a suggested theme |
+| POST | `/api/family-events/{id}/rsvp` | RSVP (`{ name, status: going/maybe/no or blank to remove, headcount, note }`) |
+| POST | `/api/family-events/{id}/signups/{listId}` | Sign up on a list (`{ name, text }`; blank text removes) |
+| POST | `/api/family-events/{id}/questions` | Ask a question (`{ name, text }`) |
+| POST | `/api/family-events/{id}/questions/{questionId}/answers` | Answer a question (`{ name, text }`) |
+| POST | `/api/family-events/{id}/questions/{questionId}/delete` | Delete a question (`{ name }`: its author or Luke's code) |
+| POST | `/api/family-events/{id}/questions/{questionId}/answers/{answerId}/delete` | Delete an answer (author or Luke) |
+
+Data is stored in `camping-potluck/family-events.json` via `FamilyEventsStorage` (optimistic concurrency). The legacy `survey.json` is only read for the one-time import.
+
 ## Sports schedule CRUD
 
 The **Sports** page (`/Sports`) lists upcoming games and includes a **Manage schedule** section to add, edit, or delete events. Every write requires **Your name** (`submittedBy`).
@@ -90,14 +118,18 @@ Do **not** run `dotnet build` while `dotnet run` is still serving the site—the
 
 ### Notifications (family site — no auth)
 
-When the actor is **not** Luke, the API sends email and SMS after a successful change. Luke is detected case-insensitively if `submittedBy` matches any entry in `LUKE_NAME_ALIASES` (default: `Luke`, `Luke Hammer`, `luke hammer`).
+When the actor is **not** Luke, the API notifies Luke after every successful change on Sports (schedule, kid colors, spectator names) and Family Events (RSVPs, sign-ups, potluck, votes, questions, answers). Luke is detected case-insensitively if the name matches `LUKE_NAME_ALIASES` (default: `Luke`, `Luke Hammer`, `luke hammer`), or by the organizer code.
 
-Configure in `Api/local.settings.json` (see `local.settings.example.json`):
+`Api/Notifications/NotificationDispatcher.cs` sends to **every configured channel at once**. Each provider is one `INotificationChannel` class; to add another (Pushover, Telegram, …) implement the interface and add it to `NotificationDispatcher.Channels`. Set `NOTIFY_CHANNELS` (e.g. `ntfy,email`) to limit which channels are used; leave it empty to use all configured ones.
 
+Configure in Azure app settings (or `Api/local.settings.json`, see `local.settings.example.json`):
+
+- **Phone push (ntfy):** `NTFY_TOPIC` (a long random name; anyone who knows it can read the alerts), optional `NTFY_SERVER` (default `https://ntfy.sh`) and `NTFY_TOKEN`. Install the ntfy app and subscribe to the same topic.
 - **Email:** `SENDGRID_API_KEY` and/or `SMTP_*`, plus `NOTIFY_EMAIL_TO` (default `luke@lukehammermagic.com`)
 - **SMS:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `NOTIFY_SMS_TO` (default `+15035053005`)
+- `SITE_BASE_URL` (default `https://lukehammer.com`) is used for the link that opens when a notification is tapped.
 
-If providers are missing in dev, notifications are **logged to the Functions console**; CRUD still succeeds.
+**Checking production:** sign in as organizer on `/FamilyEvents` and press **Send test notification** (`POST /api/notifications/test`). It reports each channel as Sent, Failed (with the provider's error), or Not set up. Unconfigured or failing channels never block a change; failures are logged as warnings.
 
 ### GitHub backup
 

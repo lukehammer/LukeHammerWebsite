@@ -1,0 +1,1337 @@
+@page "/FamilyEvents"
+@page "/FamilyEvents/{EventId}"
+@using System.Globalization
+@using BlazorApp.Shared
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>@(SelectedEvent?.Title ?? "Family Events")</PageTitle>
+
+<main class="camping-page">
+    <h1>Family Events</h1>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="camping-error">@errorMessage</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(successMessage))
+    {
+        <p class="camping-success">@successMessage</p>
+    }
+
+    @if (response == null)
+    {
+        <p>Loading events...</p>
+    }
+    else
+    {
+        @if (response.Events.Count > 0)
+        {
+            <div class="camping-field family-event-picker">
+                <label for="event-picker">Event</label>
+                <select id="event-picker" class="form-select camping-input" value="@SelectedEvent?.Id" @onchange="OnEventPicked">
+                    @if (UpcomingEvents.Count > 0)
+                    {
+                        <optgroup label="Upcoming">
+                            @foreach (var evt in UpcomingEvents)
+                            {
+                                <option value="@evt.Id">@FormatPickerLabel(evt)</option>
+                            }
+                        </optgroup>
+                    }
+                    @if (PastEvents.Count > 0)
+                    {
+                        <optgroup label="Past">
+                            @foreach (var evt in PastEvents)
+                            {
+                                <option value="@evt.Id">@FormatPickerLabel(evt)</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+        }
+
+        @if (editor != null)
+        {
+            <section class="camping-card">
+                <h2>@(editor.IsNew ? "New event" : "Edit event")</h2>
+                <div class="camping-field">
+                    <label for="evt-title">Title</label>
+                    <input id="evt-title" class="form-control camping-input" @bind="editor.Title" placeholder="e.g. Hammer Thanksgiving Potluck" />
+                </div>
+                <div class="family-event-row">
+                    <div class="camping-field">
+                        <label for="evt-date">Date</label>
+                        <input id="evt-date" type="date" class="form-control camping-input" @bind="editor.Date" />
+                    </div>
+                    <div class="camping-field">
+                        <label for="evt-end-date">Last day (multi-day events)</label>
+                        <input id="evt-end-date" type="date" class="form-control camping-input" @bind="editor.EndDate" />
+                    </div>
+                    <div class="camping-field">
+                        <label for="evt-time">Start time (optional)</label>
+                        <input id="evt-time" type="time" class="form-control camping-input" @bind="editor.StartTime" />
+                    </div>
+                </div>
+                <div class="camping-field">
+                    <label for="evt-location">Location</label>
+                    <input id="evt-location" class="form-control camping-input" @bind="editor.Location" placeholder="e.g. Grandma's house" />
+                </div>
+                <div class="camping-field">
+                    <label for="evt-description">Details</label>
+                    <textarea id="evt-description" class="form-control camping-input" rows="8" @bind="editor.Description" placeholder="Anything people should know"></textarea>
+                </div>
+                <div class="camping-field">
+                    <label for="evt-bring-prompt">Potluck question (optional)</label>
+                    <input id="evt-bring-prompt" class="form-control camping-input" @bind="editor.BringPrompt" placeholder="What do you plan to bring?" />
+                </div>
+                <label class="family-event-check">
+                    <input type="checkbox" @bind="editor.ThemeVotingEnabled" /> Let people vote on potluck themes
+                </label>
+                @if (editor.IsNew && editor.ThemeVotingEnabled)
+                {
+                    <div class="camping-field">
+                        <label for="evt-themes">Potluck themes to vote on (comma separated, optional)</label>
+                        <input id="evt-themes" class="form-control camping-input" @bind="editor.ThemesText" placeholder="e.g. Mexican, BBQ, Free for all" />
+                    </div>
+                }
+                <label class="family-event-check">
+                    <input type="checkbox" @bind="editor.RsvpEnabled" /> Ask families to RSVP
+                </label>
+                @if (editor.RsvpEnabled)
+                {
+                    <div class="family-event-row">
+                        <div class="camping-field">
+                            <label for="evt-rsvp-goal">Families needed (optional)</label>
+                            <input id="evt-rsvp-goal" type="number" min="1" max="100" class="form-control camping-input" @bind="editor.RsvpGoal" />
+                        </div>
+                        <div class="camping-field">
+                            <label for="evt-rsvp-deadline">Reply by (optional)</label>
+                            <input id="evt-rsvp-deadline" type="date" class="form-control camping-input" @bind="editor.RsvpDeadline" />
+                        </div>
+                    </div>
+                }
+                <div class="camping-field">
+                    <label for="evt-signups">Extra sign-up lists, one per line as "Title: question" (optional)</label>
+                    <textarea id="evt-signups" class="form-control camping-input" rows="3" @bind="editor.SignupListsText" placeholder="Skits: What is your family doing?"></textarea>
+                    @if (!editor.IsNew)
+                    {
+                        <p class="camping-hint">Removing a line deletes that list and everything signed up on it.</p>
+                    }
+                </div>
+                <div class="camping-bring-edit-actions">
+                    <button class="btn btn-primary camping-btn" @onclick="SaveEditor" disabled="@isBusy">
+                        @(isBusy ? "Saving..." : editor.IsNew ? "Create event" : "Save changes")
+                    </button>
+                    <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="() => editor = null" disabled="@isBusy">Cancel</button>
+                </div>
+            </section>
+        }
+
+        @if (SelectedEvent == null)
+        {
+            <p class="camping-intro">No events yet.</p>
+        }
+        else
+        {
+            var evt = SelectedEvent;
+            <section class="camping-card">
+                <h2>@evt.Title</h2>
+                <p class="family-event-when">@FormatWhen(evt)</p>
+                @if (!string.IsNullOrWhiteSpace(evt.Location))
+                {
+                    <p class="family-event-location">@evt.Location</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(evt.Description))
+                {
+                    <p class="family-event-description">@evt.Description</p>
+                }
+
+                @if (IsLocked)
+                {
+                    <p class="family-event-status is-locked">This event has passed. Everything below is read-only.</p>
+                }
+                else if (FamilyEventRules.IsPast(evt, response.Today))
+                {
+                    <p class="family-event-status">This event has passed. Changes are allowed through @evt.LastDay.AddDays(FamilyEventRules.EditableDaysAfterEvent).ToString("dddd, MMMM d", DisplayCulture).</p>
+                }
+
+                @if (isLuke && !IsLocked && editor == null)
+                {
+                    <div class="camping-bring-edit-actions">
+                        <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="() => StartEdit(evt)">Edit details</button>
+                        <button class="btn btn-outline-danger camping-btn" @onclick="() => DeleteEvent(evt)" disabled="@isBusy">Delete event</button>
+                    </div>
+                }
+            </section>
+
+            @if (!IsLocked)
+            {
+                <section class="camping-card">
+                    <h2>Who are you?</h2>
+                    <div class="camping-field">
+                        <label for="voter-name">Your name</label>
+                        <input id="voter-name" class="form-control camping-input" @bind="name" @bind:after="OnNameChanged" placeholder="Enter your name" autocomplete="name" />
+                    </div>
+                    <p class="camping-hint">Your name is shown with your RSVP, sign-ups, votes, questions, and answers.</p>
+                </section>
+            }
+
+            @if (evt.RsvpEnabled)
+            {
+                var summary = FamilyEventRules.SummarizeRsvps(evt.Rsvps);
+                <section class="camping-card">
+                    <h2>@(IsLocked ? "Who came" : "Are you coming?")</h2>
+                    <p class="family-rsvp-summary">
+                        <strong>@summary.GoingFamilies @(summary.GoingFamilies == 1 ? "family" : "families") going</strong>
+                        @if (summary.GoingPeople > 0)
+                        {
+                            <span> · @summary.GoingPeople @(summary.GoingPeople == 1 ? "person" : "people")</span>
+                        }
+                        @if (summary.MaybeFamilies > 0)
+                        {
+                            <span> · @summary.MaybeFamilies maybe</span>
+                        }
+                    </p>
+                    @if (evt.RsvpGoal is int goal)
+                    {
+                        var remaining = Math.Max(0, goal - summary.GoingFamilies);
+                        <div class="family-rsvp-goal">
+                            <div class="family-rsvp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="@goal" aria-valuenow="@summary.GoingFamilies">
+                                <div class="family-rsvp-bar-fill" style="width: @(Math.Min(100, summary.GoingFamilies * 100 / goal))%"></div>
+                            </div>
+                            <span>@(remaining == 0 ? $"Goal of {goal} families reached!" : $"Need {remaining} more of {goal} families")</span>
+                        </div>
+                    }
+                    @if (evt.RsvpDeadline is DateTime deadline && !IsLocked)
+                    {
+                        <p class="family-event-status @(deadline.Date < Today ? "is-locked" : "")">
+                            @(deadline.Date < Today ? "The reply-by date was" : "Please reply by") @deadline.ToString("dddd, MMMM d", DisplayCulture)
+                        </p>
+                    }
+
+                    @if (!IsLocked)
+                    {
+                        <div class="family-rsvp-buttons" role="group" aria-label="Your RSVP">
+                            @foreach (var (status, label) in RsvpChoices)
+                            {
+                                <button type="button"
+                                        class="btn camping-btn @(rsvpStatus == status ? "btn-primary" : "btn-outline-secondary")"
+                                        @onclick="() => rsvpStatus = status">
+                                    @label
+                                </button>
+                            }
+                        </div>
+                        <div class="family-event-row">
+                            <div class="camping-field">
+                                <label for="rsvp-headcount">How many people?</label>
+                                <input id="rsvp-headcount" type="number" min="0" max="50" class="form-control camping-input" @bind="rsvpHeadcount" />
+                            </div>
+                            <div class="camping-field">
+                                <label for="rsvp-note">Note (optional)</label>
+                                <input id="rsvp-note" class="form-control camping-input" @bind="rsvpNote" placeholder="e.g. Arriving Friday" />
+                            </div>
+                        </div>
+                        <div class="camping-bring-edit-actions">
+                            <button class="btn btn-primary camping-btn" @onclick="SaveRsvp" disabled="@(isBusy || string.IsNullOrEmpty(rsvpStatus))">Save RSVP</button>
+                            @if (FindRsvp(name) != null)
+                            {
+                                <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="RemoveRsvp" disabled="@isBusy">Remove my RSVP</button>
+                            }
+                        </div>
+                    }
+
+                    @if (evt.Rsvps.Count > 0)
+                    {
+                        <ul class="family-rsvp-list">
+                            @foreach (var rsvp in evt.Rsvps.OrderBy(r => RsvpOrder(r.Status)).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase))
+                            {
+                                <li>
+                                    <span class="family-rsvp-badge is-@rsvp.Status">@RsvpLabel(rsvp.Status)</span>
+                                    <span class="family-qa-author">@rsvp.Name</span>
+                                    @if (rsvp.Headcount is int count)
+                                    {
+                                        <span> (@count)</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(rsvp.Note))
+                                    {
+                                        <span class="family-rsvp-note"> — @rsvp.Note</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </section>
+            }
+
+            @if (!IsLocked)
+            {
+                <section class="camping-card">
+                    <h2>Potluck</h2>
+                    <div class="camping-field">
+                        <label for="bringing">@(string.IsNullOrWhiteSpace(evt.BringPrompt) ? "What do you plan to bring?" : evt.BringPrompt)</label>
+                        <input id="bringing" class="form-control camping-input" @bind="bringing" placeholder="e.g. chips and salsa" />
+                    </div>
+
+                    <button class="btn btn-primary camping-btn" @onclick="SaveParticipant" disabled="@isBusy">
+                        Save what you're bringing
+                    </button>
+                </section>
+            }
+
+            @if (evt.ThemeVotingEnabled && (evt.Potluck.Options.Count > 0 || !IsLocked))
+            {
+                <section class="camping-card">
+                    <h2>What kind of potluck would you like?</h2>
+                    @if (!IsLocked)
+                    {
+                        <p class="camping-hint">Options are sorted by score. Use the arrows to upvote or downvote.</p>
+                    }
+
+                    @if (SortedOptionRows.Count == 0)
+                    {
+                        <p>No options yet.</p>
+                    }
+                    else
+                    {
+                        <div class="camping-option-list">
+                            @foreach (var row in SortedOptionRows)
+                            {
+                                var userRating = GetUserRating(row.Option.Id);
+                                <div class="camping-option-row">
+                                    <div class="camping-option-vote-col">
+                                        <span class="camping-option-label">@row.Option.Label</span>
+                                        <div class="camping-vote-controls">
+                                            <button type="button"
+                                                    class="camping-vote-btn @(userRating == 1 ? "is-active" : "")"
+                                                    title="Upvote"
+                                                    aria-label="Upvote @row.Option.Label"
+                                                    disabled="@IsLocked"
+                                                    @onclick="() => RateOption(row.Option.Id, 1)">
+                                                ▲
+                                            </button>
+                                            <span class="camping-score" aria-hidden="true">@row.Score</span>
+                                            <button type="button"
+                                                    class="camping-vote-btn camping-vote-down @(userRating == -1 ? "is-active" : "")"
+                                                    title="Downvote"
+                                                    aria-label="Downvote @row.Option.Label"
+                                                    disabled="@IsLocked"
+                                                    @onclick="() => RateOption(row.Option.Id, -1)">
+                                                ▼
+                                            </button>
+                                        </div>
+                                        @if (!row.Option.IsBuiltIn && !IsLocked)
+                                        {
+                                            <button type="button"
+                                                    class="camping-remove-btn"
+                                                    title="Remove this option"
+                                                    @onclick="() => RemoveOption(row.Option.Id)">
+                                                Remove
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <div class="camping-option-results-col">
+                                        @VoterLine(row, isUp: true)
+                                        @VoterLine(row, isUp: false)
+                                        @if (row.Upvoters.Count == 0 && row.Downvoters.Count == 0)
+                                        {
+                                            <span class="camping-no-votes">No votes yet</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (!IsLocked)
+                    {
+                        <div class="camping-other-section">
+                            <label for="other-option">Other</label>
+                            <div class="camping-other-row">
+                                <input id="other-option" class="form-control camping-input" @bind="otherText" placeholder="Suggest a new potluck option" />
+                                <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="AddOtherOption" disabled="@isBusy">
+                                    Add option
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </section>
+            }
+
+            <section class="camping-card">
+                <h2>@(IsLocked ? "What everyone brought" : "What everyone is bringing")</h2>
+                @if (BringItems.Count == 0)
+                {
+                    <p>No items listed.</p>
+                }
+                else
+                {
+                    <div class="camping-table-wrap family-event-bring-table">
+                        <table class="table camping-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Person</th>
+                                    @if (!IsLocked)
+                                    {
+                                        <th></th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in BringItems)
+                                {
+                                    <tr>
+                                        @if (IsEditingBringItem(item.Name))
+                                        {
+                                            <td colspan="3">
+                                                <div class="camping-bring-edit">
+                                                    <input class="form-control camping-input"
+                                                           @bind="editingBringText"
+                                                           @bind:event="oninput"
+                                                           placeholder="What are you bringing?"
+                                                           aria-label="Edit item for @item.Name" />
+                                                    <div class="camping-bring-edit-actions">
+                                                        <button type="button"
+                                                                class="btn btn-primary camping-btn camping-bring-save-btn"
+                                                                @onclick="() => SaveBringEdit(item.Name)"
+                                                                disabled="@isBusy">
+                                                            @(isBusy ? "Saving..." : "Save")
+                                                        </button>
+                                                        <button type="button"
+                                                                class="btn btn-secondary camping-btn camping-btn-secondary"
+                                                                @onclick="CancelBringEdit"
+                                                                disabled="@isBusy">
+                                                            Cancel
+                                                        </button>
+                                                        <span class="camping-bring-person">@item.Name</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <td>@item.Bringing</td>
+                                            @if (IsLocked)
+                                            {
+                                                <td>@item.Name</td>
+                                            }
+                                            else
+                                            {
+                                                <td>
+                                                    <button type="button" class="camping-edit-link" @onclick="() => LoadParticipant(item.Name)">@item.Name</button>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="camping-item-edit-btn" @onclick="() => StartBringEdit(item)">Edit</button>
+                                                </td>
+                                            }
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+
+            @foreach (var list in evt.SignupLists)
+            {
+                var listId = list.Id;
+                var mine = FindSignup(list, name);
+                <section class="camping-card">
+                    <h2>@list.Title</h2>
+                    @if (!string.IsNullOrWhiteSpace(list.Prompt))
+                    {
+                        <p class="camping-hint">@list.Prompt</p>
+                    }
+
+                    @if (!IsLocked)
+                    {
+                        <div class="camping-other-row">
+                            <input class="form-control camping-input"
+                                   value="@GetSignupDraft(listId, mine)"
+                                   @oninput="e => signupDrafts[listId] = e.Value?.ToString() ?? string.Empty"
+                                   placeholder="Your answer"
+                                   aria-label="@list.Title" />
+                            <button class="btn btn-secondary camping-btn camping-btn-secondary"
+                                    @onclick="() => SaveSignup(listId, GetSignupDraft(listId, FindSignup(list, name)))"
+                                    disabled="@isBusy">
+                                Save
+                            </button>
+                            @if (mine != null)
+                            {
+                                <button class="btn btn-outline-secondary camping-btn" @onclick="() => SaveSignup(listId, string.Empty)" disabled="@isBusy">Remove</button>
+                            }
+                        </div>
+                    }
+
+                    @if (list.Entries.Count == 0)
+                    {
+                        <p class="family-qa-empty">Nobody has signed up yet.</p>
+                    }
+                    else
+                    {
+                        <ul class="family-rsvp-list">
+                            @foreach (var entry in list.Entries.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase))
+                            {
+                                <li><span class="family-qa-author">@entry.Name</span>: @entry.Text</li>
+                            }
+                        </ul>
+                    }
+                </section>
+            }
+
+            <section class="camping-card">
+                <h2>Questions &amp; answers</h2>
+
+                @if (!IsLocked)
+                {
+                    <div class="camping-field">
+                        <label for="new-question">Ask the group a question</label>
+                        <textarea id="new-question" class="form-control camping-input" rows="2" @bind="newQuestionText" @bind:event="oninput" placeholder="e.g. Is there parking nearby?"></textarea>
+                    </div>
+                    <button class="btn btn-primary camping-btn" @onclick="AskQuestion" disabled="@(isBusy || string.IsNullOrWhiteSpace(newQuestionText))">
+                        Ask question
+                    </button>
+                }
+
+                @if (evt.Questions.Count == 0)
+                {
+                    <p class="family-qa-empty">No questions yet.</p>
+                }
+                else
+                {
+                    <div class="family-qa-list">
+                        @foreach (var question in evt.Questions.OrderByDescending(q => q.AskedAt))
+                        {
+                            var questionId = question.Id;
+                            <article class="family-qa-question">
+                                <div class="family-qa-meta">
+                                    <span class="family-qa-author">@question.AskedBy</span>
+                                    <span>asked @FormatPostTime(question.AskedAt)</span>
+                                    @if (CanDelete(question.AskedBy))
+                                    {
+                                        <button type="button" class="camping-remove-btn" @onclick="() => DeleteQuestion(question)">Delete</button>
+                                    }
+                                </div>
+                                <p class="family-qa-text">@question.Text</p>
+
+                                @if (question.Answers.Count == 0)
+                                {
+                                    <p class="family-qa-unanswered">No answers yet.</p>
+                                }
+                                else
+                                {
+                                    <div class="family-qa-answers">
+                                        @foreach (var answer in question.Answers.OrderBy(a => a.AnsweredAt))
+                                        {
+                                            <div class="family-qa-answer">
+                                                <div class="family-qa-meta">
+                                                    <span class="family-qa-author">@answer.AnsweredBy</span>
+                                                    <span>answered @FormatPostTime(answer.AnsweredAt)</span>
+                                                    @if (CanDelete(answer.AnsweredBy))
+                                                    {
+                                                        <button type="button" class="camping-remove-btn" @onclick="() => DeleteAnswer(question, answer)">Delete</button>
+                                                    }
+                                                </div>
+                                                <p class="family-qa-text">@answer.Text</p>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (!IsLocked)
+                                {
+                                    <div class="camping-other-row family-qa-reply">
+                                        <textarea class="form-control camping-input"
+                                                  rows="1"
+                                                  value="@GetAnswerDraft(questionId)"
+                                                  @oninput="e => answerDrafts[questionId] = e.Value?.ToString() ?? string.Empty"
+                                                  placeholder="Write an answer"
+                                                  aria-label="Answer @question.AskedBy's question"></textarea>
+                                        <button class="btn btn-secondary camping-btn camping-btn-secondary"
+                                                @onclick="() => AnswerQuestion(questionId)"
+                                                disabled="@(isBusy || string.IsNullOrWhiteSpace(GetAnswerDraft(questionId)))">
+                                            Answer
+                                        </button>
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        <section class="family-event-organizer">
+            @if (isLuke)
+            {
+                @if (editor == null)
+                {
+                    <button class="btn btn-primary camping-btn" @onclick="StartNew">New event</button>
+                }
+                <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="SendTestNotification" disabled="@isBusy">Send test notification</button>
+                <button type="button" class="camping-edit-link" @onclick="SignOut">Organizer sign out</button>
+                @if (notificationResults != null)
+                {
+                    <ul class="family-rsvp-list family-notify-results">
+                        @foreach (var result in notificationResults)
+                        {
+                            <li>
+                                <span class="family-rsvp-badge @(result.Sent ? "is-going" : result.Configured ? "is-maybe" : "")">
+                                    @(result.Sent ? "Sent" : result.Configured ? "Failed" : "Not set up")
+                                </span>
+                                <span class="family-qa-author">@result.Channel</span>
+                                @if (!result.Sent && !string.IsNullOrWhiteSpace(result.Error))
+                                {
+                                    <span class="family-rsvp-note"> — @result.Error</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+            else if (showSignIn)
+            {
+                <div class="camping-other-row">
+                    <input class="form-control camping-input" type="password" @bind="signInCode" placeholder="Organizer code" aria-label="Organizer code" />
+                    <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="SignIn">Sign in</button>
+                </div>
+            }
+            else
+            {
+                <button type="button" class="camping-edit-link" @onclick="() => showSignIn = true">Organizer sign in</button>
+            }
+        </section>
+    }
+</main>
+
+@code {
+    private const string NameStorageKey = "camping-potluck-name";
+    private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("en-US");
+
+    [Parameter] public string? EventId { get; set; }
+
+    private FamilyEventsResponse? response;
+    private string name = "";
+    private string bringing = "";
+    private string otherText = "";
+    private string? editingBringName;
+    private string editingBringText = "";
+    private bool isBusy;
+    private bool isLuke;
+    private bool showSignIn;
+    private string signInCode = "";
+    private EventEditor? editor;
+    private string newQuestionText = "";
+    private List<NotificationChannelResult>? notificationResults;
+    private string rsvpStatus = "";
+    private int? rsvpHeadcount;
+    private string rsvpNote = "";
+    private readonly Dictionary<string, string> signupDrafts = new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly (string Status, string Label)[] RsvpChoices =
+    {
+        (FamilyRsvpStatus.Going, "We're in!"),
+        (FamilyRsvpStatus.Maybe, "Maybe"),
+        (FamilyRsvpStatus.No, "Can't make it")
+    };
+    private readonly Dictionary<string, string> answerDrafts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> expandedVoterLists = new(StringComparer.OrdinalIgnoreCase);
+    private string? errorMessage;
+    private string? successMessage;
+
+    private sealed class EventEditor
+    {
+        public string? Id { get; set; }
+        public bool IsNew => Id == null;
+        public string Title { get; set; } = "";
+        public DateTime Date { get; set; }
+        public DateTime? EndDate { get; set; }
+        public TimeOnly? StartTime { get; set; }
+        public string Location { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string ThemesText { get; set; } = "";
+        public bool ThemeVotingEnabled { get; set; } = true;
+        public string BringPrompt { get; set; } = "";
+        public bool RsvpEnabled { get; set; }
+        public int? RsvpGoal { get; set; }
+        public DateTime? RsvpDeadline { get; set; }
+        public string SignupListsText { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLuke = await ScheduleSessionAuth.TryRestoreSignedInNameAsync(JS) == ScheduleSubmitters.LukeAuthCode;
+        await LoadAsync();
+
+        var savedName = await JS.InvokeAsync<string?>("localStorage.getItem", NameStorageKey);
+        if (!string.IsNullOrWhiteSpace(savedName))
+        {
+            LoadParticipant(savedName);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        CancelBringEdit();
+        signupDrafts.Clear();
+        answerDrafts.Clear();
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            LoadParticipant(name);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            response = await Http.GetFromJsonAsync<FamilyEventsResponse>("/api/family-events")
+                ?? new FamilyEventsResponse();
+            errorMessage = null;
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not load events. Make sure the API is running.";
+            response = new FamilyEventsResponse { Today = DateTime.Today };
+        }
+    }
+
+    private List<FamilyEvent> UpcomingEvents => FamilyEventRules.Upcoming(response?.Events ?? new(), Today);
+
+    private List<FamilyEvent> PastEvents => FamilyEventRules.Past(response?.Events ?? new(), Today);
+
+    private DateTime Today => response?.Today ?? DateTime.Today;
+
+    private FamilyEvent? SelectedEvent
+    {
+        get
+        {
+            var events = response?.Events ?? new List<FamilyEvent>();
+            return events.FirstOrDefault(e => string.Equals(e.Id, EventId, StringComparison.OrdinalIgnoreCase))
+                ?? FamilyEventRules.PickDefault(events, Today);
+        }
+    }
+
+    private bool IsLocked => SelectedEvent != null && FamilyEventRules.IsLocked(SelectedEvent.Date, Today);
+
+    private List<PotluckOptionRow> SortedOptionRows =>
+        SelectedEvent?.Potluck.GetSortedOptionRows().ToList() ?? new List<PotluckOptionRow>();
+
+    private List<PotluckParticipant> BringItems =>
+        (SelectedEvent?.Potluck.Participants ?? new List<PotluckParticipant>())
+            .Where(p => !string.IsNullOrWhiteSpace(p.Bringing))
+            .OrderBy(p => p.Bringing, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    private static string FormatWhen(FamilyEvent evt)
+    {
+        var date = evt.IsMultiDay
+            ? $"{evt.Date.ToString("dddd, MMMM d", DisplayCulture)} – {evt.LastDay.ToString("dddd, MMMM d, yyyy", DisplayCulture)}"
+            : evt.Date.ToString("dddd, MMMM d, yyyy", DisplayCulture);
+        return evt.StartTime.HasValue
+            ? $"{date} at {ScheduleDateDisplay.FormatStartTime(evt.StartTime)}"
+            : date;
+    }
+
+    private static string FormatPickerLabel(FamilyEvent evt)
+    {
+        var date = evt.IsMultiDay
+            ? $"{evt.Date.ToString("MMM d", DisplayCulture)}–{evt.LastDay.ToString(evt.LastDay.Month == evt.Date.Month ? "d, yyyy" : "MMM d, yyyy", DisplayCulture)}"
+            : evt.Date.ToString("MMM d, yyyy", DisplayCulture);
+        return $"{date} — {evt.Title}";
+    }
+
+    private static string RsvpLabel(string status) => status switch
+    {
+        FamilyRsvpStatus.Going => "Going",
+        FamilyRsvpStatus.Maybe => "Maybe",
+        _ => "Can't make it"
+    };
+
+    private static int RsvpOrder(string status) => status switch
+    {
+        FamilyRsvpStatus.Going => 0,
+        FamilyRsvpStatus.Maybe => 1,
+        _ => 2
+    };
+
+    private FamilyEventRsvp? FindRsvp(string participantName) =>
+        string.IsNullOrWhiteSpace(participantName)
+            ? null
+            : SelectedEvent?.Rsvps.FirstOrDefault(r => string.Equals(r.Name, participantName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static FamilyEventSignupEntry? FindSignup(FamilyEventSignupList list, string participantName) =>
+        string.IsNullOrWhiteSpace(participantName)
+            ? null
+            : list.Entries.FirstOrDefault(e => string.Equals(e.Name, participantName.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private string GetSignupDraft(string listId, FamilyEventSignupEntry? mine) =>
+        signupDrafts.TryGetValue(listId, out var draft) ? draft : mine?.Text ?? string.Empty;
+
+    private void OnEventPicked(ChangeEventArgs e)
+    {
+        var id = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            editor = null;
+            errorMessage = null;
+            successMessage = null;
+            Nav.NavigateTo($"/FamilyEvents/{Uri.EscapeDataString(id)}");
+        }
+    }
+
+    private RenderFragment VoterLine(PotluckOptionRow row, bool isUp) => __builder =>
+    {
+        var voters = isUp ? row.Upvoters : row.Downvoters;
+        if (voters.Count == 0)
+        {
+            return;
+        }
+
+        var expandKey = $"{row.Option.Id}:{(isUp ? "up" : "down")}";
+        var expanded = expandedVoterLists.Contains(expandKey);
+        var visible = voters.Count < 5 || expanded ? voters : voters.Take(5).ToList();
+        <div class="camping-voter-line">
+            <span class="camping-voters-label">@(isUp ? "Up:" : "Down:")</span>
+            @string.Join(", ", visible)
+            @if (voters.Count >= 5)
+            {
+                <button type="button"
+                        class="camping-expand-btn"
+                        title="@(expanded ? "Show fewer voters" : "Show all voters")"
+                        @onclick="() => ToggleVoters(expandKey)">
+                    @(expanded ? "▲" : "▼")
+                </button>
+            }
+        </div>
+    };
+
+    private void ToggleVoters(string expandKey)
+    {
+        if (!expandedVoterLists.Add(expandKey))
+        {
+            expandedVoterLists.Remove(expandKey);
+        }
+    }
+
+    private void OnNameChanged() => LoadParticipant(name);
+
+    private void LoadParticipant(string participantName)
+    {
+        name = participantName;
+        bringing = FindParticipant(participantName)?.Bringing ?? "";
+        var rsvp = FindRsvp(participantName);
+        rsvpStatus = rsvp?.Status ?? "";
+        rsvpHeadcount = rsvp?.Headcount;
+        rsvpNote = rsvp?.Note ?? "";
+        signupDrafts.Clear();
+    }
+
+    private PotluckParticipant? FindParticipant(string participantName)
+    {
+        if (string.IsNullOrWhiteSpace(participantName))
+        {
+            return null;
+        }
+
+        return SelectedEvent?.Potluck.Participants.FirstOrDefault(p =>
+            string.Equals(p.Name, participantName.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private int? GetUserRating(string optionId) =>
+        string.IsNullOrWhiteSpace(name) ? null : SelectedEvent?.Potluck.GetParticipantRating(name.Trim(), optionId);
+
+    private bool IsEditingBringItem(string participantName) =>
+        !IsLocked
+        && !string.IsNullOrWhiteSpace(editingBringName)
+        && string.Equals(editingBringName, participantName, StringComparison.OrdinalIgnoreCase);
+
+    private void StartBringEdit(PotluckParticipant item)
+    {
+        editingBringName = item.Name;
+        editingBringText = item.Bringing ?? "";
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void CancelBringEdit()
+    {
+        editingBringName = null;
+        editingBringText = "";
+    }
+
+    private bool RequireName()
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            return true;
+        }
+
+        errorMessage = "Please enter your name first.";
+        successMessage = null;
+        return false;
+    }
+
+    private string EventApi(string suffix = "") =>
+        $"/api/family-events/{Uri.EscapeDataString(SelectedEvent!.Id)}{suffix}";
+
+    /// <summary>Sends a write and replaces the local event list with the server's copy on success.</summary>
+    private async Task<bool> SendAsync(Func<Task<HttpResponseMessage>> send, string failure)
+    {
+        errorMessage = null;
+        successMessage = null;
+        isBusy = true;
+        try
+        {
+            var result = await send();
+            if (!result.IsSuccessStatusCode)
+            {
+                var message = await result.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrWhiteSpace(message) ? failure : message;
+                if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    await LoadAsync();
+                    errorMessage = message;
+                }
+
+                return false;
+            }
+
+            response = await result.Content.ReadFromJsonAsync<FamilyEventsResponse>() ?? response;
+            return true;
+        }
+        catch (Exception)
+        {
+            errorMessage = $"{failure} Make sure the API is running.";
+            return false;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RememberName() =>
+        await JS.InvokeVoidAsync("localStorage.setItem", NameStorageKey, name.Trim());
+
+    private async Task SaveParticipant()
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/participant"), new PotluckParticipantRequest { Name = name.Trim(), Bringing = bringing }),
+            "Could not save your info.");
+
+        if (ok)
+        {
+            await RememberName();
+            successMessage = string.IsNullOrWhiteSpace(bringing)
+                ? $"Saved, {name.Trim()}."
+                : $"Saved, {name.Trim()}. You are bringing {bringing.Trim()}.";
+        }
+    }
+
+    private async Task SaveBringEdit(string participantName)
+    {
+        var updated = editingBringText.Trim();
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/participant"), new PotluckParticipantRequest { Name = participantName.Trim(), Bringing = updated }),
+            "Could not update that item.");
+
+        if (ok)
+        {
+            if (string.Equals(name.Trim(), participantName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                bringing = updated;
+            }
+
+            CancelBringEdit();
+            successMessage = string.IsNullOrWhiteSpace(updated)
+                ? $"Cleared what {participantName.Trim()} is bringing."
+                : $"Updated what {participantName.Trim()} is bringing.";
+        }
+    }
+
+    private async Task RateOption(string optionId, int direction)
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var current = GetUserRating(optionId);
+        var newRating = direction > 0
+            ? current == 1 ? 0 : 1
+            : current == -1 ? 0 : -1;
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/rate"), new PotluckRateRequest { Name = name.Trim(), OptionId = optionId, Rating = newRating }),
+            "Could not save your vote.");
+
+        if (ok)
+        {
+            await RememberName();
+        }
+    }
+
+    private async Task AddOtherOption()
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(otherText))
+        {
+            errorMessage = "Please enter a new potluck option.";
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/options"), new PotluckAddOptionRequest { Label = otherText.Trim(), CreatedBy = name.Trim() }),
+            "Could not add that option.");
+
+        if (ok)
+        {
+            otherText = "";
+            successMessage = "New option added.";
+        }
+    }
+
+    private async Task RemoveOption(string optionId)
+    {
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/options/remove"), new PotluckRemoveOptionRequest { OptionId = optionId }),
+            "Could not remove that option.");
+
+        if (ok)
+        {
+            successMessage = "Option removed.";
+        }
+    }
+
+    private static string FormatPostTime(DateTimeOffset value) =>
+        WashingtonScheduleTime.ToPacific(value).ToString("MMM d, h:mm tt", DisplayCulture);
+
+    private string GetAnswerDraft(string questionId) =>
+        answerDrafts.TryGetValue(questionId, out var draft) ? draft : string.Empty;
+
+    private string DeleteRequester => isLuke ? ScheduleSubmitters.LukeAuthCode : name.Trim();
+
+    private bool CanDelete(string author) =>
+        !IsLocked && FamilyEventRules.CanDeletePost(author, DeleteRequester);
+
+    private async Task SaveRsvp()
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest
+            {
+                Name = name.Trim(),
+                Status = rsvpStatus,
+                Headcount = rsvpHeadcount,
+                Note = rsvpNote
+            }),
+            "Could not save your RSVP.");
+
+        if (ok)
+        {
+            await RememberName();
+            successMessage = $"Thanks, {name.Trim()}! Your RSVP is saved.";
+        }
+    }
+
+    private async Task RemoveRsvp()
+    {
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest { Name = name.Trim(), Status = "" }),
+            "Could not remove your RSVP.");
+
+        if (ok)
+        {
+            LoadParticipant(name);
+            successMessage = "Your RSVP was removed.";
+        }
+    }
+
+    private async Task SaveSignup(string listId, string text)
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(
+                EventApi($"/signups/{Uri.EscapeDataString(listId)}"),
+                new FamilyEventPostRequest { Name = name.Trim(), Text = text }),
+            "Could not save your sign-up.");
+
+        if (ok)
+        {
+            signupDrafts.Remove(listId);
+            await RememberName();
+            successMessage = string.IsNullOrWhiteSpace(text) ? "Sign-up removed." : "Sign-up saved.";
+        }
+    }
+
+    private async Task AskQuestion()
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi("/questions"), new FamilyEventPostRequest { Name = name.Trim(), Text = newQuestionText }),
+            "Could not post your question.");
+
+        if (ok)
+        {
+            newQuestionText = "";
+            await RememberName();
+            successMessage = "Question posted.";
+        }
+    }
+
+    private async Task AnswerQuestion(string questionId)
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(
+                EventApi($"/questions/{Uri.EscapeDataString(questionId)}/answers"),
+                new FamilyEventPostRequest { Name = name.Trim(), Text = GetAnswerDraft(questionId) }),
+            "Could not post your answer.");
+
+        if (ok)
+        {
+            answerDrafts.Remove(questionId);
+            await RememberName();
+            successMessage = "Answer posted.";
+        }
+    }
+
+    private async Task DeleteQuestion(FamilyEventQuestion question)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Delete this question and all of its answers?"))
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(
+                EventApi($"/questions/{Uri.EscapeDataString(question.Id)}/delete"),
+                new FamilyEventDeletePostRequest { Name = DeleteRequester }),
+            "Could not delete that question.");
+
+        if (ok)
+        {
+            successMessage = "Question deleted.";
+        }
+    }
+
+    private async Task DeleteAnswer(FamilyEventQuestion question, FamilyEventAnswer answer)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Delete this answer?"))
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(
+                EventApi($"/questions/{Uri.EscapeDataString(question.Id)}/answers/{Uri.EscapeDataString(answer.Id)}/delete"),
+                new FamilyEventDeletePostRequest { Name = DeleteRequester }),
+            "Could not delete that answer.");
+
+        if (ok)
+        {
+            successMessage = "Answer deleted.";
+        }
+    }
+
+    private async Task SignIn()
+    {
+        if (!string.Equals(signInCode.Trim(), ScheduleSubmitters.LukeAuthCode, StringComparison.Ordinal))
+        {
+            errorMessage = "That code is not right.";
+            return;
+        }
+
+        await ScheduleSessionAuth.PersistSignedInNameAsync(JS, ScheduleSubmitters.LukeAuthCode);
+        isLuke = true;
+        showSignIn = false;
+        signInCode = "";
+        errorMessage = null;
+    }
+
+    private async Task SendTestNotification()
+    {
+        errorMessage = null;
+        successMessage = null;
+        notificationResults = null;
+        isBusy = true;
+        try
+        {
+            var result = await Http.PostAsJsonAsync("/api/notifications/test", new NotificationTestRequest { SubmittedBy = ScheduleSubmitters.LukeAuthCode });
+            if (!result.IsSuccessStatusCode)
+            {
+                errorMessage = await result.Content.ReadAsStringAsync();
+                return;
+            }
+
+            notificationResults = await result.Content.ReadFromJsonAsync<List<NotificationChannelResult>>();
+            successMessage = notificationResults?.Any(r => r.Sent) == true
+                ? "Test sent. Check your phone."
+                : "No notification channel delivered the test. See the details below.";
+        }
+        catch (Exception)
+        {
+            errorMessage = "Could not send a test notification. Make sure the API is running.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SignOut()
+    {
+        await ScheduleSessionAuth.ClearSignedInNameAsync(JS);
+        isLuke = false;
+        editor = null;
+    }
+
+    private void StartNew()
+    {
+        errorMessage = null;
+        successMessage = null;
+        editor = new EventEditor { Date = Today.AddDays(7) };
+    }
+
+    private void StartEdit(FamilyEvent evt)
+    {
+        errorMessage = null;
+        successMessage = null;
+        editor = new EventEditor
+        {
+            Id = evt.Id,
+            Title = evt.Title,
+            Date = evt.Date,
+            EndDate = evt.EndDate,
+            StartTime = evt.StartTime.HasValue ? TimeOnly.FromTimeSpan(evt.StartTime.Value) : null,
+            Location = evt.Location,
+            Description = evt.Description,
+            ThemeVotingEnabled = evt.ThemeVotingEnabled,
+            BringPrompt = evt.BringPrompt,
+            RsvpEnabled = evt.RsvpEnabled,
+            RsvpGoal = evt.RsvpGoal,
+            RsvpDeadline = evt.RsvpDeadline,
+            SignupListsText = string.Join("\n", evt.SignupLists.Select(l =>
+                string.IsNullOrWhiteSpace(l.Prompt) ? l.Title : $"{l.Title}: {l.Prompt}"))
+        };
+    }
+
+    private async Task SaveEditor()
+    {
+        if (editor == null)
+        {
+            return;
+        }
+
+        var request = new FamilyEventDetailsRequest
+        {
+            SubmittedBy = ScheduleSubmitters.LukeAuthCode,
+            Title = editor.Title,
+            Date = editor.Date,
+            EndDate = editor.EndDate,
+            StartTime = editor.StartTime?.ToTimeSpan(),
+            Location = editor.Location,
+            Description = editor.Description,
+            ThemeVotingEnabled = editor.ThemeVotingEnabled,
+            BringPrompt = editor.BringPrompt,
+            RsvpEnabled = editor.RsvpEnabled,
+            RsvpGoal = editor.RsvpGoal,
+            RsvpDeadline = editor.RsvpDeadline,
+            SignupLists = ParseSignupLists(editor.SignupListsText),
+            ThemeOptions = editor.ThemeVotingEnabled
+                ? editor.ThemesText.Split(',').Select(t => t.Trim()).Where(t => t.Length > 0).ToList()
+                : new List<string>()
+        };
+
+        var existingIds = (response?.Events ?? new()).Select(e => e.Id).ToHashSet();
+        var isNew = editor.IsNew;
+        var editId = editor.Id;
+
+        var ok = await SendAsync(
+            () => isNew
+                ? Http.PostAsJsonAsync("/api/family-events", request)
+                : Http.PutAsJsonAsync($"/api/family-events/{Uri.EscapeDataString(editId!)}", request),
+            isNew ? "Could not create the event." : "Could not save the event.");
+
+        if (!ok)
+        {
+            return;
+        }
+
+        editor = null;
+        successMessage = isNew ? "Event created." : "Event updated.";
+        var targetId = isNew
+            ? response?.Events.FirstOrDefault(e => !existingIds.Contains(e.Id))?.Id
+            : editId;
+
+        if (targetId != null)
+        {
+            Nav.NavigateTo($"/FamilyEvents/{Uri.EscapeDataString(targetId)}");
+        }
+    }
+
+    private static List<FamilyEventSignupList> ParseSignupLists(string text) =>
+        (text ?? "")
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0)
+            .Select(line =>
+            {
+                var colon = line.IndexOf(':');
+                return colon < 0
+                    ? new FamilyEventSignupList { Title = line }
+                    : new FamilyEventSignupList { Title = line[..colon].Trim(), Prompt = line[(colon + 1)..].Trim() };
+            })
+            .ToList();
+
+    private async Task DeleteEvent(FamilyEvent evt)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{evt.Title}\"? This removes all votes and sign-ups for it."))
+        {
+            return;
+        }
+
+        var ok = await SendAsync(
+            () => Http.DeleteAsync($"/api/family-events/{Uri.EscapeDataString(evt.Id)}?submittedBy={Uri.EscapeDataString(ScheduleSubmitters.LukeAuthCode)}"),
+            "Could not delete the event.");
+
+        if (ok)
+        {
+            successMessage = "Event deleted.";
+            Nav.NavigateTo("/FamilyEvents");
+        }
+    }
+}

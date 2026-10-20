@@ -36,6 +36,7 @@ namespace BlazorApp.Shared.PhotoShoot
             doc.Setups ??= new List<PhotoSetup>();
             doc.Shots ??= new List<PhotoShot>();
             doc.References ??= new List<PhotoReference>();
+            doc.Packing ??= new List<PackingNote>();
             doc.DeletedSeedKeys ??= new List<string>();
             doc.Session ??= new PhotoShootSession();
             doc.Session.Notes ??= new List<SessionNote>();
@@ -68,6 +69,8 @@ namespace BlazorApp.Shared.PhotoShoot
                 if (string.IsNullOrEmpty(shot.Id)) shot.Id = PhotoShootIds.New();
                 shot.ShootId = doc.Id;
                 shot.SetupId ??= "";
+                shot.Equipment ??= new List<EquipmentNeed>();
+                shot.Equipment.RemoveAll(item => item == null || string.IsNullOrWhiteSpace(item.Name));
                 if (shot.SetupId.Length > 0 && !setupIds.Contains(shot.SetupId)) shot.SetupId = "";
                 NormalizeShotText(shot);
             }
@@ -86,6 +89,16 @@ namespace BlazorApp.Shared.PhotoShoot
                 reference.UsageRights ??= "";
                 reference.ImageId ??= "";
                 reference.ImageContentType ??= "";
+                reference.Roles ??= new List<ReferenceRole>();
+                reference.Roles.RemoveAll(role => role == null || string.IsNullOrEmpty(role.ShotId) || !shotIds.Contains(role.ShotId));
+            }
+
+            doc.Packing.RemoveAll(note => note == null || string.IsNullOrWhiteSpace(note.Key));
+            foreach (var note in doc.Packing)
+            {
+                note.Key = note.Key.Trim();
+                note.Name ??= "";
+                note.Notes ??= "";
             }
 
             if (!string.IsNullOrEmpty(doc.Session.CurrentShotId) && !shotIds.Contains(doc.Session.CurrentShotId))
@@ -210,6 +223,20 @@ namespace BlazorApp.Shared.PhotoShoot
             to.NegativeSpace = from.NegativeSpace;
             to.Background = from.Background;
             to.Props = CleanList(from.Props);
+            to.EquipmentSpecified = from.EquipmentSpecified;
+            to.Equipment = (from.Equipment ?? new List<EquipmentNeed>())
+                .Where(item => item != null && !string.IsNullOrWhiteSpace(item.Name))
+                .Select(item => new EquipmentNeed
+                {
+                    Key = item.Key ?? "",
+                    Name = item.Name ?? "",
+                    Quantity = item.Quantity < 1 ? 1 : item.Quantity,
+                    Category = item.Category,
+                    Supplier = item.Supplier,
+                    Optional = item.Optional,
+                    Preparation = item.Preparation ?? ""
+                })
+                .ToList();
             to.LightingNotes = from.LightingNotes;
             to.EstimatedMinutes = from.EstimatedMinutes;
             to.Inspiration = from.Inspiration;
@@ -373,7 +400,12 @@ namespace BlazorApp.Shared.PhotoShoot
             to.WhatToImitate = from.WhatToImitate ?? "";
             to.WhatToChange = from.WhatToChange ?? "";
             to.UsageRights = from.UsageRights ?? "";
+            to.Provenance = from.Provenance;
             to.ShotIds = CleanList(from.ShotIds).Where(shotIds.Contains).ToList();
+            to.Roles = (from.Roles ?? new List<ReferenceRole>())
+                .Where(role => role != null && shotIds.Contains(role.ShotId))
+                .Select(role => new ReferenceRole { ShotId = role.ShotId, Slot = role.Slot })
+                .ToList();
         }
 
         /// <summary>Removes the reference and returns its image id (if any) so storage can delete the file.</summary>
