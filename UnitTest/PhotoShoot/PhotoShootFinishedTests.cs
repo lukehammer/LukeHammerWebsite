@@ -61,6 +61,28 @@ public class PhotoShootFinishedTests
     }
 
     [Fact]
+    public void Owner_CanDoEverythingExceptHardDelete()
+    {
+        var owner = PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null);
+        owner.Access.Should().Be(PhotoShootAccess.Owner);
+        PhotoShootAuthorization.CanEdit(owner.Access).Should().BeTrue();
+        PhotoShootAuthorization.CanUploadPhotos(owner.Access).Should().BeTrue();
+        PhotoShootAuthorization.CanDownloadFinals(owner.Access).Should().BeTrue();
+        PhotoShootAuthorization.CanSeeRemoved(owner.Access).Should().BeTrue();
+        PhotoShootAuthorization.CanHardDelete(owner.Access).Should().BeFalse();
+        PhotoShootAuthorization.CanSeeRemoved(PhotoShootAccess.Photographer).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Admin_HasEveryOwnerPermission()
+    {
+        PhotoShootAuthorization.CanEdit(PhotoShootAccess.Admin).Should().BeTrue();
+        PhotoShootAuthorization.CanSeeRemoved(PhotoShootAccess.Admin).Should().BeTrue();
+        PhotoShootAuthorization.CanDownloadFinals(PhotoShootAccess.Admin).Should().BeTrue();
+        PhotoShootSessionEngine.IsAllowed(PhotoShootAccess.Admin, SessionAction.End, new PhotoShootSession()).Should().BeTrue();
+    }
+
+    [Fact]
     public void Markets_ComeFromTheExistingMarketingText()
     {
         var doc = Doc();

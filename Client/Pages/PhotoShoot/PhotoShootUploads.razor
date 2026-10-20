@@ -9,7 +9,7 @@
 
 @if (Store.Shoot is { } doc)
 {
-    var includeHidden = Store.IsAdmin;
+    var includeHidden = Store.CanSeeRemoved;
     var market = ParseMarket(marketFilter);
     var shots = PhotoShootPlanner.OrderedShots(doc).Where(shot => market == null || (shot.Markets ?? new List<ShowMarket>()).Contains(market.Value)).ToList();
     var visible = PhotoShootFinished.Visible(doc).ToList();
@@ -39,7 +39,7 @@
         {
             <a class="ps-btn ps-btn-outline" href="@Store.Api.FinishedZipUrl(doc.Id, false)">Download finals</a>
         }
-        @if (Store.IsAdmin)
+        @if (Store.CanSeeRemoved)
         {
             <a class="ps-btn ps-btn-outline" href="@Store.Api.FinishedZipUrl(doc.Id, true)">Download removed</a>
         }
@@ -192,14 +192,17 @@
                     </select>
                 </div>
             }
-            @if (Store.IsAdmin && photo.IsHidden)
+            @if (Store.CanSeeRemoved && photo.IsHidden)
             {
                 <div class="ps-finished-actions">
                     <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => Restore(photo)">Put back</button>
-                    <button type="button" class="ps-btn ps-btn-danger ps-btn-sm" disabled="@busy" @onclick="() => HardDelete(photo)">Delete forever</button>
+                    @if (Store.CanHardDelete)
+                    {
+                        <button type="button" class="ps-btn ps-btn-danger ps-btn-sm" disabled="@busy" @onclick="() => HardDelete(photo)">Delete forever</button>
+                    }
                 </div>
             }
-            @if (Store.CanDownloadFinals || Store.IsAdmin)
+            @if (Store.CanDownloadFinals)
             {
                 <a class="ps-small" href="@Store.Api.FinishedImageUrl(doc.Id, photo, download: true)">Download</a>
             }

@@ -83,6 +83,7 @@ namespace BlazorApp.Shared.PhotoShoot
             switch (access)
             {
                 case PhotoShootAccess.Owner:
+                case PhotoShootAccess.Admin:
                     return true;
                 case PhotoShootAccess.Photographer:
                     return PhotographerActions.Contains(action)
