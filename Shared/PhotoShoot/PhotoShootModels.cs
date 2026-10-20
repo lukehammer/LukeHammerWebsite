@@ -36,6 +36,8 @@ namespace BlazorApp.Shared.PhotoShoot
         public List<PhotoSetup> Setups { get; set; } = new List<PhotoSetup>();
         public List<PhotoShot> Shots { get; set; } = new List<PhotoShot>();
         public List<PhotoReference> References { get; set; } = new List<PhotoReference>();
+        /// <summary>Finished photographs for the poses. Hidden ones stay in storage until an admin removes them.</summary>
+        public List<FinishedPhoto> FinishedPhotos { get; set; } = new List<FinishedPhoto>();
         /// <summary>Packed checkboxes, notes, and items added by hand. Shot requirements are calculated separately.</summary>
         public List<PackingNote> Packing { get; set; } = new List<PackingNote>();
         public PhotoShootSession Session { get; set; } = new PhotoShootSession();
@@ -111,6 +113,28 @@ namespace BlazorApp.Shared.PhotoShoot
 
         public string SeedKey { get; set; } = "";
         public DateTime UpdatedUtc { get; set; }
+        /// <summary>Shows this pose is useful for. Empty until the first load assigns them from the marketing text.</summary>
+        public List<ShowMarket> Markets { get; set; } = new List<ShowMarket>();
+        public bool MarketsAssigned { get; set; }
+    }
+
+    /// <summary>A finished photograph attached to one pose, or waiting in the inbox when <see cref="ShotId"/> is empty.</summary>
+    public class FinishedPhoto
+    {
+        public string Id { get; set; } = "";
+        public string ShotId { get; set; } = "";
+        public string ImageId { get; set; } = "";
+        public string ImageContentType { get; set; } = "";
+        /// <summary>1 is the final. Hidden photos keep 0.</summary>
+        public int Rank { get; set; }
+        public DateTime? CapturedUtc { get; set; }
+        public string UploadedBy { get; set; } = "";
+        public DateTime UploadedUtc { get; set; }
+        public string HiddenBy { get; set; } = "";
+        public DateTime? HiddenUtc { get; set; }
+
+        public bool IsHidden => HiddenUtc != null;
+        public bool HasImage => !string.IsNullOrWhiteSpace(ImageId);
     }
 
     public class PhotoReference

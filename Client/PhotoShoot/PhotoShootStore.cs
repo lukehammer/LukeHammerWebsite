@@ -64,7 +64,10 @@ namespace BlazorApp.Client.PhotoShoot
         public bool FlashIsError { get; private set; }
 
         public bool IsOwner => Me?.Access == PhotoShootAccess.Owner;
+        public bool IsAdmin => Me?.Access == PhotoShootAccess.Admin;
         public bool IsPhotographer => Me?.Access == PhotoShootAccess.Photographer;
+        public bool CanUploadPhotos => PhotoShootAuthorization.CanUploadPhotos(Me?.Access ?? PhotoShootAccess.None);
+        public bool CanDownloadFinals => PhotoShootAuthorization.CanDownloadFinals(Me?.Access ?? PhotoShootAccess.None);
         public string ShootId => Shoot?.Id ?? "";
 
         public async Task EnsureInitializedAsync(string? devRoleFromQuery = null)

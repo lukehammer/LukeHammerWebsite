@@ -35,6 +35,7 @@ namespace BlazorApp.Client.PhotoShoot
             new("photoshoot/director", "Director", "bi-megaphone", true, 0),
             new("photoshoot/photographer", "Photographer", "bi-camera", false, 1),
             new("photoshoot/marker", "Marker", "bi-bookmark", false, 2),
+            new("photoshoot/uploads", "Uploads", "bi-cloud-arrow-up", false, 3),
         };
 
         public static IReadOnlyList<PhotoShootLiveMode> All { get; } = Discover();

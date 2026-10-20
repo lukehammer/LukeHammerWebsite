@@ -112,7 +112,19 @@ namespace BlazorApp.Shared.PhotoShoot
     {
         None = 0,
         Photographer = 1,
-        Owner = 2
+        Owner = 2,
+        Admin = 3
+    }
+
+    /// <summary>Which show a finished photo is retrieved for. A pose can belong to more than one.</summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum ShowMarket
+    {
+        AnyShow = 0,
+        Kids = 1,
+        Family = 2,
+        Bachelorette = 3,
+        Corporate = 4
     }
 
     public static class PhotoShootLabels
@@ -171,6 +183,15 @@ namespace BlazorApp.Shared.PhotoShoot
             EquipmentSupplier.Bring => "Bring",
             EquipmentSupplier.Photographer => "Photographer provides",
             _ => "Confirm availability"
+        };
+
+        public static string Market(ShowMarket market) => market switch
+        {
+            ShowMarket.Kids => "Kids",
+            ShowMarket.Family => "Family",
+            ShowMarket.Bachelorette => "Bachelorette",
+            ShowMarket.Corporate => "Corporate",
+            _ => "Any show"
         };
 
         public static string Priority(ShotPriority priority) => priority switch

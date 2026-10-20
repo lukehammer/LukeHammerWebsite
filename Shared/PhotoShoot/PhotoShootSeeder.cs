@@ -304,6 +304,29 @@ namespace BlazorApp.Shared.PhotoShoot
                 doc.References.Add(copy);
             }
 
+            foreach (var photo in (source.FinishedPhotos ?? new List<FinishedPhoto>()).Where(item => item != null))
+            {
+                var copy = new FinishedPhoto
+                {
+                    Id = PhotoShootIds.New(),
+                    ShotId = !string.IsNullOrEmpty(photo.ShotId) && shotMap.TryGetValue(photo.ShotId, out var mapped) ? mapped : "",
+                    ImageContentType = photo.ImageContentType ?? "",
+                    Rank = photo.Rank,
+                    CapturedUtc = photo.CapturedUtc,
+                    UploadedBy = photo.UploadedBy ?? "",
+                    UploadedUtc = photo.UploadedUtc == default ? nowUtc : photo.UploadedUtc,
+                    HiddenBy = photo.HiddenBy ?? "",
+                    HiddenUtc = photo.HiddenUtc
+                };
+                if (PhotoShootIds.IsValid(photo.ImageId))
+                {
+                    copy.ImageId = PhotoShootIds.New();
+                    result.ImageCopies.Add(new KeyValuePair<string, string>(photo.ImageId, copy.ImageId));
+                }
+
+                doc.FinishedPhotos.Add(copy);
+            }
+
             if (!resetProgress && source.Session != null)
             {
                 doc.Session.Notes = (source.Session.Notes ?? new List<SessionNote>())

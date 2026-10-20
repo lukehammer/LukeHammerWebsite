@@ -36,6 +36,12 @@ namespace BlazorApp.Client.PhotoShoot
         public string ImageUrl(string shootId, PhotoReference reference) =>
             new Uri(_http.BaseAddress!, $"api/photoshoot/shoots/{shootId}/references/{reference.Id}/image?v={reference.UpdatedUtc.Ticks}").ToString();
 
+        public string FinishedImageUrl(string shootId, FinishedPhoto photo, bool download = false) =>
+            new Uri(_http.BaseAddress!, $"api/photoshoot/shoots/{shootId}/finished/{photo.Id}/image?v={photo.UploadedUtc.Ticks}{(download ? "&download=1" : "")}").ToString();
+
+        public string FinishedZipUrl(string shootId, bool removed) =>
+            new Uri(_http.BaseAddress!, $"api/photoshoot/shoots/{shootId}/finished.zip{(removed ? "?removed=1" : "")}").ToString();
+
         public Task<PhotoShootMe> GetMeAsync() => SendAsync<PhotoShootMe>(HttpMethod.Get, "api/photoshoot/me");
 
         public Task<PhotoShootIndex> ListShootsAsync() => SendAsync<PhotoShootIndex>(HttpMethod.Get, "api/photoshoot/shoots");
@@ -121,6 +127,45 @@ namespace BlazorApp.Client.PhotoShoot
             using var content = new StreamContent(image);
             content.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
             using var request = new HttpRequestMessage(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/references/{referenceId}/image") { Content = content };
+            return await SendRequestAsync<LiveShootResponse>(request);
+        }
+
+        public Task<LiveShootResponse> UploadFinishedAsync(string shootId, string? shotId, Stream image, DateTime? capturedUtc) =>
+            UploadFinishedCore(string.IsNullOrEmpty(shotId)
+                ? $"api/photoshoot/shoots/{shootId}/finished"
+                : $"api/photoshoot/shoots/{shootId}/shots/{shotId}/finished", image, capturedUtc);
+
+        public Task<LiveShootResponse> ReplaceFinishedAsync(string shootId, string photoId, Stream image) =>
+            UploadFinishedCore($"api/photoshoot/shoots/{shootId}/finished/{photoId}/image", image, null);
+
+        public Task<LiveShootResponse> PlaceFinishedAsync(string shootId) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/finished/place", new { });
+
+        public Task<LiveShootResponse> MoveFinishedAsync(string shootId, string photoId, FinishedMove move) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/finished/{photoId}/move", move);
+
+        public Task<LiveShootResponse> HideFinishedAsync(string shootId, string photoId) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/finished/{photoId}/hide", new { });
+
+        public Task<LiveShootResponse> RestoreFinishedAsync(string shootId, string photoId) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/finished/{photoId}/restore", new { });
+
+        public Task<LiveShootResponse> HardDeleteFinishedAsync(string shootId, string photoId) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Delete, $"api/photoshoot/shoots/{shootId}/finished/{photoId}");
+
+        public Task<LiveShootResponse> SetMarketsAsync(string shootId, string shotId, IEnumerable<ShowMarket> markets) =>
+            SendAsync<LiveShootResponse>(HttpMethod.Post, $"api/photoshoot/shoots/{shootId}/shots/{shotId}/markets", new MarketUpdate { Markets = markets.ToList() });
+
+        private async Task<LiveShootResponse> UploadFinishedCore(string url, Stream image, DateTime? capturedUtc)
+        {
+            using var content = new StreamContent(image);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            if (capturedUtc != null)
+            {
+                request.Headers.TryAddWithoutValidation("X-Photo-Captured", capturedUtc.Value.ToUniversalTime().ToString("o"));
+            }
+
             return await SendRequestAsync<LiveShootResponse>(request);
         }
 

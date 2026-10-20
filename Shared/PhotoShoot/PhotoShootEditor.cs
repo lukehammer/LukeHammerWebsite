@@ -36,6 +36,7 @@ namespace BlazorApp.Shared.PhotoShoot
             doc.Setups ??= new List<PhotoSetup>();
             doc.Shots ??= new List<PhotoShot>();
             doc.References ??= new List<PhotoReference>();
+            doc.FinishedPhotos ??= new List<FinishedPhoto>();
             doc.Packing ??= new List<PackingNote>();
             doc.DeletedSeedKeys ??= new List<string>();
             doc.Session ??= new PhotoShootSession();
@@ -48,6 +49,7 @@ namespace BlazorApp.Shared.PhotoShoot
             doc.Setups.RemoveAll(s => s == null);
             doc.Shots.RemoveAll(s => s == null);
             doc.References.RemoveAll(r => r == null);
+            doc.FinishedPhotos.RemoveAll(photo => photo == null);
 
             foreach (var setup in doc.Setups)
             {
@@ -107,6 +109,17 @@ namespace BlazorApp.Shared.PhotoShoot
             }
 
             doc.Session.CurrentShotId ??= "";
+            foreach (var photo in doc.FinishedPhotos)
+            {
+                if (string.IsNullOrEmpty(photo.Id)) photo.Id = PhotoShootIds.New();
+                photo.ShotId ??= "";
+                photo.ImageId ??= "";
+                photo.ImageContentType ??= "";
+                photo.UploadedBy ??= "";
+                photo.HiddenBy ??= "";
+                if (photo.ShotId.Length > 0 && !shotIds.Contains(photo.ShotId)) photo.ShotId = "";
+            }
+
             PhotoShootPlanner.Resequence(doc);
             return doc;
         }
@@ -132,6 +145,12 @@ namespace BlazorApp.Shared.PhotoShoot
             shot.SeedKey ??= "";
             shot.Props = CleanList(shot.Props);
             shot.Tags = CleanList(shot.Tags);
+            shot.Markets ??= new List<ShowMarket>();
+            if (!shot.MarketsAssigned)
+            {
+                shot.Markets = PhotoShootMarkets.Infer(shot);
+                shot.MarketsAssigned = true;
+            }
             shot.ReferenceSearchPhrases = CleanList(shot.ReferenceSearchPhrases);
         }
 

@@ -2941,3 +2941,100 @@ body:has(.ps-photographer) #app {
     flex: 1 1 auto;
     min-height: 0;
 }
+
+.ps-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    background: var(--ps-surface-2, #f7f4f5);
+    color: var(--ps-burgundy, #831B3F);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.ps-browse-group summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ps-upload-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.ps-upload-shot {
+    border-top: 1px solid var(--ps-border, #e6dfe2);
+    padding: 0.8rem 0;
+}
+
+.ps-upload-shot.needs-photo {
+    background: #fff8e8;
+}
+
+.ps-upload-shot.is-current {
+    outline: 2px solid var(--ps-burgundy, #831B3F);
+    border-radius: 0.6rem;
+    padding: 0.6rem;
+}
+
+.ps-upload-pose {
+    display: flex;
+    gap: 0.7rem;
+    margin-bottom: 0.4rem;
+}
+
+.ps-upload-pose img {
+    width: 4.5rem;
+    height: 4.5rem;
+    object-fit: cover;
+    border-radius: 0.4rem;
+}
+
+.ps-upload-pose h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.ps-market-pills, .ps-market-edit, .ps-finished-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.ps-finished {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.45rem;
+}
+
+.ps-finished img {
+    width: 7rem;
+    height: 7rem;
+    object-fit: cover;
+    border-radius: 0.4rem;
+    background: var(--ps-surface-2, #f7f4f5);
+}
+
+.ps-finished.is-final img {
+    outline: 3px solid var(--ps-gold, #CC9511);
+}
+
+.ps-finished.is-hidden {
+    opacity: 0.72;
+}
+
+.ps-final-label {
+    font-weight: 700;
+    color: var(--ps-burgundy, #831B3F);
+}
+

@@ -1,0 +1,372 @@
+@page "/photoshoot/uploads"
+@layout PhotoShootLiveLayout
+@attribute [PhotoShootLiveMode(Label = "Uploads", Icon = "bi-cloud-arrow-up", Order = 3)]
+@implements IDisposable
+@inject PhotoShootStore Store
+@inject NavigationManager Nav
+
+<PageTitle>Uploads · Photo Shoot</PageTitle>
+
+@if (Store.Shoot is { } doc)
+{
+    var includeHidden = Store.IsAdmin;
+    var market = ParseMarket(marketFilter);
+    var shots = PhotoShootPlanner.OrderedShots(doc).Where(shot => market == null || (shot.Markets ?? new List<ShowMarket>()).Contains(market.Value)).ToList();
+    var visible = PhotoShootFinished.Visible(doc).ToList();
+    var withPhoto = shots.Count(shot => visible.Any(photo => photo.ShotId == shot.Id));
+    var withFinal = shots.Count(shot => visible.Any(photo => photo.ShotId == shot.Id && photo.Rank == 1));
+    var inbox = visible.Where(photo => string.IsNullOrEmpty(photo.ShotId)).OrderBy(photo => photo.CapturedUtc ?? DateTime.MaxValue).ThenBy(photo => photo.UploadedUtc).ToList();
+
+    <header class="ps-page-head">
+        <h1 class="ps-h1">Uploads</h1>
+        <p class="ps-muted ps-small">@withPhoto of @shots.Count poses have a photo. @withFinal have a final.</p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="ps-flash ps-flash-error" role="alert">@error</div>
+    }
+
+    <div class="ps-upload-tools">
+        @if (Store.CanUploadPhotos)
+        {
+            <label class="ps-btn ps-btn-primary ps-file-btn">
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i> @(busy ? "Uploading…" : "Add photos")
+                <InputFile multiple OnChange="BulkAsync" disabled="@busy" accept="image/*" />
+            </label>
+        }
+        @if (Store.CanDownloadFinals)
+        {
+            <a class="ps-btn ps-btn-outline" href="@Store.Api.FinishedZipUrl(doc.Id, false)">Download finals</a>
+        }
+        @if (Store.IsAdmin)
+        {
+            <a class="ps-btn ps-btn-outline" href="@Store.Api.FinishedZipUrl(doc.Id, true)">Download removed</a>
+        }
+        <label class="ps-label" for="ps-market">Show</label>
+        <select id="ps-market" class="form-select ps-select" @bind="marketFilter">
+            <option value="">All poses</option>
+            @foreach (var item in Enum.GetValues<ShowMarket>())
+            {
+                <option value="@item">@PhotoShootLabels.Market(item)</option>
+            }
+        </select>
+    </div>
+
+    @if (inbox.Count > 0)
+    {
+        <section class="ps-card">
+            <h2 class="ps-h2">Not placed yet <span class="ps-count-badge">@inbox.Count</span></h2>
+            @foreach (var photo in inbox)
+            {
+                @PhotoRow(doc, photo, includeHidden, shots)
+            }
+        </section>
+    }
+
+    @foreach (var block in PhotoShootDisplay.Blocks(doc))
+    {
+        var blockShots = block.Sections.SelectMany(section => section.Shots).Where(shot => shots.Any(item => item.Id == shot.Id)).ToList();
+        if (blockShots.Count == 0)
+        {
+            continue;
+        }
+
+        <section class="ps-card ps-upload-block @(block.Sections.Any(section => section.Setup?.Id == currentSetupId) ? "is-current" : "")">
+            <h2 class="ps-h2">@block.Title <span class="ps-count-badge">@blockShots.Count</span></h2>
+            @foreach (var shot in blockShots)
+            {
+                var section = PhotoShootDisplay.SectionTitle(PhotoShootPlanner.FindSetup(doc, shot.SetupId), block.Title);
+                var reference = PhotoShootEditor.ReferencesForShot(doc, shot.Id).FirstOrDefault(item => item.HasImage || PhotoShootPlanUpgrade.LooksLikeImageUrl(item.SourceUrl));
+                var photos = PhotoShootFinished.OnShot(doc, shot.Id, includeHidden).ToList();
+                var needs = !photos.Any(photo => !photo.IsHidden);
+                <article class="ps-upload-shot @(shot.Id == doc.Session.CurrentShotId ? "is-current" : "") @(needs ? "needs-photo" : "")" id="@("shot-" + shot.Id)">
+                    <div class="ps-upload-pose">
+                        @if (reference != null && reference.HasImage)
+                        {
+                            <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="" />
+                        }
+                        else if (reference != null && PhotoShootPlanUpgrade.LooksLikeImageUrl(reference.SourceUrl))
+                        {
+                            <img src="@reference.SourceUrl" alt="" />
+                        }
+                        <div>
+                            <h3>@PhotoShootPlanner.OrderNumber(doc, shot.Id). @shot.Title</h3>
+                            @if (section.Length > 0)
+                            {
+                                <div class="ps-muted ps-small">@(section)</div>
+                            }
+                            <div class="ps-small">@PoseLine(shot)</div>
+                            <div class="ps-market-pills">
+                                @foreach (var item in shot.Markets ?? new List<ShowMarket>())
+                                {
+                                    <span class="ps-count-badge">@PhotoShootLabels.Market(item)</span>
+                                }
+                            </div>
+                            @if (Store.IsOwner)
+                            {
+                                <div class="ps-market-edit">
+                                    @foreach (var item in Enum.GetValues<ShowMarket>().Where(value => value != ShowMarket.AnyShow))
+                                    {
+                                        <label><input type="checkbox" checked="@((shot.Markets ?? new List<ShowMarket>()).Contains(item))" disabled="@busy" @onchange="() => ToggleMarket(shot, item)" /> @PhotoShootLabels.Market(item)</label>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    @if (Store.CanUploadPhotos)
+                    {
+                        <label class="ps-btn ps-btn-outline ps-file-btn">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Add photo
+                            <InputFile OnChange="e => OneAsync(shot.Id, e)" disabled="@busy" accept="image/*" />
+                        </label>
+                    }
+                    <div class="ps-upload-photos">
+                        @foreach (var photo in photos)
+                        {
+                            @PhotoRow(doc, photo, includeHidden, shots)
+                        }
+                    </div>
+                </article>
+            }
+        </section>
+    }
+}
+
+@code {
+    private string marketFilter = "";
+    private string error = "";
+    private bool busy;
+    private string currentSetupId = "";
+
+    protected override void OnInitialized()
+    {
+        Store.Changed += OnChanged;
+        currentSetupId = Store.Shoot == null ? "" : PhotoShootPlanner.FindShot(Store.Shoot, Store.Shoot.Session.CurrentShotId)?.SetupId ?? "";
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private static ShowMarket? ParseMarket(string value) =>
+        Enum.TryParse<ShowMarket>(value, out var market) ? market : null;
+
+    private static string PoseLine(PhotoShot shot)
+    {
+        var parts = new[] { shot.HandPosition, shot.BodyPosition }.Where(part => !string.IsNullOrWhiteSpace(part));
+        var line = string.Join(". ", parts);
+        return line.Length == 0 ? shot.Summary : line;
+    }
+
+    private RenderFragment PhotoRow(PhotoShootDocument doc, FinishedPhoto photo, bool includeHidden, List<PhotoShot> shots) => @<div class="ps-finished @(photo.IsHidden ? "is-hidden" : "") @(photo.Rank == 1 && !photo.IsHidden ? "is-final" : "")">
+        <img src="@Store.Api.FinishedImageUrl(doc.Id, photo)" alt="" />
+        <div class="ps-finished-meta">
+            @if (photo.IsHidden)
+            {
+                <div class="ps-muted">Removed by @photo.HiddenBy</div>
+            }
+            else if (photo.Rank == 1 && photo.ShotId.Length > 0)
+            {
+                <div class="ps-final-label">Final</div>
+            }
+            else if (photo.Rank > 1)
+            {
+                <div class="ps-muted">@photo.Rank</div>
+            }
+            @if (Store.CanUploadPhotos && !photo.IsHidden)
+            {
+                <div class="ps-finished-actions">
+                    @if (photo.ShotId.Length > 0)
+                    {
+                        <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => Move(photo, makeFinal: true, delta: 0)">Make final</button>
+                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => Move(photo, false, -1)">Move up</button>
+                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => Move(photo, false, 1)">Move down</button>
+                    }
+                    <label class="ps-btn ps-btn-ghost ps-btn-sm ps-file-btn">Replace<InputFile OnChange="e => ReplaceAsync(photo, e)" disabled="@busy" accept="image/*" /></label>
+                    <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => Hide(photo)">Remove</button>
+                    <select class="form-select ps-select" disabled="@busy" value="@photo.ShotId" @onchange="e => MoveShot(photo, e.Value?.ToString())">
+                        <option value="">Not placed</option>
+                        @foreach (var shot in PhotoShootPlanner.OrderedShots(doc))
+                        {
+                            <option value="@shot.Id">@PhotoShootPlanner.OrderNumber(doc, shot.Id). @shot.Title</option>
+                        }
+                    </select>
+                </div>
+            }
+            @if (Store.IsAdmin && photo.IsHidden)
+            {
+                <div class="ps-finished-actions">
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => Restore(photo)">Put back</button>
+                    <button type="button" class="ps-btn ps-btn-danger ps-btn-sm" disabled="@busy" @onclick="() => HardDelete(photo)">Delete forever</button>
+                </div>
+            }
+            @if (Store.CanDownloadFinals || Store.IsAdmin)
+            {
+                <a class="ps-small" href="@Store.Api.FinishedImageUrl(doc.Id, photo, download: true)">Download</a>
+            }
+        </div>
+    </div>;
+
+    private async Task OneAsync(string shotId, InputFileChangeEventArgs e) => await UploadOne(e.File, shotId, place: false);
+
+    private async Task BulkAsync(InputFileChangeEventArgs e)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            foreach (var file in e.GetMultipleFiles(200))
+            {
+                await UploadOne(file, "", place: false);
+            }
+
+            await Store.RunAsync(id => Store.Api.PlaceFinishedAsync(id));
+            if (Store.FlashIsError) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task UploadOne(IBrowserFile file, string shotId, bool place)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            IBrowserFile source = file;
+            if (file.Name.EndsWith(".heic", StringComparison.OrdinalIgnoreCase) || file.Name.EndsWith(".heif", StringComparison.OrdinalIgnoreCase))
+            {
+                try { source = await file.RequestImageFileAsync("image/jpeg", 20000, 20000); }
+                catch (Exception) { source = file; }
+            }
+
+            await using var raw = source.OpenReadStream(100 * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await raw.CopyToAsync(buffer);
+            buffer.Position = 0;
+            var captured = file.LastModified.UtcDateTime;
+            var ok = string.IsNullOrEmpty(shotId)
+                ? await Store.RunAsync(id => Store.Api.UploadFinishedAsync(id, null, buffer, captured))
+                : await Store.RunAsync(id => Store.Api.UploadFinishedAsync(id, shotId, buffer, captured));
+            if (!ok) error = Store.Flash;
+            if (ok && place)
+            {
+                await Store.RunAsync(id => Store.Api.PlaceFinishedAsync(id));
+            }
+        }
+        catch (PhotoShootApiException ex)
+        {
+            error = ex.Message;
+        }
+        catch (IOException)
+        {
+            error = "That photo is larger than 100 MB.";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ReplaceAsync(FinishedPhoto photo, InputFileChangeEventArgs e)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            await using var raw = e.File.OpenReadStream(100 * 1024 * 1024);
+            using var buffer = new MemoryStream();
+            await raw.CopyToAsync(buffer);
+            buffer.Position = 0;
+            if (!await Store.RunAsync(id => Store.Api.ReplaceFinishedAsync(id, photo.Id, buffer))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task Move(FinishedPhoto photo, bool makeFinal, int delta)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.MoveFinishedAsync(id, photo.Id, new FinishedMove { MakeFinal = makeFinal, Delta = delta }))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task MoveShot(FinishedPhoto photo, string? shotId)
+    {
+        if (shotId == photo.ShotId) return;
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.MoveFinishedAsync(id, photo.Id, new FinishedMove { MoveShot = true, ShotId = shotId ?? "" }))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task Hide(FinishedPhoto photo)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.HideFinishedAsync(id, photo.Id))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task Restore(FinishedPhoto photo)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.RestoreFinishedAsync(id, photo.Id))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task HardDelete(FinishedPhoto photo)
+    {
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.HardDeleteFinishedAsync(id, photo.Id))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    private async Task ToggleMarket(PhotoShot shot, ShowMarket market)
+    {
+        var next = (shot.Markets ?? new List<ShowMarket>()).Where(item => item != ShowMarket.AnyShow).ToList();
+        if (next.Contains(market)) next.Remove(market);
+        else next.Add(market);
+        error = "";
+        busy = true;
+        try
+        {
+            if (!await Store.RunAsync(id => Store.Api.SetMarketsAsync(id, shot.Id, next))) error = Store.Flash;
+        }
+        catch (PhotoShootApiException ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+
+    public void Dispose()
+    {
+        Store.Changed -= OnChanged;
+    }
+}
