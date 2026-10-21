@@ -1,0 +1,11 @@
+---
+description: Variable naming conventions
+alwaysApply: true
+---
+
+# Variable names
+
+- Spell out variable, parameter, and field names; don't abbreviate (`familyEvent`, not `evt`; `httpRequest`, not `req`).
+- Short names are fine for lambda parameters, such as in LINQ (`events.Where(e => e.IsPast)`).
+- `ex` is fine for caught exceptions.
+- Loop counters like `i` are fine.

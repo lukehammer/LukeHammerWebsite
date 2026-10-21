@@ -51,8 +51,34 @@ namespace BlazorApp.Shared
         public string Status { get; set; } = FamilyRsvpStatus.Going;
         /// <summary>People coming with this RSVP; null when not given.</summary>
         public int? Headcount { get; set; }
+        /// <summary>Who is coming; at most <see cref="Headcount"/> entries.</summary>
+        public List<FamilyEventAttendee> Attendees { get; set; } = new List<FamilyEventAttendee>();
         public string Note { get; set; } = "";
         public DateTimeOffset UpdatedAt { get; set; }
+    }
+
+    public class FamilyEventAttendee
+    {
+        public string Name { get; set; } = "";
+        /// <summary>See <see cref="FamilyAttendeeAge"/>: blank, "adult", or a kid's age.</summary>
+        public string Age { get; set; } = "";
+    }
+
+    public static class FamilyAttendeeAge
+    {
+        public const string Adult = "adult";
+        public const int MaxKidAge = 17;
+
+        public static bool IsValid(string age) =>
+            age.Length == 0 || age == Adult || (int.TryParse(age, out var years) && years >= 0 && years <= MaxKidAge && age == years.ToString());
+
+        public static bool IsKid(string age) => age.Length > 0 && age != Adult && IsValid(age);
+
+        public static string Label(string age) =>
+            age == Adult ? "adult"
+            : age == "0" ? "under 1"
+            : IsKid(age) ? $"age {age}"
+            : "";
     }
 
     public class FamilyEventRsvpRequest
@@ -61,6 +87,7 @@ namespace BlazorApp.Shared
         /// <summary>One of <see cref="FamilyRsvpStatus"/>, or blank to remove the RSVP.</summary>
         public string Status { get; set; } = "";
         public int? Headcount { get; set; }
+        public List<FamilyEventAttendee> Attendees { get; set; } = new List<FamilyEventAttendee>();
         public string Note { get; set; } = "";
     }
 
@@ -147,6 +174,8 @@ namespace BlazorApp.Shared
     {
         public int GoingFamilies { get; set; }
         public int GoingPeople { get; set; }
+        public int GoingAdults { get; set; }
+        public int GoingKids { get; set; }
         public int MaybeFamilies { get; set; }
         public int NotGoingFamilies { get; set; }
     }
@@ -167,7 +196,7 @@ namespace BlazorApp.Shared
         public static bool IsLocked(DateTime lastDay, DateTime today) =>
             today.Date > lastDay.Date.AddDays(EditableDaysAfterEvent);
 
-        public static bool IsLocked(FamilyEvent evt, DateTime today) => IsLocked(evt.LastDay, today);
+        public static bool IsLocked(FamilyEvent familyEvent, DateTime today) => IsLocked(familyEvent.LastDay, today);
 
         public static bool CanDeletePost(string author, string requestedBy) =>
             !string.IsNullOrWhiteSpace(requestedBy)
@@ -177,20 +206,20 @@ namespace BlazorApp.Shared
         public static bool IsPast(DateTime lastDay, DateTime today) =>
             lastDay.Date < today.Date;
 
-        public static bool IsPast(FamilyEvent evt, DateTime today) => IsPast(evt.LastDay, today);
+        public static bool IsPast(FamilyEvent familyEvent, DateTime today) => IsPast(familyEvent.LastDay, today);
 
         public static List<FamilyEvent> Upcoming(IEnumerable<FamilyEvent> events, DateTime today) =>
             events
-                .Where(e => !IsPast(e, today))
-                .OrderBy(e => e.Date)
-                .ThenBy(e => e.StartTime ?? TimeSpan.MaxValue)
+                .Where(familyEvent => !IsPast(familyEvent, today))
+                .OrderBy(familyEvent => familyEvent.Date)
+                .ThenBy(familyEvent => familyEvent.StartTime ?? TimeSpan.MaxValue)
                 .ToList();
 
         public static List<FamilyEvent> Past(IEnumerable<FamilyEvent> events, DateTime today) =>
             events
-                .Where(e => IsPast(e, today))
-                .OrderByDescending(e => e.LastDay)
-                .ThenByDescending(e => e.StartTime ?? TimeSpan.MinValue)
+                .Where(familyEvent => IsPast(familyEvent, today))
+                .OrderByDescending(familyEvent => familyEvent.LastDay)
+                .ThenByDescending(familyEvent => familyEvent.StartTime ?? TimeSpan.MinValue)
                 .ToList();
 
         /// <summary>The next (or in-progress) event; falls back to the most recent past event.</summary>
@@ -203,13 +232,15 @@ namespace BlazorApp.Shared
         public static FamilyRsvpSummary SummarizeRsvps(IEnumerable<FamilyEventRsvp> rsvps)
         {
             var list = rsvps.ToList();
-            var going = list.Where(r => r.Status == FamilyRsvpStatus.Going).ToList();
+            var going = list.Where(rsvp => rsvp.Status == FamilyRsvpStatus.Going).ToList();
             return new FamilyRsvpSummary
             {
                 GoingFamilies = going.Count,
-                GoingPeople = going.Sum(r => r.Headcount ?? 0),
-                MaybeFamilies = list.Count(r => r.Status == FamilyRsvpStatus.Maybe),
-                NotGoingFamilies = list.Count(r => r.Status == FamilyRsvpStatus.No)
+                GoingPeople = going.Sum(rsvp => rsvp.Headcount ?? 0),
+                GoingAdults = going.Sum(rsvp => rsvp.Attendees?.Count(attendee => attendee.Age == FamilyAttendeeAge.Adult) ?? 0),
+                GoingKids = going.Sum(rsvp => rsvp.Attendees?.Count(attendee => FamilyAttendeeAge.IsKid(attendee.Age)) ?? 0),
+                MaybeFamilies = list.Count(rsvp => rsvp.Status == FamilyRsvpStatus.Maybe),
+                NotGoingFamilies = list.Count(rsvp => rsvp.Status == FamilyRsvpStatus.No)
             };
         }
     }

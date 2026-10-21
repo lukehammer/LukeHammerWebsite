@@ -13,12 +13,12 @@ namespace ApiIsolated
         /// <summary>Sends a test message to every channel and reports which ones are configured and working.</summary>
         [Function("TestNotifications")]
         public async Task<HttpResponseData> Test(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "notifications/test")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "notifications/test")] HttpRequestData httpRequest)
         {
-            var request = await req.ReadFromJsonAsync<NotificationTestRequest>();
+            var request = await httpRequest.ReadFromJsonAsync<NotificationTestRequest>();
             if (!string.Equals(request?.SubmittedBy?.Trim(), ScheduleSubmitters.LukeAuthCode, StringComparison.Ordinal))
             {
-                var forbidden = req.CreateResponse(HttpStatusCode.Forbidden);
+                var forbidden = httpRequest.CreateResponse(HttpStatusCode.Forbidden);
                 await forbidden.WriteStringAsync("Only Luke can send test notifications.");
                 return forbidden;
             }
@@ -30,7 +30,7 @@ namespace ApiIsolated
                 ClickUrl = NotificationDispatcher.SiteUrl("FamilyEvents")
             });
 
-            var response = req.CreateResponse(HttpStatusCode.OK);
+            var response = httpRequest.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(results);
             return response;
         }

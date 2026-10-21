@@ -1,8 +1,15 @@
 (function () {
     var deferredPrompt = null;
+    var deferredPromptManifest = null;
 
-    function isSportsPage() {
-        return /^\/Sports\/?$/i.test(window.location.pathname);
+    function currentManifest() {
+        var link = document.querySelector('link[rel="manifest"]');
+        return link ? link.href : null;
+    }
+
+    function isInstallablePage() {
+        return /^\/Sports\/?$/i.test(window.location.pathname)
+            || /^\/FamilyEvents(\/|$)/i.test(window.location.pathname);
     }
 
     function isInstalled() {
@@ -11,7 +18,7 @@
     }
 
     function showBanner() {
-        if (!isSportsPage() || isInstalled()) {
+        if (!isInstallablePage() || isInstalled() || deferredPromptManifest !== currentManifest()) {
             return;
         }
 
@@ -31,11 +38,12 @@
     window.addEventListener('beforeinstallprompt', function (event) {
         event.preventDefault();
         deferredPrompt = event;
+        deferredPromptManifest = currentManifest();
         showBanner();
     });
 
     window.schedulePwaInstallClick = function () {
-        if (!deferredPrompt) {
+        if (!deferredPrompt || deferredPromptManifest !== currentManifest()) {
             return;
         }
 

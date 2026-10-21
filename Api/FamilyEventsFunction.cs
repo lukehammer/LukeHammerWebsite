@@ -38,15 +38,15 @@ namespace ApiIsolated
 
         [Function("GetFamilyEvents")]
         public Task<HttpResponseData> Get(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "family-events")] HttpRequestData req) =>
-            Run(req, "load family events", async () => await FamilyEventsStorage.LoadAsync());
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "family-events")] HttpRequestData httpRequest) =>
+            Run(httpRequest, "load family events", async () => await FamilyEventsStorage.LoadAsync());
 
         [Function("CreateFamilyEvent")]
         public async Task<HttpResponseData> Create(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events")] HttpRequestData httpRequest)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventDetailsRequest>();
-            return await Run(req, "create family event", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventDetailsRequest>();
+            return await Run(httpRequest, "create family event", () =>
             {
                 RequireLuke(request?.SubmittedBy);
                 var details = ValidateDetails(request!);
@@ -56,8 +56,8 @@ namespace ApiIsolated
                 {
                     var potluck = new PotluckSurveyState();
                     foreach (var label in (request!.ThemeOptions ?? new List<string>())
-                                 .Select(t => t?.Trim() ?? "")
-                                 .Where(t => t.Length > 0)
+                                 .Select(theme => theme?.Trim() ?? "")
+                                 .Where(theme => theme.Length > 0)
                                  .Distinct(StringComparer.OrdinalIgnoreCase))
                     {
                         potluck.Options.Add(new PotluckOptionDefinition
@@ -81,63 +81,63 @@ namespace ApiIsolated
 
         [Function("UpdateFamilyEvent")]
         public async Task<HttpResponseData> Update(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "family-events/{id}")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "family-events/{id}")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventDetailsRequest>();
-            return await Run(req, "update family event", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventDetailsRequest>();
+            return await Run(httpRequest, "update family event", () =>
             {
                 RequireLuke(request?.SubmittedBy);
                 var details = ValidateDetails(request!);
 
-                return MutateEventAsync(id, evt =>
+                return MutateEventAsync(id, familyEvent =>
                 {
-                    evt.Title = details.Title;
-                    evt.Date = details.Date;
-                    evt.EndDate = details.EndDate;
-                    evt.StartTime = details.StartTime;
-                    evt.Location = details.Location;
-                    evt.Description = details.Description;
-                    evt.ThemeVotingEnabled = details.ThemeVotingEnabled;
-                    evt.BringPrompt = details.BringPrompt;
-                    evt.RsvpEnabled = details.RsvpEnabled;
-                    evt.RsvpGoal = details.RsvpGoal;
-                    evt.RsvpDeadline = details.RsvpDeadline;
-                    evt.SignupLists = MergeSignupLists(evt.SignupLists, request!.SignupLists);
+                    familyEvent.Title = details.Title;
+                    familyEvent.Date = details.Date;
+                    familyEvent.EndDate = details.EndDate;
+                    familyEvent.StartTime = details.StartTime;
+                    familyEvent.Location = details.Location;
+                    familyEvent.Description = details.Description;
+                    familyEvent.ThemeVotingEnabled = details.ThemeVotingEnabled;
+                    familyEvent.BringPrompt = details.BringPrompt;
+                    familyEvent.RsvpEnabled = details.RsvpEnabled;
+                    familyEvent.RsvpGoal = details.RsvpGoal;
+                    familyEvent.RsvpDeadline = details.RsvpDeadline;
+                    familyEvent.SignupLists = MergeSignupLists(familyEvent.SignupLists, request!.SignupLists);
                 });
             });
         }
 
         [Function("DeleteFamilyEvent")]
         public Task<HttpResponseData> Delete(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "family-events/{id}")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "family-events/{id}")] HttpRequestData httpRequest,
             string id) =>
-            Run(req, "delete family event", () =>
+            Run(httpRequest, "delete family event", () =>
             {
-                RequireLuke(HttpUtility.ParseQueryString(req.Url.Query)["submittedBy"]);
+                RequireLuke(HttpUtility.ParseQueryString(httpRequest.Url.Query)["submittedBy"]);
 
                 return FamilyEventsStorage.UpdateAsync(data =>
                 {
-                    var evt = FindUnlockedEvent(data, id);
-                    data.Events.Remove(evt);
+                    var familyEvent = FindUnlockedEvent(data, id);
+                    data.Events.Remove(familyEvent);
                     return data;
                 });
             });
 
         [Function("SaveFamilyEventParticipant")]
         public async Task<HttpResponseData> SaveParticipant(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/participant")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/participant")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<PotluckParticipantRequest>();
-            return await Run(req, "save family event participant", () =>
+            var request = await httpRequest.ReadFromJsonAsync<PotluckParticipantRequest>();
+            return await Run(httpRequest, "save family event participant", () =>
             {
                 var name = RequireName(request?.Name);
                 var bringing = Truncate(request!.Bringing?.Trim() ?? "", MaxTextLength);
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    var participant = GetOrAddParticipant(evt.Potluck, name);
+                    var participant = GetOrAddParticipant(familyEvent.Potluck, name);
                     participant.Bringing = bringing;
                     participant.SubmittedAt = DateTime.UtcNow;
                     return bringing.Length == 0 ? "cleared what they're bringing." : $"is bringing {Quote(bringing)}.";
@@ -147,11 +147,11 @@ namespace ApiIsolated
 
         [Function("RateFamilyEventOption")]
         public async Task<HttpResponseData> RateOption(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/rate")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/rate")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<PotluckRateRequest>();
-            return await Run(req, "save family event vote", () =>
+            var request = await httpRequest.ReadFromJsonAsync<PotluckRateRequest>();
+            return await Run(httpRequest, "save family event vote", () =>
             {
                 var name = RequireName(request?.Name);
                 if (string.IsNullOrWhiteSpace(request!.OptionId))
@@ -166,13 +166,13 @@ namespace ApiIsolated
 
                 var optionId = request.OptionId.Trim().ToLowerInvariant();
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    RequireThemeVoting(evt);
-                    var option = evt.Potluck.Options.FirstOrDefault(o => string.Equals(o.Id, optionId, StringComparison.OrdinalIgnoreCase))
+                    RequireThemeVoting(familyEvent);
+                    var option = familyEvent.Potluck.Options.FirstOrDefault(existingOption => string.Equals(existingOption.Id, optionId, StringComparison.OrdinalIgnoreCase))
                         ?? throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Option not found.");
 
-                    var participant = GetOrAddParticipant(evt.Potluck, name);
+                    var participant = GetOrAddParticipant(familyEvent.Potluck, name);
                     if (request.Rating == 0)
                     {
                         participant.Ratings.Remove(optionId);
@@ -195,11 +195,11 @@ namespace ApiIsolated
 
         [Function("AddFamilyEventOption")]
         public async Task<HttpResponseData> AddOption(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/options")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/options")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<PotluckAddOptionRequest>();
-            return await Run(req, "add family event option", () =>
+            var request = await httpRequest.ReadFromJsonAsync<PotluckAddOptionRequest>();
+            return await Run(httpRequest, "add family event option", () =>
             {
                 var label = Truncate(request?.Label?.Trim() ?? "", MaxTitleLength);
                 if (label.Length == 0)
@@ -210,15 +210,15 @@ namespace ApiIsolated
                 var optionId = PotluckOptionIds.ToCustomOptionId(label);
 
                 var createdBy = request!.CreatedBy?.Trim() ?? "";
-                return MutateAndNotifyAsync(id, createdBy.Length == 0 ? "Someone" : createdBy, evt =>
+                return MutateAndNotifyAsync(id, createdBy.Length == 0 ? "Someone" : createdBy, familyEvent =>
                 {
-                    RequireThemeVoting(evt);
-                    if (evt.Potluck.Options.Any(o => string.Equals(o.Id, optionId, StringComparison.OrdinalIgnoreCase)))
+                    RequireThemeVoting(familyEvent);
+                    if (familyEvent.Potluck.Options.Any(existingOption => string.Equals(existingOption.Id, optionId, StringComparison.OrdinalIgnoreCase)))
                     {
                         throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "That option already exists.");
                     }
 
-                    evt.Potluck.Options.Add(new PotluckOptionDefinition
+                    familyEvent.Potluck.Options.Add(new PotluckOptionDefinition
                     {
                         Id = optionId,
                         Label = label,
@@ -233,11 +233,11 @@ namespace ApiIsolated
 
         [Function("RemoveFamilyEventOption")]
         public async Task<HttpResponseData> RemoveOption(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/options/remove")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/options/remove")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<PotluckRemoveOptionRequest>();
-            return await Run(req, "remove family event option", () =>
+            var request = await httpRequest.ReadFromJsonAsync<PotluckRemoveOptionRequest>();
+            return await Run(httpRequest, "remove family event option", () =>
             {
                 if (string.IsNullOrWhiteSpace(request?.OptionId))
                 {
@@ -246,10 +246,10 @@ namespace ApiIsolated
 
                 var optionId = request!.OptionId.Trim();
 
-                return MutateAndNotifyAsync(id, "Someone", evt =>
+                return MutateAndNotifyAsync(id, "Someone", familyEvent =>
                 {
-                    var option = evt.Potluck.Options.FirstOrDefault(o =>
-                        string.Equals(o.Id, optionId, StringComparison.OrdinalIgnoreCase))
+                    var option = familyEvent.Potluck.Options.FirstOrDefault(existingOption =>
+                        string.Equals(existingOption.Id, optionId, StringComparison.OrdinalIgnoreCase))
                         ?? throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Option not found.");
 
                     if (option.IsBuiltIn)
@@ -257,8 +257,8 @@ namespace ApiIsolated
                         throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Built-in options cannot be removed.");
                     }
 
-                    evt.Potluck.Options.Remove(option);
-                    foreach (var participant in evt.Potluck.Participants)
+                    familyEvent.Potluck.Options.Remove(option);
+                    foreach (var participant in familyEvent.Potluck.Participants)
                     {
                         participant.Ratings.Remove(option.Id);
                     }
@@ -270,18 +270,18 @@ namespace ApiIsolated
 
         [Function("AskFamilyEventQuestion")]
         public async Task<HttpResponseData> AskQuestion(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventPostRequest>();
-            return await Run(req, "ask family event question", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventPostRequest>();
+            return await Run(httpRequest, "ask family event question", () =>
             {
                 var name = RequireName(request?.Name);
                 var text = RequirePostText(request!.Text, "Question");
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    evt.Questions.Add(new FamilyEventQuestion
+                    familyEvent.Questions.Add(new FamilyEventQuestion
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         AskedBy = name,
@@ -295,19 +295,19 @@ namespace ApiIsolated
 
         [Function("AnswerFamilyEventQuestion")]
         public async Task<HttpResponseData> AnswerQuestion(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/answers")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/answers")] HttpRequestData httpRequest,
             string id,
             string questionId)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventPostRequest>();
-            return await Run(req, "answer family event question", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventPostRequest>();
+            return await Run(httpRequest, "answer family event question", () =>
             {
                 var name = RequireName(request?.Name);
                 var text = RequirePostText(request!.Text, "Answer");
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    var question = FindQuestion(evt, questionId);
+                    var question = FindQuestion(familyEvent, questionId);
                     question.Answers.Add(new FamilyEventAnswer
                     {
                         Id = Guid.NewGuid().ToString("N"),
@@ -322,34 +322,34 @@ namespace ApiIsolated
 
         [Function("DeleteFamilyEventQuestion")]
         public async Task<HttpResponseData> DeleteQuestion(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/delete")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/delete")] HttpRequestData httpRequest,
             string id,
             string questionId)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventDeletePostRequest>();
-            return await Run(req, "delete family event question", () =>
-                MutateAndNotifyAsync(id, request?.Name ?? "", evt =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventDeletePostRequest>();
+            return await Run(httpRequest, "delete family event question", () =>
+                MutateAndNotifyAsync(id, request?.Name ?? "", familyEvent =>
                 {
-                    var question = FindQuestion(evt, questionId);
+                    var question = FindQuestion(familyEvent, questionId);
                     RequirePostOwner(question.AskedBy, request?.Name);
-                    evt.Questions.Remove(question);
+                    familyEvent.Questions.Remove(question);
                     return $"deleted {question.AskedBy}'s question {Quote(question.Text)}.";
                 }));
         }
 
         [Function("DeleteFamilyEventAnswer")]
         public async Task<HttpResponseData> DeleteAnswer(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/answers/{answerId}/delete")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/answers/{answerId}/delete")] HttpRequestData httpRequest,
             string id,
             string questionId,
             string answerId)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventDeletePostRequest>();
-            return await Run(req, "delete family event answer", () =>
-                MutateAndNotifyAsync(id, request?.Name ?? "", evt =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventDeletePostRequest>();
+            return await Run(httpRequest, "delete family event answer", () =>
+                MutateAndNotifyAsync(id, request?.Name ?? "", familyEvent =>
                 {
-                    var question = FindQuestion(evt, questionId);
-                    var answer = question.Answers.FirstOrDefault(a => string.Equals(a.Id, answerId, StringComparison.OrdinalIgnoreCase))
+                    var question = FindQuestion(familyEvent, questionId);
+                    var answer = question.Answers.FirstOrDefault(existingAnswer => string.Equals(existingAnswer.Id, answerId, StringComparison.OrdinalIgnoreCase))
                         ?? throw new FamilyEventsHttpException(HttpStatusCode.NotFound, "Answer not found.");
                     RequirePostOwner(answer.AnsweredBy, request?.Name);
                     question.Answers.Remove(answer);
@@ -359,11 +359,11 @@ namespace ApiIsolated
 
         [Function("SaveFamilyEventRsvp")]
         public async Task<HttpResponseData> SaveRsvp(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/rsvp")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/rsvp")] HttpRequestData httpRequest,
             string id)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventRsvpRequest>();
-            return await Run(req, "save family event RSVP", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventRsvpRequest>();
+            return await Run(httpRequest, "save family event RSVP", () =>
             {
                 var name = RequireName(request?.Name);
                 var status = request!.Status?.Trim().ToLowerInvariant() ?? "";
@@ -377,19 +377,21 @@ namespace ApiIsolated
                     throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Headcount must be between 0 and 50.");
                 }
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                var attendees = CleanAttendees(request.Attendees, request.Headcount ?? 0);
+
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    if (!evt.RsvpEnabled)
+                    if (!familyEvent.RsvpEnabled)
                     {
                         throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "This event is not taking RSVPs.");
                     }
 
-                    var existing = evt.Rsvps.FirstOrDefault(r => string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase));
+                    var existing = familyEvent.Rsvps.FirstOrDefault(rsvp => string.Equals(rsvp.Name, name, StringComparison.OrdinalIgnoreCase));
                     if (status.Length == 0)
                     {
                         if (existing != null)
                         {
-                            evt.Rsvps.Remove(existing);
+                            familyEvent.Rsvps.Remove(existing);
                         }
 
                         return "removed their RSVP.";
@@ -398,24 +400,30 @@ namespace ApiIsolated
                     if (existing == null)
                     {
                         existing = new FamilyEventRsvp { Name = name };
-                        evt.Rsvps.Add(existing);
+                        familyEvent.Rsvps.Add(existing);
                     }
 
                     existing.Status = status;
                     existing.Headcount = request.Headcount is > 0 ? request.Headcount : null;
+                    existing.Attendees = attendees;
                     existing.Note = Truncate(request.Note?.Trim() ?? "", MaxTextLength);
                     existing.UpdatedAt = WashingtonScheduleTime.Now;
 
-                    var summary = FamilyEventRules.SummarizeRsvps(evt.Rsvps);
+                    var summary = FamilyEventRules.SummarizeRsvps(familyEvent.Rsvps);
                     var answer = status switch
                     {
                         FamilyRsvpStatus.Going => "We're in!",
                         FamilyRsvpStatus.Maybe => "Maybe",
                         _ => "Can't make it"
                     };
-                    var people = existing.Headcount is int count ? $" ({count} {(count == 1 ? "person" : "people")})" : "";
+                    var who = string.Join(", ", attendees
+                        .Select(attendee => string.Join(" ", new[] { attendee.Name, FamilyAttendeeAge.Label(attendee.Age) }.Where(part => part.Length > 0)))
+                        .Where(description => description.Length > 0));
+                    var people = existing.Headcount is int count
+                        ? $" ({count} {(count == 1 ? "person" : "people")}{(who.Length > 0 ? ": " + who : "")})"
+                        : "";
                     var note = existing.Note.Length > 0 ? $" Note: {Quote(existing.Note)}" : "";
-                    var goal = evt.RsvpGoal is int g ? $" {summary.GoingFamilies} of {g} families going." : "";
+                    var goal = familyEvent.RsvpGoal is int goalFamilies ? $" {summary.GoingFamilies} of {goalFamilies} families going." : "";
                     return $"RSVP'd: {answer}{people}.{note}{goal}";
                 });
             });
@@ -423,22 +431,22 @@ namespace ApiIsolated
 
         [Function("SaveFamilyEventSignup")]
         public async Task<HttpResponseData> SaveSignup(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/signups/{listId}")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/signups/{listId}")] HttpRequestData httpRequest,
             string id,
             string listId)
         {
-            var request = await req.ReadFromJsonAsync<FamilyEventPostRequest>();
-            return await Run(req, "save family event sign-up", () =>
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventPostRequest>();
+            return await Run(httpRequest, "save family event sign-up", () =>
             {
                 var name = RequireName(request?.Name);
                 var text = Truncate(request!.Text?.Trim() ?? "", MaxTextLength);
 
-                return MutateAndNotifyAsync(id, name, evt =>
+                return MutateAndNotifyAsync(id, name, familyEvent =>
                 {
-                    var list = evt.SignupLists.FirstOrDefault(l => string.Equals(l.Id, listId, StringComparison.OrdinalIgnoreCase))
+                    var list = familyEvent.SignupLists.FirstOrDefault(signupList => string.Equals(signupList.Id, listId, StringComparison.OrdinalIgnoreCase))
                         ?? throw new FamilyEventsHttpException(HttpStatusCode.NotFound, "Sign-up list not found.");
 
-                    var entry = list.Entries.FirstOrDefault(e => string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase));
+                    var entry = list.Entries.FirstOrDefault(existingEntry => string.Equals(existingEntry.Name, name, StringComparison.OrdinalIgnoreCase));
                     if (text.Length == 0)
                     {
                         if (entry != null)
@@ -462,9 +470,9 @@ namespace ApiIsolated
             });
         }
 
-        private static void RequireThemeVoting(FamilyEvent evt)
+        private static void RequireThemeVoting(FamilyEvent familyEvent)
         {
-            if (!evt.ThemeVotingEnabled)
+            if (!familyEvent.ThemeVotingEnabled)
             {
                 throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Theme voting is turned off for this event.");
             }
@@ -479,12 +487,12 @@ namespace ApiIsolated
             foreach (var item in requested ?? new List<FamilyEventSignupList>())
             {
                 var title = Truncate(item?.Title?.Trim() ?? "", MaxTitleLength);
-                if (title.Length == 0 || merged.Any(l => string.Equals(l.Title, title, StringComparison.OrdinalIgnoreCase)))
+                if (title.Length == 0 || merged.Any(mergedList => string.Equals(mergedList.Title, title, StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;
                 }
 
-                var match = existing.FirstOrDefault(l => string.Equals(l.Title, title, StringComparison.OrdinalIgnoreCase));
+                var match = existing.FirstOrDefault(existingList => string.Equals(existingList.Title, title, StringComparison.OrdinalIgnoreCase));
                 merged.Add(new FamilyEventSignupList
                 {
                     Id = match?.Id ?? Guid.NewGuid().ToString("N"),
@@ -497,8 +505,8 @@ namespace ApiIsolated
             return merged;
         }
 
-        private static FamilyEventQuestion FindQuestion(FamilyEvent evt, string questionId) =>
-            evt.Questions.FirstOrDefault(q => string.Equals(q.Id, questionId, StringComparison.OrdinalIgnoreCase))
+        private static FamilyEventQuestion FindQuestion(FamilyEvent familyEvent, string questionId) =>
+            familyEvent.Questions.FirstOrDefault(question => string.Equals(question.Id, questionId, StringComparison.OrdinalIgnoreCase))
             ?? throw new FamilyEventsHttpException(HttpStatusCode.NotFound, "Question not found.");
 
         private static void RequirePostOwner(string author, string? requestedBy)
@@ -528,10 +536,10 @@ namespace ApiIsolated
         {
             string summary = "";
             string title = "";
-            var data = await MutateEventAsync(id, evt =>
+            var data = await MutateEventAsync(id, familyEvent =>
             {
-                summary = change(evt);
-                title = evt.Title;
+                summary = change(familyEvent);
+                title = familyEvent.Title;
             });
 
             var displayActor = string.Equals(actor.Trim(), ScheduleSubmitters.LukeAuthCode, StringComparison.Ordinal)
@@ -554,34 +562,34 @@ namespace ApiIsolated
         private static Task<FamilyEventsData> MutateEventAsync(string id, Action<FamilyEvent> mutate) =>
             FamilyEventsStorage.UpdateAsync(data =>
             {
-                var evt = FindUnlockedEvent(data, id);
-                mutate(evt);
-                if (FamilyEventRules.IsLocked(evt, WashingtonScheduleTime.PacificToday))
+                var familyEvent = FindUnlockedEvent(data, id);
+                mutate(familyEvent);
+                if (FamilyEventRules.IsLocked(familyEvent, WashingtonScheduleTime.PacificToday))
                 {
                     throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, FamilyEventRules.LockedDateMessage);
                 }
 
-                evt.LastModifiedAt = WashingtonScheduleTime.Now;
+                familyEvent.LastModifiedAt = WashingtonScheduleTime.Now;
                 return data;
             });
 
         private static FamilyEvent FindUnlockedEvent(FamilyEventsData data, string id)
         {
-            var evt = data.Events.FirstOrDefault(e => string.Equals(e.Id, id, StringComparison.OrdinalIgnoreCase))
+            var familyEvent = data.Events.FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.OrdinalIgnoreCase))
                 ?? throw new FamilyEventsHttpException(HttpStatusCode.NotFound, "Event not found.");
 
-            if (FamilyEventRules.IsLocked(evt, WashingtonScheduleTime.PacificToday))
+            if (FamilyEventRules.IsLocked(familyEvent, WashingtonScheduleTime.PacificToday))
             {
                 throw new FamilyEventsHttpException(HttpStatusCode.Conflict, FamilyEventRules.LockedMessage);
             }
 
-            return evt;
+            return familyEvent;
         }
 
         private static PotluckParticipant GetOrAddParticipant(PotluckSurveyState potluck, string name)
         {
-            var participant = potluck.Participants.FirstOrDefault(p =>
-                string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+            var participant = potluck.Participants.FirstOrDefault(existingParticipant =>
+                string.Equals(existingParticipant.Name, name, StringComparison.OrdinalIgnoreCase));
 
             if (participant == null)
             {
@@ -609,6 +617,29 @@ namespace ApiIsolated
             }
 
             return trimmed;
+        }
+
+        private static List<FamilyEventAttendee> CleanAttendees(List<FamilyEventAttendee>? attendees, int headcount)
+        {
+            var cleaned = new List<FamilyEventAttendee>();
+            foreach (var attendee in (attendees ?? new List<FamilyEventAttendee>()).Take(headcount))
+            {
+                var age = attendee?.Age?.Trim().ToLowerInvariant() ?? "";
+                if (!FamilyAttendeeAge.IsValid(age))
+                {
+                    throw new FamilyEventsHttpException(
+                        HttpStatusCode.BadRequest,
+                        $"Age must be \"adult\" or a kid's age from 0 to {FamilyAttendeeAge.MaxKidAge}.");
+                }
+
+                cleaned.Add(new FamilyEventAttendee
+                {
+                    Name = Truncate(attendee?.Name?.Trim() ?? "", MaxTitleLength),
+                    Age = age
+                });
+            }
+
+            return cleaned;
         }
 
         private static FamilyEvent ValidateDetails(FamilyEventDetailsRequest request)
@@ -672,12 +703,12 @@ namespace ApiIsolated
         private static string Truncate(string value, int max) =>
             value.Length <= max ? value : value.Substring(0, max);
 
-        private async Task<HttpResponseData> Run(HttpRequestData req, string action, Func<Task<FamilyEventsData>> work)
+        private async Task<HttpResponseData> Run(HttpRequestData httpRequest, string action, Func<Task<FamilyEventsData>> work)
         {
             try
             {
                 var data = await work();
-                var response = req.CreateResponse(HttpStatusCode.OK);
+                var response = httpRequest.CreateResponse(HttpStatusCode.OK);
                 await response.WriteAsJsonAsync(new FamilyEventsResponse
                 {
                     Events = data.Events,
@@ -687,18 +718,18 @@ namespace ApiIsolated
             }
             catch (FamilyEventsHttpException ex)
             {
-                return await TextResponse(req, ex.Status, ex.Message);
+                return await TextResponse(httpRequest, ex.Status, ex.Message);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to {Action}.", action);
-                return await TextResponse(req, HttpStatusCode.InternalServerError, ex.Message);
+                return await TextResponse(httpRequest, HttpStatusCode.InternalServerError, ex.Message);
             }
         }
 
-        private static async Task<HttpResponseData> TextResponse(HttpRequestData req, HttpStatusCode status, string message)
+        private static async Task<HttpResponseData> TextResponse(HttpRequestData httpRequest, HttpStatusCode status, string message)
         {
-            var response = req.CreateResponse(status);
+            var response = httpRequest.CreateResponse(status);
             await response.WriteStringAsync(message);
             return response;
         }

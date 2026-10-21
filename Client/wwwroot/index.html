@@ -48,14 +48,27 @@
             function applySiteIcon() {
                 var path = location.pathname.replace(/\/+$/, '').toLowerCase();
                 var sports = path === '/sports';
+                var familyEvents = path === '/familyevents' || path.indexOf('/familyevents/') === 0;
                 var icon = document.querySelector('link[rel="icon"]');
                 var apple = document.querySelector('link[rel="apple-touch-icon"]');
+                var manifest = document.querySelector('link[rel="manifest"]');
+                var appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
                 var sportsIcon = 'icons/hammer-sports.png';
                 if (icon) {
-                    icon.href = sports ? sportsIcon : 'favicon-96x96.png?v=3';
+                    icon.href = familyEvents ? 'icons/hammer-family-events-96.png'
+                        : sports ? sportsIcon
+                        : 'favicon-96x96.png?v=3';
                 }
                 if (apple) {
-                    apple.href = sports ? sportsIcon : 'apple-icon.png?v=3';
+                    apple.href = familyEvents ? 'icons/hammer-family-events-180.png'
+                        : sports ? sportsIcon
+                        : 'apple-icon.png?v=3';
+                }
+                if (manifest) {
+                    manifest.href = familyEvents ? 'manifest-family-events.json' : 'manifest.json';
+                }
+                if (appTitle) {
+                    appTitle.content = familyEvents ? 'Family Events' : 'Sports';
                 }
             }
 

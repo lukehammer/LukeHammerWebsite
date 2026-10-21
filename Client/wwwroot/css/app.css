@@ -364,6 +364,27 @@ a, .btn-link {
     color: #555;
 }
 
+.family-rsvp-save-status {
+    align-self: center;
+    color: #555;
+}
+
+.family-rsvp-people {
+    margin-bottom: 0.75rem;
+}
+
+.family-rsvp-people-hint {
+    margin-bottom: 0.4rem;
+    color: #555;
+}
+
+.family-rsvp-person {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 8rem;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
 .family-qa-empty {
     margin: 1rem 0 0;
     color: #555;

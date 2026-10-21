@@ -91,8 +91,8 @@ namespace ApiIsolated.Notifications
 
             try
             {
-                using var cts = new CancellationTokenSource(ChannelTimeout);
-                result.Error = await channel.SendAsync(message, cts.Token);
+                using var timeoutSource = new CancellationTokenSource(ChannelTimeout);
+                result.Error = await channel.SendAsync(message, timeoutSource.Token);
                 result.Sent = result.Error == null;
             }
             catch (OperationCanceledException)

@@ -15,6 +15,7 @@ namespace ApiIsolated
                 Title = "Christmas Party",
                 Date = new DateTime(2026, 12, 12),
                 StartTime = new TimeSpan(17, 0, 0),
+                Location = "174 Southern Cross Lane, Woodland, WA",
                 Description =
                     "Hello Family! I'm going to host the Christmas party at my house again.\n\n" +
                     "It's a potluck and White Santa gift exchange. I'm making ham and fresh green beans this year, " +

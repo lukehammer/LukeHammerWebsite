@@ -7,7 +7,7 @@ public class FamilyEventRulesTests
 {
     private static readonly DateTime Today = new(2026, 10, 19);
 
-    private static FamilyEvent Evt(string id, DateTime date, TimeSpan? start = null) =>
+    private static FamilyEvent MakeEvent(string id, DateTime date, TimeSpan? start = null) =>
         new() { Id = id, Title = id, Date = date, StartTime = start };
 
     [Theory]
@@ -48,7 +48,7 @@ public class FamilyEventRulesTests
         var events = new[]
         {
             new FamilyEvent { Id = "camp", Date = Today.AddDays(-1), EndDate = Today.AddDays(2) },
-            Evt("later", Today.AddDays(5))
+            MakeEvent("later", Today.AddDays(5))
         };
 
         FamilyEventRules.Upcoming(events, Today).Select(e => e.Id).Should().Equal("camp", "later");
@@ -73,6 +73,50 @@ public class FamilyEventRulesTests
     }
 
     [Fact]
+    public void SummarizeRsvps_counts_adults_and_kids_for_going_families_only()
+    {
+        var summary = FamilyEventRules.SummarizeRsvps(new[]
+        {
+            new FamilyEventRsvp
+            {
+                Name = "Leneigh",
+                Status = FamilyRsvpStatus.Going,
+                Headcount = 4,
+                Attendees = new List<FamilyEventAttendee>
+                {
+                    new FamilyEventAttendee { Name = "Leneigh", Age = FamilyAttendeeAge.Adult },
+                    new FamilyEventAttendee { Name = "Sam", Age = "7" },
+                    new FamilyEventAttendee { Name = "Baby", Age = "0" },
+                    new FamilyEventAttendee { Name = "Unknown" }
+                }
+            },
+            new FamilyEventRsvp
+            {
+                Name = "Casey",
+                Status = FamilyRsvpStatus.Maybe,
+                Attendees = new List<FamilyEventAttendee> { new FamilyEventAttendee { Age = "5" } }
+            }
+        });
+
+        summary.GoingAdults.Should().Be(1);
+        summary.GoingKids.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("adult", true)]
+    [InlineData("0", true)]
+    [InlineData("17", true)]
+    [InlineData("18", false)]
+    [InlineData("-1", false)]
+    [InlineData("07", false)]
+    [InlineData("teen", false)]
+    public void Attendee_age_must_be_adult_or_a_kid_age(string age, bool valid)
+    {
+        FamilyAttendeeAge.IsValid(age).Should().Be(valid);
+    }
+
+    [Fact]
     public void IsPast_is_false_on_event_day()
     {
         FamilyEventRules.IsPast(Today, Today).Should().BeFalse();
@@ -84,10 +128,10 @@ public class FamilyEventRulesTests
     {
         var events = new[]
         {
-            Evt("old", Today.AddDays(-10)),
-            Evt("later", Today.AddDays(30)),
-            Evt("soon", Today.AddDays(2)),
-            Evt("yesterday", Today.AddDays(-1))
+            MakeEvent("old", Today.AddDays(-10)),
+            MakeEvent("later", Today.AddDays(30)),
+            MakeEvent("soon", Today.AddDays(2)),
+            MakeEvent("yesterday", Today.AddDays(-1))
         };
 
         FamilyEventRules.PickDefault(events, Today)!.Id.Should().Be("soon");
@@ -96,7 +140,7 @@ public class FamilyEventRulesTests
     [Fact]
     public void PickDefault_includes_events_today()
     {
-        var events = new[] { Evt("today", Today), Evt("next", Today.AddDays(1)) };
+        var events = new[] { MakeEvent("today", Today), MakeEvent("next", Today.AddDays(1)) };
 
         FamilyEventRules.PickDefault(events, Today)!.Id.Should().Be("today");
     }
@@ -104,7 +148,7 @@ public class FamilyEventRulesTests
     [Fact]
     public void PickDefault_falls_back_to_most_recent_past_event()
     {
-        var events = new[] { Evt("older", Today.AddDays(-20)), Evt("recent", Today.AddDays(-5)) };
+        var events = new[] { MakeEvent("older", Today.AddDays(-20)), MakeEvent("recent", Today.AddDays(-5)) };
 
         FamilyEventRules.PickDefault(events, Today)!.Id.Should().Be("recent");
     }
@@ -120,11 +164,11 @@ public class FamilyEventRulesTests
     {
         var events = new[]
         {
-            Evt("u2", Today.AddDays(9)),
-            Evt("u1-late", Today.AddDays(1), new TimeSpan(18, 0, 0)),
-            Evt("u1-early", Today.AddDays(1), new TimeSpan(9, 0, 0)),
-            Evt("p2", Today.AddDays(-9)),
-            Evt("p1", Today.AddDays(-1))
+            MakeEvent("u2", Today.AddDays(9)),
+            MakeEvent("u1-late", Today.AddDays(1), new TimeSpan(18, 0, 0)),
+            MakeEvent("u1-early", Today.AddDays(1), new TimeSpan(9, 0, 0)),
+            MakeEvent("p2", Today.AddDays(-9)),
+            MakeEvent("p1", Today.AddDays(-1))
         };
 
         FamilyEventRules.Upcoming(events, Today).Select(e => e.Id)

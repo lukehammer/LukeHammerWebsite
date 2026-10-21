@@ -1,0 +1,32 @@
+{
+  "name": "Hammer Family Events",
+  "short_name": "Family Events",
+  "description": "Hammer family get-togethers: RSVPs, potluck sign-ups, and questions.",
+  "id": "/FamilyEvents",
+  "start_url": "/FamilyEvents",
+  "scope": "/FamilyEvents",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#0B1020",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/hammer-family-events-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/hammer-family-events-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/hammer-family-events-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

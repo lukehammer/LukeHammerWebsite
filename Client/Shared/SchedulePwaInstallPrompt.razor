@@ -1,6 +1,6 @@
 <div id="schedule-pwa-install-banner" class="schedule-pwa-install-banner" hidden>
     <p class="schedule-pwa-install-text">
-        Add this schedule to your home screen for one-tap access.
+        @Message
     </p>
     <div class="schedule-pwa-install-actions">
         <button type="button" class="schedule-pwa-install-btn" @onclick="InstallAsync">
@@ -14,6 +14,8 @@
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public string Message { get; set; } = "Add this schedule to your home screen for one-tap access.";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

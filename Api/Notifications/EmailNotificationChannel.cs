@@ -80,7 +80,7 @@ namespace ApiIsolated.Notifications
         {
             try
             {
-                var port = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var p) ? p : 587;
+                var port = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var configuredPort) ? configuredPort : 587;
                 var user = Environment.GetEnvironmentVariable("SMTP_USER");
                 var password = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
                 var from = Environment.GetEnvironmentVariable("NOTIFY_EMAIL_FROM") ?? user ?? "noreply@lukehammermagic.com";

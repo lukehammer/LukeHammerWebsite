@@ -7,9 +7,15 @@
 @inject NavigationManager Nav
 
 <PageTitle>@(SelectedEvent?.Title ?? "Family Events")</PageTitle>
+<HeadContent>
+    <link rel="icon" type="image/png" sizes="96x96" href="icons/hammer-family-events-96.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/hammer-family-events-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/hammer-family-events-180.png" />
+</HeadContent>
 
 <main class="camping-page">
     <h1>Family Events</h1>
+    <SchedulePwaInstallPrompt Message="Add Family Events to your home screen for one-tap access." />
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -35,18 +41,18 @@
                     @if (UpcomingEvents.Count > 0)
                     {
                         <optgroup label="Upcoming">
-                            @foreach (var evt in UpcomingEvents)
+                            @foreach (var familyEvent in UpcomingEvents)
                             {
-                                <option value="@evt.Id">@FormatPickerLabel(evt)</option>
+                                <option value="@familyEvent.Id">@FormatPickerLabel(familyEvent)</option>
                             }
                         </optgroup>
                     }
                     @if (PastEvents.Count > 0)
                     {
                         <optgroup label="Past">
-                            @foreach (var evt in PastEvents)
+                            @foreach (var familyEvent in PastEvents)
                             {
-                                <option value="@evt.Id">@FormatPickerLabel(evt)</option>
+                                <option value="@familyEvent.Id">@FormatPickerLabel(familyEvent)</option>
                             }
                         </optgroup>
                     }
@@ -137,33 +143,37 @@
         }
         else
         {
-            var evt = SelectedEvent;
+            var familyEvent = SelectedEvent;
             <section class="camping-card">
-                <h2>@evt.Title</h2>
-                <p class="family-event-when">@FormatWhen(evt)</p>
-                @if (!string.IsNullOrWhiteSpace(evt.Location))
+                <h2>@familyEvent.Title</h2>
+                <p class="family-event-when">@FormatWhen(familyEvent)</p>
+                @if (!string.IsNullOrWhiteSpace(familyEvent.Location))
                 {
-                    <p class="family-event-location">@evt.Location</p>
+                    <p class="family-event-location">
+                        <a href="@MapUrl(familyEvent.Location)" target="_blank" rel="noopener">
+                            <span class="oi oi-map-marker" aria-hidden="true"></span> @familyEvent.Location
+                        </a>
+                    </p>
                 }
-                @if (!string.IsNullOrWhiteSpace(evt.Description))
+                @if (!string.IsNullOrWhiteSpace(familyEvent.Description))
                 {
-                    <p class="family-event-description">@evt.Description</p>
+                    <p class="family-event-description">@familyEvent.Description</p>
                 }
 
                 @if (IsLocked)
                 {
                     <p class="family-event-status is-locked">This event has passed. Everything below is read-only.</p>
                 }
-                else if (FamilyEventRules.IsPast(evt, response.Today))
+                else if (FamilyEventRules.IsPast(familyEvent, response.Today))
                 {
-                    <p class="family-event-status">This event has passed. Changes are allowed through @evt.LastDay.AddDays(FamilyEventRules.EditableDaysAfterEvent).ToString("dddd, MMMM d", DisplayCulture).</p>
+                    <p class="family-event-status">This event has passed. Changes are allowed through @familyEvent.LastDay.AddDays(FamilyEventRules.EditableDaysAfterEvent).ToString("dddd, MMMM d", DisplayCulture).</p>
                 }
 
                 @if (isLuke && !IsLocked && editor == null)
                 {
                     <div class="camping-bring-edit-actions">
-                        <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="() => StartEdit(evt)">Edit details</button>
-                        <button class="btn btn-outline-danger camping-btn" @onclick="() => DeleteEvent(evt)" disabled="@isBusy">Delete event</button>
+                        <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="() => StartEdit(familyEvent)">Edit details</button>
+                        <button class="btn btn-outline-danger camping-btn" @onclick="() => DeleteEvent(familyEvent)" disabled="@isBusy">Delete event</button>
                     </div>
                 }
             </section>
@@ -180,9 +190,9 @@
                 </section>
             }
 
-            @if (evt.RsvpEnabled)
+            @if (familyEvent.RsvpEnabled)
             {
-                var summary = FamilyEventRules.SummarizeRsvps(evt.Rsvps);
+                var summary = FamilyEventRules.SummarizeRsvps(familyEvent.Rsvps);
                 <section class="camping-card">
                     <h2>@(IsLocked ? "Who came" : "Are you coming?")</h2>
                     <p class="family-rsvp-summary">
@@ -190,13 +200,17 @@
                         @if (summary.GoingPeople > 0)
                         {
                             <span> · @summary.GoingPeople @(summary.GoingPeople == 1 ? "person" : "people")</span>
+                            @if (summary.GoingAdults + summary.GoingKids > 0)
+                            {
+                                <span> (@summary.GoingAdults @(summary.GoingAdults == 1 ? "adult" : "adults"), @summary.GoingKids @(summary.GoingKids == 1 ? "kid" : "kids"))</span>
+                            }
                         }
                         @if (summary.MaybeFamilies > 0)
                         {
                             <span> · @summary.MaybeFamilies maybe</span>
                         }
                     </p>
-                    @if (evt.RsvpGoal is int goal)
+                    @if (familyEvent.RsvpGoal is int goal)
                     {
                         var remaining = Math.Max(0, goal - summary.GoingFamilies);
                         <div class="family-rsvp-goal">
@@ -206,7 +220,7 @@
                             <span>@(remaining == 0 ? $"Goal of {goal} families reached!" : $"Need {remaining} more of {goal} families")</span>
                         </div>
                     }
-                    @if (evt.RsvpDeadline is DateTime deadline && !IsLocked)
+                    @if (familyEvent.RsvpDeadline is DateTime deadline && !IsLocked)
                     {
                         <p class="family-event-status @(deadline.Date < Today ? "is-locked" : "")">
                             @(deadline.Date < Today ? "The reply-by date was" : "Please reply by") @deadline.ToString("dddd, MMMM d", DisplayCulture)
@@ -215,12 +229,13 @@
 
                     @if (!IsLocked)
                     {
+                        <div @onfocusout="AutoSaveRsvp">
                         <div class="family-rsvp-buttons" role="group" aria-label="Your RSVP">
                             @foreach (var (status, label) in RsvpChoices)
                             {
                                 <button type="button"
                                         class="btn camping-btn @(rsvpStatus == status ? "btn-primary" : "btn-outline-secondary")"
-                                        @onclick="() => rsvpStatus = status">
+                                        @onclick="() => PickRsvpStatus(status)">
                                     @label
                                 </button>
                             }
@@ -228,26 +243,54 @@
                         <div class="family-event-row">
                             <div class="camping-field">
                                 <label for="rsvp-headcount">How many people?</label>
-                                <input id="rsvp-headcount" type="number" min="0" max="50" class="form-control camping-input" @bind="rsvpHeadcount" />
+                                <input id="rsvp-headcount" type="number" min="0" max="@MaxHeadcount" class="form-control camping-input"
+                                       @bind="rsvpHeadcount" @bind:event="oninput" @bind:after="SyncAttendeeRows" />
                             </div>
                             <div class="camping-field">
                                 <label for="rsvp-note">Note (optional)</label>
-                                <input id="rsvp-note" class="form-control camping-input" @bind="rsvpNote" placeholder="e.g. Arriving Friday" />
+                                <input id="rsvp-note" class="form-control camping-input" @bind="rsvpNote" placeholder="E.g. Won't be arriving till 6:00 PM due to work" />
                             </div>
                         </div>
+                        @if (AttendeeRowCount > 0)
+                        {
+                            <div class="family-rsvp-people">
+                                <p class="family-rsvp-people-hint">Who's coming? For kids, pick their age; for everyone else, pick Adult.</p>
+                                @for (var i = 0; i < AttendeeRowCount; i++)
+                                {
+                                    var attendee = rsvpAttendees[i];
+                                    var index = i + 1;
+                                    <div class="family-rsvp-person">
+                                        <input class="form-control camping-input" aria-label="Name of person @index"
+                                               placeholder="Person @index name" @bind="attendee.Name" />
+                                        <select class="form-select camping-input" aria-label="Age of person @index" @bind="attendee.Age">
+                                            <option value="">Age…</option>
+                                            <option value="@FamilyAttendeeAge.Adult">Adult</option>
+                                            <option value="0">Under 1</option>
+                                            @for (var age = 1; age <= FamilyAttendeeAge.MaxKidAge; age++)
+                                            {
+                                                <option value="@age">@age</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            </div>
+                        }
                         <div class="camping-bring-edit-actions">
-                            <button class="btn btn-primary camping-btn" @onclick="SaveRsvp" disabled="@(isBusy || string.IsNullOrEmpty(rsvpStatus))">Save RSVP</button>
                             @if (FindRsvp(name) != null)
                             {
                                 <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="RemoveRsvp" disabled="@isBusy">Remove my RSVP</button>
                             }
+                            <span class="family-rsvp-save-status" role="status">
+                                @(string.IsNullOrEmpty(rsvpStatus) ? "Pick an answer above. Your RSVP saves automatically." : rsvpSaveStatus)
+                            </span>
+                        </div>
                         </div>
                     }
 
-                    @if (evt.Rsvps.Count > 0)
+                    @if (familyEvent.Rsvps.Count > 0)
                     {
                         <ul class="family-rsvp-list">
-                            @foreach (var rsvp in evt.Rsvps.OrderBy(r => RsvpOrder(r.Status)).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase))
+                            @foreach (var rsvp in familyEvent.Rsvps.OrderBy(r => RsvpOrder(r.Status)).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase))
                             {
                                 <li>
                                     <span class="family-rsvp-badge is-@rsvp.Status">@RsvpLabel(rsvp.Status)</span>
@@ -259,6 +302,10 @@
                                     @if (!string.IsNullOrWhiteSpace(rsvp.Note))
                                     {
                                         <span class="family-rsvp-note"> — @rsvp.Note</span>
+                                    }
+                                    @if (rsvp.Attendees.Count > 0)
+                                    {
+                                        <div class="family-rsvp-note">@DescribeAttendees(rsvp.Attendees)</div>
                                     }
                                 </li>
                             }
@@ -272,7 +319,7 @@
                 <section class="camping-card">
                     <h2>Potluck</h2>
                     <div class="camping-field">
-                        <label for="bringing">@(string.IsNullOrWhiteSpace(evt.BringPrompt) ? "What do you plan to bring?" : evt.BringPrompt)</label>
+                        <label for="bringing">@(string.IsNullOrWhiteSpace(familyEvent.BringPrompt) ? "What do you plan to bring?" : familyEvent.BringPrompt)</label>
                         <input id="bringing" class="form-control camping-input" @bind="bringing" placeholder="e.g. chips and salsa" />
                     </div>
 
@@ -282,7 +329,7 @@
                 </section>
             }
 
-            @if (evt.ThemeVotingEnabled && (evt.Potluck.Options.Count > 0 || !IsLocked))
+            @if (familyEvent.ThemeVotingEnabled && (familyEvent.Potluck.Options.Count > 0 || !IsLocked))
             {
                 <section class="camping-card">
                     <h2>What kind of potluck would you like?</h2>
@@ -438,7 +485,7 @@
                 }
             </section>
 
-            @foreach (var list in evt.SignupLists)
+            @foreach (var list in familyEvent.SignupLists)
             {
                 var listId = list.Id;
                 var mine = FindSignup(list, name);
@@ -499,14 +546,14 @@
                     </button>
                 }
 
-                @if (evt.Questions.Count == 0)
+                @if (familyEvent.Questions.Count == 0)
                 {
                     <p class="family-qa-empty">No questions yet.</p>
                 }
                 else
                 {
                     <div class="family-qa-list">
-                        @foreach (var question in evt.Questions.OrderByDescending(q => q.AskedAt))
+                        @foreach (var question in familyEvent.Questions.OrderByDescending(q => q.AskedAt))
                         {
                             var questionId = question.Id;
                             <article class="family-qa-question">
@@ -631,7 +678,15 @@
     private List<NotificationChannelResult>? notificationResults;
     private string rsvpStatus = "";
     private int? rsvpHeadcount;
+    private readonly List<FamilyEventAttendee> rsvpAttendees = new();
+    private readonly SemaphoreSlim rsvpWriteLock = new(1, 1);
+    private bool rsvpSavePending;
+    private string? lastSavedRsvp;
+    private string rsvpSaveStatus = "";
     private string rsvpNote = "";
+    private const int MaxHeadcount = 50;
+
+    private int AttendeeRowCount => Math.Min(rsvpAttendees.Count, Math.Clamp(rsvpHeadcount ?? 0, 0, MaxHeadcount));
     private readonly Dictionary<string, string> signupDrafts = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly (string Status, string Label)[] RsvpChoices =
@@ -730,22 +785,25 @@
             .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    private static string FormatWhen(FamilyEvent evt)
+    private static string MapUrl(string location) =>
+        "https://www.google.com/maps/search/?api=1&query=" + Uri.EscapeDataString(location);
+
+    private static string FormatWhen(FamilyEvent familyEvent)
     {
-        var date = evt.IsMultiDay
-            ? $"{evt.Date.ToString("dddd, MMMM d", DisplayCulture)} – {evt.LastDay.ToString("dddd, MMMM d, yyyy", DisplayCulture)}"
-            : evt.Date.ToString("dddd, MMMM d, yyyy", DisplayCulture);
-        return evt.StartTime.HasValue
-            ? $"{date} at {ScheduleDateDisplay.FormatStartTime(evt.StartTime)}"
+        var date = familyEvent.IsMultiDay
+            ? $"{familyEvent.Date.ToString("dddd, MMMM d", DisplayCulture)} – {familyEvent.LastDay.ToString("dddd, MMMM d, yyyy", DisplayCulture)}"
+            : familyEvent.Date.ToString("dddd, MMMM d, yyyy", DisplayCulture);
+        return familyEvent.StartTime.HasValue
+            ? $"{date} at {ScheduleDateDisplay.FormatStartTime(familyEvent.StartTime)}"
             : date;
     }
 
-    private static string FormatPickerLabel(FamilyEvent evt)
+    private static string FormatPickerLabel(FamilyEvent familyEvent)
     {
-        var date = evt.IsMultiDay
-            ? $"{evt.Date.ToString("MMM d", DisplayCulture)}–{evt.LastDay.ToString(evt.LastDay.Month == evt.Date.Month ? "d, yyyy" : "MMM d, yyyy", DisplayCulture)}"
-            : evt.Date.ToString("MMM d, yyyy", DisplayCulture);
-        return $"{date} — {evt.Title}";
+        var date = familyEvent.IsMultiDay
+            ? $"{familyEvent.Date.ToString("MMM d", DisplayCulture)}–{familyEvent.LastDay.ToString(familyEvent.LastDay.Month == familyEvent.Date.Month ? "d, yyyy" : "MMM d, yyyy", DisplayCulture)}"
+            : familyEvent.Date.ToString("MMM d, yyyy", DisplayCulture);
+        return $"{date} — {familyEvent.Title}";
     }
 
     private static string RsvpLabel(string status) => status switch
@@ -775,9 +833,9 @@
     private string GetSignupDraft(string listId, FamilyEventSignupEntry? mine) =>
         signupDrafts.TryGetValue(listId, out var draft) ? draft : mine?.Text ?? string.Empty;
 
-    private void OnEventPicked(ChangeEventArgs e)
+    private void OnEventPicked(ChangeEventArgs changeEventArgs)
     {
-        var id = e.Value?.ToString();
+        var id = changeEventArgs.Value?.ToString();
         if (!string.IsNullOrWhiteSpace(id))
         {
             editor = null;
@@ -823,6 +881,25 @@
 
     private void OnNameChanged() => LoadParticipant(name);
 
+    /// <summary>Adds rows up to the headcount; extra rows are kept so lowering the number doesn't lose typing.</summary>
+    private void SyncAttendeeRows()
+    {
+        var wanted = Math.Clamp(rsvpHeadcount ?? 0, 0, MaxHeadcount);
+        while (rsvpAttendees.Count < wanted)
+        {
+            rsvpAttendees.Add(new FamilyEventAttendee
+            {
+                Name = rsvpAttendees.Count == 0 ? name.Trim() : ""
+            });
+        }
+    }
+
+    private static string DescribeAttendees(IEnumerable<FamilyEventAttendee> attendees) =>
+        string.Join(", ", attendees
+            .Select(a => (Name: a.Name.Trim(), Age: FamilyAttendeeAge.Label(a.Age)))
+            .Where(a => a.Name.Length > 0 || a.Age.Length > 0)
+            .Select(a => a.Name.Length == 0 ? a.Age : a.Age.Length == 0 ? a.Name : $"{a.Name} ({a.Age})"));
+
     private void LoadParticipant(string participantName)
     {
         name = participantName;
@@ -830,7 +907,13 @@
         var rsvp = FindRsvp(participantName);
         rsvpStatus = rsvp?.Status ?? "";
         rsvpHeadcount = rsvp?.Headcount;
+        rsvpAttendees.Clear();
+        rsvpAttendees.AddRange((rsvp?.Attendees ?? new List<FamilyEventAttendee>())
+            .Select(a => new FamilyEventAttendee { Name = a.Name, Age = a.Age }));
+        SyncAttendeeRows();
         rsvpNote = rsvp?.Note ?? "";
+        lastSavedRsvp = DescribeRsvpRequest(BuildRsvpRequest());
+        rsvpSaveStatus = rsvp == null ? "" : "Your RSVP is saved.";
         signupDrafts.Clear();
     }
 
@@ -1031,40 +1114,103 @@
     private bool CanDelete(string author) =>
         !IsLocked && FamilyEventRules.CanDeletePost(author, DeleteRequester);
 
-    private async Task SaveRsvp()
+    private FamilyEventRsvpRequest BuildRsvpRequest() => new()
     {
-        if (!RequireName())
+        Name = name.Trim(),
+        Status = rsvpStatus,
+        Headcount = rsvpHeadcount,
+        Attendees = rsvpAttendees
+            .Take(AttendeeRowCount)
+            .Select(a => new FamilyEventAttendee { Name = a.Name, Age = a.Age })
+            .ToList(),
+        Note = rsvpNote
+    };
+
+    private static string DescribeRsvpRequest(FamilyEventRsvpRequest request) =>
+        System.Text.Json.JsonSerializer.Serialize(request);
+
+    private async Task PickRsvpStatus(string status)
+    {
+        rsvpStatus = status;
+        await AutoSaveRsvp();
+    }
+
+    /// <summary>
+    /// Saves the RSVP if it changed since the last save. Saves run one at a time; a change made while a
+    /// save is in flight is saved right after it.
+    /// </summary>
+    private async Task AutoSaveRsvp()
+    {
+        if (IsLocked || string.IsNullOrEmpty(rsvpStatus))
         {
             return;
         }
 
-        var ok = await SendAsync(
-            () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest
-            {
-                Name = name.Trim(),
-                Status = rsvpStatus,
-                Headcount = rsvpHeadcount,
-                Note = rsvpNote
-            }),
-            "Could not save your RSVP.");
-
-        if (ok)
+        if (!await rsvpWriteLock.WaitAsync(0))
         {
-            await RememberName();
-            successMessage = $"Thanks, {name.Trim()}! Your RSVP is saved.";
+            rsvpSavePending = true;
+            return;
+        }
+
+        try
+        {
+            do
+            {
+                rsvpSavePending = false;
+                var request = BuildRsvpRequest();
+                var snapshot = DescribeRsvpRequest(request);
+                if (snapshot == lastSavedRsvp)
+                {
+                    continue;
+                }
+
+                if (!RequireName())
+                {
+                    return;
+                }
+
+                rsvpSaveStatus = "Saving…";
+                StateHasChanged();
+                var ok = await SendAsync(
+                    () => Http.PostAsJsonAsync(EventApi("/rsvp"), request),
+                    "Could not save your RSVP.");
+                if (!ok)
+                {
+                    rsvpSaveStatus = "Not saved. See the message at the top of the page.";
+                    return;
+                }
+
+                lastSavedRsvp = snapshot;
+                rsvpSaveStatus = "Your RSVP is saved.";
+                await RememberName();
+            }
+            while (rsvpSavePending);
+        }
+        finally
+        {
+            rsvpWriteLock.Release();
         }
     }
 
     private async Task RemoveRsvp()
     {
-        var ok = await SendAsync(
-            () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest { Name = name.Trim(), Status = "" }),
-            "Could not remove your RSVP.");
-
-        if (ok)
+        await rsvpWriteLock.WaitAsync();
+        try
         {
-            LoadParticipant(name);
-            successMessage = "Your RSVP was removed.";
+            rsvpSavePending = false;
+            var ok = await SendAsync(
+                () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest { Name = name.Trim(), Status = "" }),
+                "Could not remove your RSVP.");
+
+            if (ok)
+            {
+                LoadParticipant(name);
+                successMessage = "Your RSVP was removed.";
+            }
+        }
+        finally
+        {
+            rsvpWriteLock.Release();
         }
     }
 
@@ -1226,25 +1372,25 @@
         editor = new EventEditor { Date = Today.AddDays(7) };
     }
 
-    private void StartEdit(FamilyEvent evt)
+    private void StartEdit(FamilyEvent familyEvent)
     {
         errorMessage = null;
         successMessage = null;
         editor = new EventEditor
         {
-            Id = evt.Id,
-            Title = evt.Title,
-            Date = evt.Date,
-            EndDate = evt.EndDate,
-            StartTime = evt.StartTime.HasValue ? TimeOnly.FromTimeSpan(evt.StartTime.Value) : null,
-            Location = evt.Location,
-            Description = evt.Description,
-            ThemeVotingEnabled = evt.ThemeVotingEnabled,
-            BringPrompt = evt.BringPrompt,
-            RsvpEnabled = evt.RsvpEnabled,
-            RsvpGoal = evt.RsvpGoal,
-            RsvpDeadline = evt.RsvpDeadline,
-            SignupListsText = string.Join("\n", evt.SignupLists.Select(l =>
+            Id = familyEvent.Id,
+            Title = familyEvent.Title,
+            Date = familyEvent.Date,
+            EndDate = familyEvent.EndDate,
+            StartTime = familyEvent.StartTime.HasValue ? TimeOnly.FromTimeSpan(familyEvent.StartTime.Value) : null,
+            Location = familyEvent.Location,
+            Description = familyEvent.Description,
+            ThemeVotingEnabled = familyEvent.ThemeVotingEnabled,
+            BringPrompt = familyEvent.BringPrompt,
+            RsvpEnabled = familyEvent.RsvpEnabled,
+            RsvpGoal = familyEvent.RsvpGoal,
+            RsvpDeadline = familyEvent.RsvpDeadline,
+            SignupListsText = string.Join("\n", familyEvent.SignupLists.Select(l =>
                 string.IsNullOrWhiteSpace(l.Prompt) ? l.Title : $"{l.Title}: {l.Prompt}"))
         };
     }
@@ -1317,15 +1463,15 @@
             })
             .ToList();
 
-    private async Task DeleteEvent(FamilyEvent evt)
+    private async Task DeleteEvent(FamilyEvent familyEvent)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{evt.Title}\"? This removes all votes and sign-ups for it."))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{familyEvent.Title}\"? This removes all votes and sign-ups for it."))
         {
             return;
         }
 
         var ok = await SendAsync(
-            () => Http.DeleteAsync($"/api/family-events/{Uri.EscapeDataString(evt.Id)}?submittedBy={Uri.EscapeDataString(ScheduleSubmitters.LukeAuthCode)}"),
+            () => Http.DeleteAsync($"/api/family-events/{Uri.EscapeDataString(familyEvent.Id)}?submittedBy={Uri.EscapeDataString(ScheduleSubmitters.LukeAuthCode)}"),
             "Could not delete the event.");
 
         if (ok)

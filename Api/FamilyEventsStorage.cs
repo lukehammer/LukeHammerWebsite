@@ -69,32 +69,37 @@ namespace ApiIsolated
                 }
 
                 data.AppliedSeedIds.Add(seed.Id);
-                if (!data.Events.Any(e => string.Equals(e.Id, seed.Id, StringComparison.OrdinalIgnoreCase)))
+                if (!data.Events.Any(familyEvent => string.Equals(familyEvent.Id, seed.Id, StringComparison.OrdinalIgnoreCase)))
                 {
                     data.Events.Add(seed);
                 }
             }
 
-            foreach (var evt in data.Events)
+            foreach (var familyEvent in data.Events)
             {
-                evt.Rsvps ??= new List<FamilyEventRsvp>();
-                evt.SignupLists ??= new List<FamilyEventSignupList>();
-                foreach (var list in evt.SignupLists)
+                familyEvent.Rsvps ??= new List<FamilyEventRsvp>();
+                foreach (var rsvp in familyEvent.Rsvps)
+                {
+                    rsvp.Attendees ??= new List<FamilyEventAttendee>();
+                }
+
+                familyEvent.SignupLists ??= new List<FamilyEventSignupList>();
+                foreach (var list in familyEvent.SignupLists)
                 {
                     list.Entries ??= new List<FamilyEventSignupEntry>();
                 }
 
-                evt.Potluck ??= new PotluckSurveyState();
-                evt.Potluck.Options ??= new List<PotluckOptionDefinition>();
-                evt.Potluck.Participants ??= new List<PotluckParticipant>();
-                evt.Potluck.Votes = new List<PotluckVote>();
-                evt.Questions ??= new List<FamilyEventQuestion>();
-                foreach (var question in evt.Questions)
+                familyEvent.Potluck ??= new PotluckSurveyState();
+                familyEvent.Potluck.Options ??= new List<PotluckOptionDefinition>();
+                familyEvent.Potluck.Participants ??= new List<PotluckParticipant>();
+                familyEvent.Potluck.Votes = new List<PotluckVote>();
+                familyEvent.Questions ??= new List<FamilyEventQuestion>();
+                foreach (var question in familyEvent.Questions)
                 {
                     question.Answers ??= new List<FamilyEventAnswer>();
                 }
 
-                foreach (var participant in evt.Potluck.Participants)
+                foreach (var participant in familyEvent.Potluck.Participants)
                 {
                     participant.Ratings = new Dictionary<string, int>(
                         participant.Ratings ?? new Dictionary<string, int>(),
@@ -115,7 +120,7 @@ namespace ApiIsolated
                 return data;
             }
 
-            var lastActivity = legacy.Participants.Max(p => p.SubmittedAt);
+            var lastActivity = legacy.Participants.Max(participant => participant.SubmittedAt);
             var eventDate = lastActivity == default
                 ? WashingtonScheduleTime.PacificToday.AddDays(-(FamilyEventRules.EditableDaysAfterEvent + 1))
                 : WashingtonScheduleTime.ToPacific(
