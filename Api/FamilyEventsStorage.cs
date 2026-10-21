@@ -92,11 +92,16 @@ namespace ApiIsolated
                 familyEvent.Potluck ??= new PotluckSurveyState();
                 familyEvent.Potluck.Options ??= new List<PotluckOptionDefinition>();
                 familyEvent.Potluck.Participants ??= new List<PotluckParticipant>();
-                familyEvent.Potluck.Votes = new List<PotluckVote>();
+                familyEvent.Potluck.Votes ??= new List<PotluckVote>();
                 familyEvent.Questions ??= new List<FamilyEventQuestion>();
                 foreach (var question in familyEvent.Questions)
                 {
                     question.Answers ??= new List<FamilyEventAnswer>();
+                    question.Votes ??= new Dictionary<string, int>();
+                    foreach (var answer in question.Answers)
+                    {
+                        answer.Votes ??= new Dictionary<string, int>();
+                    }
                 }
 
                 foreach (var participant in familyEvent.Potluck.Participants)

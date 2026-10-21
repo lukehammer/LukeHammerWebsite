@@ -2,9 +2,11 @@
 @page "/FamilyEvents/{EventId}"
 @using System.Globalization
 @using BlazorApp.Shared
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject IWebAssemblyHostEnvironment HostEnvironment
 
 <PageTitle>@(SelectedEvent?.Title ?? "Family Events")</PageTitle>
 <HeadContent>
@@ -13,14 +15,16 @@
     <link rel="apple-touch-icon" sizes="180x180" href="icons/hammer-family-events-180.png" />
 </HeadContent>
 
-<main class="camping-page">
+@if (SelectedTheme != FamilyEventTheme.None)
+{
+    <div class="family-theme-backdrop is-@SelectedTheme" aria-hidden="true"></div>
+}
+
+<main class="camping-page @(SelectedTheme != FamilyEventTheme.None ? $"family-theme is-{SelectedTheme}" : "")">
     <h1>Family Events</h1>
     <SchedulePwaInstallPrompt Message="Add Family Events to your home screen for one-tap access." />
 
-    @if (!string.IsNullOrWhiteSpace(errorMessage))
-    {
-        <p class="camping-error">@errorMessage</p>
-    }
+    @ErrorMessageFor(null)
 
     @if (!string.IsNullOrWhiteSpace(successMessage))
     {
@@ -134,6 +138,7 @@
                     </button>
                     <button class="btn btn-secondary camping-btn camping-btn-secondary" @onclick="() => editor = null" disabled="@isBusy">Cancel</button>
                 </div>
+                @ErrorMessageFor("editor")
             </section>
         }
 
@@ -176,6 +181,7 @@
                         <button class="btn btn-outline-danger camping-btn" @onclick="() => DeleteEvent(familyEvent)" disabled="@isBusy">Delete event</button>
                     </div>
                 }
+                @ErrorMessageFor("event")
             </section>
 
             @if (!IsLocked)
@@ -184,8 +190,9 @@
                     <h2>Who are you?</h2>
                     <div class="camping-field">
                         <label for="voter-name">Your name</label>
-                        <input id="voter-name" class="form-control camping-input" @bind="name" @bind:after="OnNameChanged" placeholder="Enter your name" autocomplete="name" />
+                        <input id="voter-name" class="form-control camping-input" @ref="nameInput" @bind="name" @bind:after="OnNameChanged" placeholder="Enter your name" autocomplete="name" />
                     </div>
+                    @ErrorMessageFor("name")
                     <p class="camping-hint">Your name is shown with your RSVP, sign-ups, votes, questions, and answers.</p>
                 </section>
             }
@@ -284,6 +291,7 @@
                                 @(string.IsNullOrEmpty(rsvpStatus) ? "Pick an answer above. Your RSVP saves automatically." : rsvpSaveStatus)
                             </span>
                         </div>
+                        @ErrorMessageFor("rsvp")
                         </div>
                     }
 
@@ -326,6 +334,7 @@
                     <button class="btn btn-primary camping-btn" @onclick="SaveParticipant" disabled="@isBusy">
                         Save what you're bringing
                     </button>
+                    @ErrorMessageFor("bring")
                 </section>
             }
 
@@ -406,6 +415,7 @@
                             </div>
                         </div>
                     }
+                    @ErrorMessageFor("themes")
                 </section>
             }
 
@@ -483,6 +493,7 @@
                         </table>
                     </div>
                 }
+                @ErrorMessageFor("bring-table")
             </section>
 
             @foreach (var list in familyEvent.SignupLists)
@@ -515,6 +526,7 @@
                             }
                         </div>
                     }
+                    @ErrorMessageFor($"signup:{listId}")
 
                     @if (list.Entries.Count == 0)
                     {
@@ -545,6 +557,7 @@
                         Ask question
                     </button>
                 }
+                @ErrorMessageFor("qa")
 
                 @if (familyEvent.Questions.Count == 0)
                 {
@@ -553,60 +566,71 @@
                 else
                 {
                     <div class="family-qa-list">
-                        @foreach (var question in familyEvent.Questions.OrderByDescending(q => q.AskedAt))
+                        @foreach (var question in familyEvent.Questions
+                            .OrderByDescending(q => FamilyEventVotes.Score(q.Votes))
+                            .ThenByDescending(q => q.AskedAt))
                         {
                             var questionId = question.Id;
-                            <article class="family-qa-question">
-                                <div class="family-qa-meta">
-                                    <span class="family-qa-author">@question.AskedBy</span>
-                                    <span>asked @FormatPostTime(question.AskedAt)</span>
-                                    @if (CanDelete(question.AskedBy))
-                                    {
-                                        <button type="button" class="camping-remove-btn" @onclick="() => DeleteQuestion(question)">Delete</button>
-                                    }
-                                </div>
-                                <p class="family-qa-text">@question.Text</p>
-
-                                @if (question.Answers.Count == 0)
-                                {
-                                    <p class="family-qa-unanswered">No answers yet.</p>
-                                }
-                                else
-                                {
-                                    <div class="family-qa-answers">
-                                        @foreach (var answer in question.Answers.OrderBy(a => a.AnsweredAt))
+                            <article class="family-qa-question family-qa-voted">
+                                @VoteControls(question.Votes, "question", vote => VoteOnQuestion(question, vote))
+                                <div class="family-qa-body">
+                                    <div class="family-qa-meta">
+                                        <span class="family-qa-author">@question.AskedBy</span>
+                                        <span>asked @FormatPostTime(question.AskedAt)</span>
+                                        @if (CanDelete(question.AskedBy))
                                         {
-                                            <div class="family-qa-answer">
-                                                <div class="family-qa-meta">
-                                                    <span class="family-qa-author">@answer.AnsweredBy</span>
-                                                    <span>answered @FormatPostTime(answer.AnsweredAt)</span>
-                                                    @if (CanDelete(answer.AnsweredBy))
-                                                    {
-                                                        <button type="button" class="camping-remove-btn" @onclick="() => DeleteAnswer(question, answer)">Delete</button>
-                                                    }
-                                                </div>
-                                                <p class="family-qa-text">@answer.Text</p>
-                                            </div>
+                                            <button type="button" class="camping-remove-btn" @onclick="() => DeleteQuestion(question)">Delete</button>
                                         }
                                     </div>
-                                }
+                                    <p class="family-qa-text">@question.Text</p>
 
-                                @if (!IsLocked)
-                                {
-                                    <div class="camping-other-row family-qa-reply">
-                                        <textarea class="form-control camping-input"
-                                                  rows="1"
-                                                  value="@GetAnswerDraft(questionId)"
-                                                  @oninput="e => answerDrafts[questionId] = e.Value?.ToString() ?? string.Empty"
-                                                  placeholder="Write an answer"
-                                                  aria-label="Answer @question.AskedBy's question"></textarea>
-                                        <button class="btn btn-secondary camping-btn camping-btn-secondary"
-                                                @onclick="() => AnswerQuestion(questionId)"
-                                                disabled="@(isBusy || string.IsNullOrWhiteSpace(GetAnswerDraft(questionId)))">
-                                            Answer
-                                        </button>
-                                    </div>
-                                }
+                                    @if (question.Answers.Count == 0)
+                                    {
+                                        <p class="family-qa-unanswered">No answers yet.</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="family-qa-answers">
+                                            @foreach (var answer in question.Answers
+                                                .OrderByDescending(a => FamilyEventVotes.Score(a.Votes))
+                                                .ThenBy(a => a.AnsweredAt))
+                                            {
+                                                <div class="family-qa-answer family-qa-voted">
+                                                    @VoteControls(answer.Votes, "answer", vote => VoteOnAnswer(question, answer, vote))
+                                                    <div class="family-qa-body">
+                                                        <div class="family-qa-meta">
+                                                            <span class="family-qa-author">@answer.AnsweredBy</span>
+                                                            <span>answered @FormatPostTime(answer.AnsweredAt)</span>
+                                                            @if (CanDelete(answer.AnsweredBy))
+                                                            {
+                                                                <button type="button" class="camping-remove-btn" @onclick="() => DeleteAnswer(question, answer)">Delete</button>
+                                                            }
+                                                        </div>
+                                                        <p class="family-qa-text">@answer.Text</p>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (!IsLocked)
+                                    {
+                                        <div class="camping-other-row family-qa-reply">
+                                            <textarea class="form-control camping-input"
+                                                      rows="1"
+                                                      value="@GetAnswerDraft(questionId)"
+                                                      @oninput="e => answerDrafts[questionId] = e.Value?.ToString() ?? string.Empty"
+                                                      placeholder="Write an answer"
+                                                      aria-label="Answer @question.AskedBy's question"></textarea>
+                                            <button class="btn btn-secondary camping-btn camping-btn-secondary"
+                                                    @onclick="() => AnswerQuestion(questionId)"
+                                                    disabled="@(isBusy || string.IsNullOrWhiteSpace(GetAnswerDraft(questionId)))">
+                                                Answer
+                                            </button>
+                                        </div>
+                                    }
+                                    @ErrorMessageFor($"qa:{questionId}")
+                                </div>
                             </article>
                         }
                     </div>
@@ -653,6 +677,7 @@
             {
                 <button type="button" class="camping-edit-link" @onclick="() => showSignIn = true">Organizer sign in</button>
             }
+            @ErrorMessageFor("organizer")
         </section>
     }
 </main>
@@ -698,6 +723,9 @@
     private readonly Dictionary<string, string> answerDrafts = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> expandedVoterLists = new(StringComparer.OrdinalIgnoreCase);
     private string? errorMessage;
+    private string? errorArea;
+    private bool errorIsUnexpected;
+    private ElementReference nameInput;
     private string? successMessage;
 
     private sealed class EventEditor
@@ -750,9 +778,9 @@
                 ?? new FamilyEventsResponse();
             errorMessage = null;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            errorMessage = "Could not load events. Make sure the API is running.";
+            ShowError(null, $"Could not load events. {ex.GetType().Name}: {ex.Message}", isUnexpected: true);
             response = new FamilyEventsResponse { Today = DateTime.Today };
         }
     }
@@ -774,6 +802,8 @@
     }
 
     private bool IsLocked => SelectedEvent != null && FamilyEventRules.IsLocked(SelectedEvent.Date, Today);
+
+    private string SelectedTheme => SelectedEvent == null ? FamilyEventTheme.None : FamilyEventTheme.For(SelectedEvent);
 
     private List<PotluckOptionRow> SortedOptionRows =>
         SelectedEvent?.Potluck.GetSortedOptionRows().ToList() ?? new List<PotluckOptionRow>();
@@ -950,6 +980,7 @@
         editingBringText = "";
     }
 
+    /// <summary>Shows the problem under the name box and moves the cursor there.</summary>
     private bool RequireName()
     {
         if (!string.IsNullOrWhiteSpace(name))
@@ -957,16 +988,51 @@
             return true;
         }
 
-        errorMessage = "Please enter your name first.";
-        successMessage = null;
+        ShowError("name", "Please enter your name first.", isUnexpected: false);
+        _ = nameInput.FocusAsync();
         return false;
     }
+
+    /// <summary>
+    /// Shows an error next to the part of the page it came from (<paramref name="area"/>; null means the top).
+    /// Unexpected errors also tell people in production to call Luke.
+    /// </summary>
+    private void ShowError(string? area, string message, bool isUnexpected)
+    {
+        errorMessage = message;
+        errorArea = area;
+        errorIsUnexpected = isUnexpected;
+        successMessage = null;
+    }
+
+    private RenderFragment ErrorMessageFor(string? area) => @<text>
+        @if (!string.IsNullOrWhiteSpace(errorMessage) && errorArea == area)
+        {
+            <div class="family-inline-error" role="alert">
+                @if (errorIsUnexpected && HostEnvironment.IsProduction())
+                {
+                    <p class="family-inline-error-title">
+                        Something went horribly wrong. Call Luke at <a href="tel:+15035053005">503.505.3005</a> to get this fixed.
+                    </p>
+                    <p class="family-inline-error-detail">Error: @errorMessage</p>
+                }
+                else
+                {
+                    <p class="family-inline-error-detail">@errorMessage</p>
+                }
+            </div>
+        }
+    </text>;
 
     private string EventApi(string suffix = "") =>
         $"/api/family-events/{Uri.EscapeDataString(SelectedEvent!.Id)}{suffix}";
 
-    /// <summary>Sends a write and replaces the local event list with the server's copy on success.</summary>
-    private async Task<bool> SendAsync(Func<Task<HttpResponseMessage>> send, string failure)
+    /// <summary>
+    /// Sends a write and replaces the local event list with the server's copy on success. On failure the
+    /// error shows in <paramref name="area"/>. Requests the server rejected with a reason (4xx) are things
+    /// the person can fix; anything else is unexpected.
+    /// </summary>
+    private async Task<bool> SendAsync(Func<Task<HttpResponseMessage>> send, string failure, string area)
     {
         errorMessage = null;
         successMessage = null;
@@ -976,23 +1042,27 @@
             var result = await send();
             if (!result.IsSuccessStatusCode)
             {
-                var message = await result.Content.ReadAsStringAsync();
-                errorMessage = string.IsNullOrWhiteSpace(message) ? failure : message;
+                var message = (await result.Content.ReadAsStringAsync()).Trim();
+                var statusCode = (int)result.StatusCode;
+                var isUnexpected = statusCode >= 500 || message.Length == 0 || message.StartsWith("<");
+                var detail = isUnexpected
+                    ? $"{failure} The server answered {statusCode} {result.ReasonPhrase}{(message.Length == 0 || message.StartsWith("<") ? "." : $": {message}")}"
+                    : message;
                 if (result.StatusCode == System.Net.HttpStatusCode.Conflict)
                 {
                     await LoadAsync();
-                    errorMessage = message;
                 }
 
+                ShowError(area, detail, isUnexpected);
                 return false;
             }
 
             response = await result.Content.ReadFromJsonAsync<FamilyEventsResponse>() ?? response;
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            errorMessage = $"{failure} Make sure the API is running.";
+            ShowError(area, $"{failure} {ex.GetType().Name}: {ex.Message}", isUnexpected: true);
             return false;
         }
         finally
@@ -1013,7 +1083,7 @@
 
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/participant"), new PotluckParticipantRequest { Name = name.Trim(), Bringing = bringing }),
-            "Could not save your info.");
+            "Could not save your info.", "bring");
 
         if (ok)
         {
@@ -1029,7 +1099,7 @@
         var updated = editingBringText.Trim();
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/participant"), new PotluckParticipantRequest { Name = participantName.Trim(), Bringing = updated }),
-            "Could not update that item.");
+            "Could not update that item.", "bring-table");
 
         if (ok)
         {
@@ -1059,7 +1129,8 @@
 
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/rate"), new PotluckRateRequest { Name = name.Trim(), OptionId = optionId, Rating = newRating }),
-            "Could not save your vote.");
+            "Could not save your vote.",
+            "themes");
 
         if (ok)
         {
@@ -1076,13 +1147,13 @@
 
         if (string.IsNullOrWhiteSpace(otherText))
         {
-            errorMessage = "Please enter a new potluck option.";
+            ShowError("themes", "Please enter a new potluck option.", isUnexpected: false);
             return;
         }
 
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/options"), new PotluckAddOptionRequest { Label = otherText.Trim(), CreatedBy = name.Trim() }),
-            "Could not add that option.");
+            "Could not add that option.", "themes");
 
         if (ok)
         {
@@ -1095,7 +1166,7 @@
     {
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/options/remove"), new PotluckRemoveOptionRequest { OptionId = optionId }),
-            "Could not remove that option.");
+            "Could not remove that option.", "themes");
 
         if (ok)
         {
@@ -1173,10 +1244,10 @@
                 StateHasChanged();
                 var ok = await SendAsync(
                     () => Http.PostAsJsonAsync(EventApi("/rsvp"), request),
-                    "Could not save your RSVP.");
+                    "Could not save your RSVP.", "rsvp");
                 if (!ok)
                 {
-                    rsvpSaveStatus = "Not saved. See the message at the top of the page.";
+                    rsvpSaveStatus = "Not saved.";
                     return;
                 }
 
@@ -1200,7 +1271,7 @@
             rsvpSavePending = false;
             var ok = await SendAsync(
                 () => Http.PostAsJsonAsync(EventApi("/rsvp"), new FamilyEventRsvpRequest { Name = name.Trim(), Status = "" }),
-                "Could not remove your RSVP.");
+                "Could not remove your RSVP.", "rsvp");
 
             if (ok)
             {
@@ -1225,7 +1296,8 @@
             () => Http.PostAsJsonAsync(
                 EventApi($"/signups/{Uri.EscapeDataString(listId)}"),
                 new FamilyEventPostRequest { Name = name.Trim(), Text = text }),
-            "Could not save your sign-up.");
+            "Could not save your sign-up.",
+            $"signup:{listId}");
 
         if (ok)
         {
@@ -1244,7 +1316,7 @@
 
         var ok = await SendAsync(
             () => Http.PostAsJsonAsync(EventApi("/questions"), new FamilyEventPostRequest { Name = name.Trim(), Text = newQuestionText }),
-            "Could not post your question.");
+            "Could not post your question.", "qa");
 
         if (ok)
         {
@@ -1265,13 +1337,67 @@
             () => Http.PostAsJsonAsync(
                 EventApi($"/questions/{Uri.EscapeDataString(questionId)}/answers"),
                 new FamilyEventPostRequest { Name = name.Trim(), Text = GetAnswerDraft(questionId) }),
-            "Could not post your answer.");
+            "Could not post your answer.", $"qa:{questionId}");
 
         if (ok)
         {
             answerDrafts.Remove(questionId);
             await RememberName();
             successMessage = "Answer posted.";
+        }
+    }
+
+    private RenderFragment VoteControls(Dictionary<string, int> votes, string postKind, Func<int, Task> castVote)
+    {
+        var myVote = FamilyEventVotes.VoteBy(votes, name);
+        var score = FamilyEventVotes.Score(votes);
+        var scoreClass = score > 0 ? "is-positive" : score < 0 ? "is-negative" : "";
+        return @<div class="family-vote" role="group" aria-label="Votes on this @postKind">
+            @if (!IsLocked)
+            {
+                <button type="button"
+                        class="family-vote-btn is-up @(myVote == FamilyEventVotes.Up ? "is-active" : "")"
+                        aria-label="Upvote this @postKind"
+                        aria-pressed="@(myVote == FamilyEventVotes.Up ? "true" : "false")"
+                        disabled="@isBusy"
+                        @onclick="() => castVote(FamilyEventVotes.Up)">&#9650;</button>
+            }
+            <span class="family-vote-score @scoreClass" title="Score: upvotes minus downvotes">@score</span>
+            @if (!IsLocked)
+            {
+                <button type="button"
+                        class="family-vote-btn is-down @(myVote == FamilyEventVotes.Down ? "is-active" : "")"
+                        aria-label="Downvote this @postKind"
+                        aria-pressed="@(myVote == FamilyEventVotes.Down ? "true" : "false")"
+                        disabled="@isBusy"
+                        @onclick="() => castVote(FamilyEventVotes.Down)">&#9660;</button>
+            }
+        </div>;
+    }
+
+    private Task VoteOnQuestion(FamilyEventQuestion question, int vote) =>
+        SendVote($"/questions/{Uri.EscapeDataString(question.Id)}/vote", question.Votes, vote, $"qa:{question.Id}");
+
+    private Task VoteOnAnswer(FamilyEventQuestion question, FamilyEventAnswer answer, int vote) =>
+        SendVote($"/questions/{Uri.EscapeDataString(question.Id)}/answers/{Uri.EscapeDataString(answer.Id)}/vote", answer.Votes, vote, $"qa:{question.Id}");
+
+    /// <summary>Tapping the arrow you already picked takes your vote back, like Reddit.</summary>
+    private async Task SendVote(string path, Dictionary<string, int> votes, int vote, string area)
+    {
+        if (!RequireName())
+        {
+            return;
+        }
+
+        var newVote = FamilyEventVotes.VoteBy(votes, name) == vote ? 0 : vote;
+        var ok = await SendAsync(
+            () => Http.PostAsJsonAsync(EventApi(path), new FamilyEventVoteRequest { Name = name.Trim(), Vote = newVote }),
+            "Could not save your vote.",
+            area);
+
+        if (ok)
+        {
+            await RememberName();
         }
     }
 
@@ -1286,7 +1412,7 @@
             () => Http.PostAsJsonAsync(
                 EventApi($"/questions/{Uri.EscapeDataString(question.Id)}/delete"),
                 new FamilyEventDeletePostRequest { Name = DeleteRequester }),
-            "Could not delete that question.");
+            "Could not delete that question.", $"qa:{question.Id}");
 
         if (ok)
         {
@@ -1305,7 +1431,7 @@
             () => Http.PostAsJsonAsync(
                 EventApi($"/questions/{Uri.EscapeDataString(question.Id)}/answers/{Uri.EscapeDataString(answer.Id)}/delete"),
                 new FamilyEventDeletePostRequest { Name = DeleteRequester }),
-            "Could not delete that answer.");
+            "Could not delete that answer.", $"qa:{question.Id}");
 
         if (ok)
         {
@@ -1317,7 +1443,7 @@
     {
         if (!string.Equals(signInCode.Trim(), ScheduleSubmitters.LukeAuthCode, StringComparison.Ordinal))
         {
-            errorMessage = "That code is not right.";
+            ShowError("organizer", "That code is not right.", isUnexpected: false);
             return;
         }
 
@@ -1339,7 +1465,7 @@
             var result = await Http.PostAsJsonAsync("/api/notifications/test", new NotificationTestRequest { SubmittedBy = ScheduleSubmitters.LukeAuthCode });
             if (!result.IsSuccessStatusCode)
             {
-                errorMessage = await result.Content.ReadAsStringAsync();
+                ShowError("organizer", $"Could not send a test notification. The server answered {(int)result.StatusCode} {result.ReasonPhrase}: {await result.Content.ReadAsStringAsync()}", isUnexpected: true);
                 return;
             }
 
@@ -1348,9 +1474,9 @@
                 ? "Test sent. Check your phone."
                 : "No notification channel delivered the test. See the details below.";
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            errorMessage = "Could not send a test notification. Make sure the API is running.";
+            ShowError("organizer", $"Could not send a test notification. {ex.GetType().Name}: {ex.Message}", isUnexpected: true);
         }
         finally
         {
@@ -1430,7 +1556,8 @@
             () => isNew
                 ? Http.PostAsJsonAsync("/api/family-events", request)
                 : Http.PutAsJsonAsync($"/api/family-events/{Uri.EscapeDataString(editId!)}", request),
-            isNew ? "Could not create the event." : "Could not save the event.");
+            isNew ? "Could not create the event." : "Could not save the event.",
+            "editor");
 
         if (!ok)
         {
@@ -1472,7 +1599,7 @@
 
         var ok = await SendAsync(
             () => Http.DeleteAsync($"/api/family-events/{Uri.EscapeDataString(familyEvent.Id)}?submittedBy={Uri.EscapeDataString(ScheduleSubmitters.LukeAuthCode)}"),
-            "Could not delete the event.");
+            "Could not delete the event.", "event");
 
         if (ok)
         {

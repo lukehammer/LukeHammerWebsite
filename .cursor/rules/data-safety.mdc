@@ -1,0 +1,15 @@
+---
+description: Never destroy saved site data
+alwaysApply: true
+---
+
+# Saved data is permanent
+
+Real families save data on this site (Family Events RSVPs, sign-ups, votes, questions, answers, and other stored blobs). The owner will not give permission to destroy it.
+
+- Never delete, reset, overwrite, or re-seed stored data, in code or by running commands.
+- Changes to stored models must be additive and backward compatible: new fields get defaults when missing; never rename or remove fields that existing data uses.
+- Seeds only add records that don't exist yet; never let a seed replace an existing record.
+- Keep the ETag concurrency check on every save so one write can't clobber another.
+- Never run code or tests against production storage. Test with an isolated copy that has no storage connection string.
+- If a change would require migrating or removing existing data, stop and ask instead.

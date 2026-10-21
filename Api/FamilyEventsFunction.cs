@@ -357,6 +357,52 @@ namespace ApiIsolated
                 }));
         }
 
+        [Function("VoteFamilyEventQuestion")]
+        public async Task<HttpResponseData> VoteOnQuestion(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/vote")] HttpRequestData httpRequest,
+            string id,
+            string questionId)
+        {
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventVoteRequest>();
+            return await Run(httpRequest, "vote on family event question", () =>
+            {
+                var name = RequireName(request?.Name);
+                var vote = RequireVote(request!.Vote);
+
+                // Votes skip notifications so every tap doesn't buzz the organizer's phone.
+                return MutateEventAsync(id, familyEvent =>
+                    FamilyEventVotes.Apply(FindQuestion(familyEvent, questionId).Votes, name, vote));
+            });
+        }
+
+        [Function("VoteFamilyEventAnswer")]
+        public async Task<HttpResponseData> VoteOnAnswer(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/questions/{questionId}/answers/{answerId}/vote")] HttpRequestData httpRequest,
+            string id,
+            string questionId,
+            string answerId)
+        {
+            var request = await httpRequest.ReadFromJsonAsync<FamilyEventVoteRequest>();
+            return await Run(httpRequest, "vote on family event answer", () =>
+            {
+                var name = RequireName(request?.Name);
+                var vote = RequireVote(request!.Vote);
+
+                return MutateEventAsync(id, familyEvent =>
+                {
+                    var answer = FindQuestion(familyEvent, questionId).Answers
+                        .FirstOrDefault(existingAnswer => string.Equals(existingAnswer.Id, answerId, StringComparison.OrdinalIgnoreCase))
+                        ?? throw new FamilyEventsHttpException(HttpStatusCode.NotFound, "Answer not found.");
+                    FamilyEventVotes.Apply(answer.Votes, name, vote);
+                });
+            });
+        }
+
+        private static int RequireVote(int vote) =>
+            FamilyEventVotes.IsValid(vote)
+                ? vote
+                : throw new FamilyEventsHttpException(HttpStatusCode.BadRequest, "Vote must be 1 (up), -1 (down), or 0 (clear).");
+
         [Function("SaveFamilyEventRsvp")]
         public async Task<HttpResponseData> SaveRsvp(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "family-events/{id}/rsvp")] HttpRequestData httpRequest,

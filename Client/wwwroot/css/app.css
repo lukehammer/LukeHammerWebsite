@@ -364,6 +364,35 @@ a, .btn-link {
     color: #555;
 }
 
+.family-inline-error {
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.85rem;
+    border: 2px solid #b00020;
+    border-radius: 8px;
+    background: #fff5f5;
+    color: #7a0016;
+    overflow-wrap: anywhere;
+}
+
+.family-inline-error p {
+    margin: 0;
+}
+
+.family-inline-error-title {
+    font-weight: 700;
+}
+
+.family-inline-error-title + .family-inline-error-detail {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+}
+
+.family-inline-error a {
+    color: inherit;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 .family-rsvp-save-status {
     align-self: center;
     color: #555;
@@ -410,7 +439,7 @@ a, .btn-link {
     align-items: baseline;
     gap: 0 0.5rem;
     font-size: 0.85rem;
-    color: #666;
+    color: #555;
 }
 
 .family-qa-author {
@@ -428,7 +457,7 @@ a, .btn-link {
     margin: 0 0 0.5rem;
     font-size: 0.9rem;
     font-style: italic;
-    color: #888;
+    color: #555;
 }
 
 .family-qa-answers {
@@ -445,12 +474,257 @@ a, .btn-link {
     resize: vertical;
 }
 
+.family-qa-voted {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.family-qa-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.family-vote {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 2.5rem;
+}
+
+.family-vote-btn {
+    width: 2.5rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #6b7280;
+    font-size: 1.1rem;
+    line-height: 1;
+    touch-action: manipulation;
+}
+
+.family-vote-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.family-vote-btn.is-up.is-active {
+    color: #d93a00;
+}
+
+.family-vote-btn.is-down.is-active {
+    color: #4a63d9;
+}
+
+.family-vote-score {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: #444;
+}
+
+.family-vote-score.is-positive {
+    color: #9a3412;
+}
+
+.family-vote-score.is-negative {
+    color: #2f47b3;
+}
+
 .family-event-organizer {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
     margin-top: 1.5rem;
+}
+
+/* Family Events themes. A montage fills the page behind everything; the white wash and see-through cards keep text readable. */
+.family-theme-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.family-theme-backdrop.is-christmas {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)),
+        url("../images/family-events/christmas-montage.jpg") 0 0 / 420px 420px repeat,
+        #fff;
+}
+
+.family-theme-backdrop.is-camping {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)),
+        url("../images/family-events/camping-montage.jpg") 0 0 / 420px 420px repeat,
+        #fff;
+}
+
+/*
+ * Readability: text never sits on the montage. Everything people read or tap is on a solid surface
+ * (cards, plates, buttons); the montage only fills the page edges, or a top banner on phones where
+ * there are no edges to speak of.
+ */
+.family-theme > h1,
+.family-theme > .family-event-picker label,
+.family-theme > p,
+.family-theme .family-event-organizer {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.family-theme .family-event-organizer {
+    display: flex;
+    padding: 0.75rem 1rem;
+}
+
+.family-theme > h1 {
+    padding: 0.25rem 0.85rem;
+}
+
+.family-theme.is-christmas > h1 {
+    color: #b3121f;
+}
+
+.family-theme.is-camping > h1 {
+    color: #2d6a4f;
+}
+
+.family-theme > .camping-error,
+.family-theme > .camping-success {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    background: #fff;
+    text-shadow: none;
+}
+
+.family-theme > .camping-error {
+    color: #b00020;
+}
+
+.family-theme > .camping-success {
+    color: #1b6e1b;
+}
+
+.family-theme .camping-card {
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 767.98px) {
+    .family-theme-backdrop.is-christmas {
+        background: #f6ece8;
+    }
+
+    .family-theme-backdrop.is-camping {
+        background: #eee9da;
+    }
+
+    .family-theme.is-christmas {
+        background:
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3) 140px, #f6ece8 230px),
+            url("../images/family-events/christmas-montage.jpg") top center / 240px 240px repeat-x,
+            #f6ece8;
+    }
+
+    .family-theme.is-camping {
+        background:
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3) 140px, #eee9da 230px),
+            url("../images/family-events/camping-montage.jpg") top center / 240px 240px repeat-x,
+            #eee9da;
+    }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+    .family-theme-backdrop {
+        display: none;
+    }
+
+    .family-theme.is-christmas,
+    .family-theme.is-camping {
+        background: none;
+    }
+}
+
+.family-theme.is-christmas > h1::before {
+    content: "\1F384  ";
+}
+
+.family-theme.is-christmas > h1::after {
+    content: "  \1F381";
+}
+
+.family-theme.is-christmas::before {
+    content: "";
+    display: block;
+    height: 34px;
+    margin: -0.5rem 0 0.5rem;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='34' viewBox='0 0 120 34'%3E%3Cpath d='M0 4Q30 24 60 4T120 4' stroke='%23163d24' stroke-width='2' fill='none'/%3E%3Cg stroke='%23163d24' stroke-width='1'%3E%3Crect x='13' y='12' width='4' height='4' fill='%23163d24'/%3E%3Crect x='43' y='12' width='4' height='4' fill='%23163d24'/%3E%3Crect x='73' y='12' width='4' height='4' fill='%23163d24'/%3E%3Crect x='103' y='12' width='4' height='4' fill='%23163d24'/%3E%3C/g%3E%3Cellipse cx='15' cy='22' rx='4.5' ry='7' fill='%23ff3b3b'/%3E%3Cellipse cx='45' cy='22' rx='4.5' ry='7' fill='%23ffd23f'/%3E%3Cellipse cx='75' cy='22' rx='4.5' ry='7' fill='%233fa9ff'/%3E%3Cellipse cx='105' cy='22' rx='4.5' ry='7' fill='%2342d16f'/%3E%3C/svg%3E") repeat-x left top;
+    filter: drop-shadow(0 0 4px rgba(255, 230, 150, 0.6));
+}
+
+.family-theme.is-christmas .camping-card {
+    border: 2px solid #b3121f;
+    border-top: 8px solid transparent;
+    border-image: repeating-linear-gradient(45deg, #b3121f 0 10px, #fff 10px 20px, #1b7a3e 20px 30px, #fff 30px 40px) 8 / 8px 2px 2px 2px;
+    border-radius: 0;
+}
+
+.family-theme.is-christmas .camping-card h2 {
+    color: #b3121f;
+}
+
+.family-theme.is-christmas .btn-primary {
+    background-color: #b3121f;
+    border-color: #b3121f;
+}
+
+.family-theme.is-christmas .btn-primary:hover,
+.family-theme.is-christmas .btn-primary:focus {
+    background-color: #8c0f1a;
+    border-color: #8c0f1a;
+}
+
+.family-theme.is-christmas .family-rsvp-bar-fill {
+    background: repeating-linear-gradient(45deg, #b3121f 0 8px, #1b7a3e 8px 16px);
+}
+
+.family-theme.is-camping > h1::before {
+    content: "\26FA  ";
+}
+
+.family-theme.is-camping > h1::after {
+    content: "  \1F525";
+}
+
+.family-theme.is-camping .camping-card {
+    background: #fffdf7;
+    border: 1px solid #8b6b3d;
+    border-top: 6px solid #2d6a4f;
+}
+
+.family-theme.is-camping .camping-card h2 {
+    color: #2d6a4f;
+}
+
+.family-theme.is-camping .btn-primary {
+    background-color: #2d6a4f;
+    border-color: #2d6a4f;
+}
+
+.family-theme.is-camping .btn-primary:hover,
+.family-theme.is-camping .btn-primary:focus {
+    background-color: #1f4d39;
+    border-color: #1f4d39;
+}
+
+.family-theme.is-camping .family-rsvp-bar-fill {
+    background: linear-gradient(90deg, #2d6a4f, #e76f51);
 }
 
 .camping-card {
@@ -657,7 +931,7 @@ a, .btn-link {
 
 .camping-no-votes {
     font-size: 0.85rem;
-    color: #777;
+    color: #555;
     font-style: italic;
 }
 

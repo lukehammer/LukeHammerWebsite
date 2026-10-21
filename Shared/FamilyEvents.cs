@@ -81,6 +81,30 @@ namespace BlazorApp.Shared
             : "";
     }
 
+    /// <summary>Picks a page theme from the event title so new Christmas or camping events are themed automatically.</summary>
+    public static class FamilyEventTheme
+    {
+        public const string None = "";
+        public const string Christmas = "christmas";
+        public const string Camping = "camping";
+
+        public static string For(FamilyEvent familyEvent)
+        {
+            var title = (familyEvent.Title ?? "").ToLowerInvariant();
+            if (title.Contains("christmas") || title.Contains("xmas"))
+            {
+                return Christmas;
+            }
+
+            if (title.Contains("camp"))
+            {
+                return Camping;
+            }
+
+            return None;
+        }
+    }
+
     public class FamilyEventRsvpRequest
     {
         public string Name { get; set; } = "";
@@ -113,6 +137,8 @@ namespace BlazorApp.Shared
         public string Text { get; set; } = "";
         public DateTimeOffset AskedAt { get; set; }
         public List<FamilyEventAnswer> Answers { get; set; } = new List<FamilyEventAnswer>();
+        /// <summary>Voter name to +1 (up) or -1 (down). See <see cref="FamilyEventVotes"/>.</summary>
+        public Dictionary<string, int> Votes { get; set; } = new Dictionary<string, int>();
     }
 
     public class FamilyEventAnswer
@@ -121,6 +147,53 @@ namespace BlazorApp.Shared
         public string AnsweredBy { get; set; } = "";
         public string Text { get; set; } = "";
         public DateTimeOffset AnsweredAt { get; set; }
+        /// <summary>Voter name to +1 (up) or -1 (down). See <see cref="FamilyEventVotes"/>.</summary>
+        public Dictionary<string, int> Votes { get; set; } = new Dictionary<string, int>();
+    }
+
+    /// <summary>Up or down vote on a question or answer; 0 clears the voter's vote.</summary>
+    public class FamilyEventVoteRequest
+    {
+        public string Name { get; set; } = "";
+        public int Vote { get; set; }
+    }
+
+    /// <summary>Reddit-style voting: one vote per name (matched ignoring case), and the score is ups minus downs.</summary>
+    public static class FamilyEventVotes
+    {
+        public const int Up = 1;
+        public const int Down = -1;
+
+        public static bool IsValid(int vote) => vote == Up || vote == Down || vote == 0;
+
+        public static int Score(Dictionary<string, int>? votes) =>
+            votes == null ? 0 : votes.Values.Sum(vote => Math.Sign(vote));
+
+        public static int VoteBy(Dictionary<string, int>? votes, string voterName)
+        {
+            if (votes == null || string.IsNullOrWhiteSpace(voterName))
+            {
+                return 0;
+            }
+
+            var trimmed = voterName.Trim();
+            return Math.Sign(votes.FirstOrDefault(pair => string.Equals(pair.Key.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)).Value);
+        }
+
+        /// <summary>Replaces the voter's earlier vote, if any, with <paramref name="vote"/>; 0 just removes it.</summary>
+        public static void Apply(Dictionary<string, int> votes, string voterName, int vote)
+        {
+            var trimmed = voterName.Trim();
+            foreach (var key in votes.Keys.Where(key => string.Equals(key.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)).ToList())
+            {
+                votes.Remove(key);
+            }
+
+            if (vote != 0)
+            {
+                votes[trimmed] = Math.Sign(vote);
+            }
+        }
     }
 
     /// <summary>Question, answer, or sign-up entry text; blank text on a sign-up removes the entry.</summary>

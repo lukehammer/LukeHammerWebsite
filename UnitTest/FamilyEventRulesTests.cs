@@ -117,6 +117,65 @@ public class FamilyEventRulesTests
     }
 
     [Fact]
+    public void Votes_score_is_ups_minus_downs_with_one_vote_per_name()
+    {
+        var votes = new Dictionary<string, int>();
+
+        FamilyEventVotes.Apply(votes, "Vickie", FamilyEventVotes.Up);
+        FamilyEventVotes.Apply(votes, "Leneigh", FamilyEventVotes.Up);
+        FamilyEventVotes.Apply(votes, "Sam", FamilyEventVotes.Down);
+        FamilyEventVotes.Apply(votes, " vickie ", FamilyEventVotes.Up);
+
+        votes.Should().HaveCount(3);
+        FamilyEventVotes.Score(votes).Should().Be(1);
+        FamilyEventVotes.VoteBy(votes, "VICKIE").Should().Be(FamilyEventVotes.Up);
+        FamilyEventVotes.VoteBy(votes, "Nobody").Should().Be(0);
+    }
+
+    [Fact]
+    public void Votes_can_be_switched_or_cleared()
+    {
+        var votes = new Dictionary<string, int>();
+        FamilyEventVotes.Apply(votes, "Sam", FamilyEventVotes.Up);
+
+        FamilyEventVotes.Apply(votes, "sam", FamilyEventVotes.Down);
+        FamilyEventVotes.Score(votes).Should().Be(-1);
+
+        FamilyEventVotes.Apply(votes, "Sam", 0);
+        votes.Should().BeEmpty();
+        FamilyEventVotes.Score(votes).Should().Be(0);
+    }
+
+    [Fact]
+    public void Posts_saved_before_voting_existed_score_zero()
+    {
+        FamilyEventVotes.Score(null).Should().Be(0);
+        FamilyEventVotes.VoteBy(null, "Sam").Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(-1, true)]
+    [InlineData(0, true)]
+    [InlineData(2, false)]
+    [InlineData(-5, false)]
+    public void Only_up_down_or_clear_votes_are_allowed(int vote, bool valid)
+    {
+        FamilyEventVotes.IsValid(vote).Should().Be(valid);
+    }
+
+    [Theory]
+    [InlineData("Christmas Party", FamilyEventTheme.Christmas)]
+    [InlineData("Hammer XMAS brunch", FamilyEventTheme.Christmas)]
+    [InlineData("Mayfield Lake Group Camping", FamilyEventTheme.Camping)]
+    [InlineData("Campout at Grandma's", FamilyEventTheme.Camping)]
+    [InlineData("Thanksgiving Potluck", FamilyEventTheme.None)]
+    public void Theme_is_picked_from_the_event_title(string title, string expectedTheme)
+    {
+        FamilyEventTheme.For(new FamilyEvent { Title = title }).Should().Be(expectedTheme);
+    }
+
+    [Fact]
     public void IsPast_is_false_on_event_day()
     {
         FamilyEventRules.IsPast(Today, Today).Should().BeFalse();
