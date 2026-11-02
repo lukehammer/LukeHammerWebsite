@@ -22,8 +22,8 @@
                 <div class="ps-muted"><i class="bi bi-calendar-event" aria-hidden="true"></i> @doc.ShootDate</div>
             }
         </div>
-        <div class="ps-live-pill @(doc.Session.IsActive ? "is-live" : "")">
-            @(doc.Session.IsActive ? "Session live" : "Not shooting")
+        <div class="ps-live-pill ps-live-pill-record" title="Shoot-day session state, kept as recorded">
+            @(doc.Session.IsActive ? "On-set session record: left open" : "On-set session: closed")
         </div>
     </header>
 
@@ -36,7 +36,12 @@
         <a class="ps-btn ps-btn-outline ps-btn-lg" href="photoshoot/marker"><i class="bi bi-bookmark" aria-hidden="true"></i> Shot marker</a>
     </div>
 
-    <section class="ps-stats" aria-label="Totals">
+    <h2 class="ps-h2 ps-onset-title">Original on-set records</h2>
+    <p class="ps-muted ps-small ps-onset-note">
+        What was tapped on the director and photographer pages during the shoot, kept unchanged. These counters don't reflect
+        the photos found afterwards: see the <a href="photoshoot/review">photo review</a> for the selected photos and capture assessments.
+    </p>
+    <section class="ps-stats" aria-label="Original on-set records">
         <div class="ps-stat"><span class="ps-stat-num">@progress.Total</span><span class="ps-stat-label">Planned</span></div>
         <div class="ps-stat ps-stat-done"><span class="ps-stat-num">@progress.Finished</span><span class="ps-stat-label">Finished</span></div>
         <div class="ps-stat"><span class="ps-stat-num">@progress.Completed</span><span class="ps-stat-label">Captured</span></div>
@@ -45,9 +50,10 @@
     </section>
 
     <section class="ps-card">
-        <PsProgress Label="Finished photographs" Value="progress.Finished" Max="PhotoShootProgress.FinishedGoal" CssClass="ps-progress-must" />
-        <PsProgress Label="Captured on set" Value="progress.Completed" Max="progress.Total" />
-        <PsProgress Label="Must-have shots captured" Value="progress.MustHaveCompleted" Max="progress.MustHaveTotal" />
+        <p class="ps-muted ps-small">On-set records</p>
+        <PsProgress Label="Finished photographs uploaded to the planner" Value="progress.Finished" Max="PhotoShootProgress.FinishedGoal" CssClass="ps-progress-must" />
+        <PsProgress Label="Marked captured on set" Value="progress.Completed" Max="progress.Total" />
+        <PsProgress Label="Must-have shots marked captured on set" Value="progress.MustHaveCompleted" Max="progress.MustHaveTotal" />
         <div class="ps-link-row">
             <a href="photoshoot/shots?priority=MustHave&status=Remaining">Remaining must-haves (@progress.MustHaveRemaining) →</a>
             @if (progress.Skipped > 0)
@@ -58,7 +64,7 @@
     </section>
 
     <section class="ps-card">
-        <h2 class="ps-h2">Now</h2>
+        <h2 class="ps-h2">Current shot <span class="ps-muted ps-small">(on-set record)</span></h2>
         @if (current == null)
         {
             <p class="ps-muted">No current shot. @(Store.IsOwner ? "Open the director view and start the session." : "Waiting for the director.")</p>

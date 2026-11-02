@@ -1,0 +1,40 @@
+@implements IDisposable
+@inject BlazorApp.Client.PhotoReview.PhotoReviewState Review
+
+@* Points every planner visitor (any sign-in, including the photographer password) to the photo review, which
+   holds what was actually captured. The planner's own counters are shoot-day records and are not changed. *@
+<aside class="ps-review-banner" aria-label="Photo review">
+    <div class="ps-review-banner-text">
+        <strong><i class="bi bi-images" aria-hidden="true"></i> The shoot is done. The photo review shows what was captured.</strong>
+        @if (Review.Summary?.Counts is { } counts)
+        {
+            <span>
+                @counts.Photos selected photos cover @counts.ShotsWithPhotos of @counts.PlannedShots planned poses.
+                Capture assessment: @counts.ByProvisionalStatus.GetValueOrDefault(BlazorApp.Shared.PhotoReview.ShotReviewStatus.Successful) successful,
+                @counts.ByProvisionalStatus.GetValueOrDefault(BlazorApp.Shared.PhotoReview.ShotReviewStatus.PartiallySuccessful) partial,
+                @counts.ByProvisionalStatus.GetValueOrDefault(BlazorApp.Shared.PhotoReview.ShotReviewStatus.NotCaptured) not captured
+                (@(counts.OwnerConfirmed == 0 ? "provisional; Luke hasn't reviewed yet" : $"provisional except {counts.OwnerConfirmed} reviewed by Luke")).
+            </span>
+        }
+        else
+        {
+            <span>Selected photos, capture assessments, ratings and the second-shoot plan.</span>
+        }
+    </div>
+    <div class="ps-review-banner-actions">
+        <a class="ps-btn ps-btn-primary" href="photoshoot/review">Open the photo review</a>
+        <a class="ps-btn ps-btn-outline" href="photoshoot/second-shoot">Second-shoot plan</a>
+    </div>
+</aside>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Review.Changed += OnChanged;
+        await Review.EnsureSummaryAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Review.Changed -= OnChanged;
+}
