@@ -66,3 +66,14 @@ Local and production share one storage account. **Never put the connection strin
 ```
 
 Seed it with a copy of a planner JSON and synthetic images via the importer's `--local-dir`. Unit tests (`dotnet test UnitTest/UnitTest.csproj --filter "FullyQualifiedName~PhotoReview|FullyQualifiedName~PhotoShoot"`) use temp folders and synthetic data only.
+
+## Production smoke tests
+
+Use visitor names starting with `[SMOKE TEST] ` and remove them afterwards. The command only touches visitors whose name starts with the prefix (minimum 8 characters), backs up `participation.json` first, and is a dry run without `--confirm`:
+
+```powershell
+$env:AZURE_STORAGE_CONNECTION_STRING = az storage account show-connection-string -n lukehammerweb -g lukehammer-rg --query connectionString -o tsv
+dotnet run --project tools/PhotoReviewImport -c Release -- purge-test-data --prefix "[SMOKE TEST] Claude" --live            # dry run
+dotnet run --project tools/PhotoReviewImport -c Release -- purge-test-data --prefix "[SMOKE TEST] Claude" --live --confirm
+Remove-Item Env:AZURE_STORAGE_CONNECTION_STRING
+```

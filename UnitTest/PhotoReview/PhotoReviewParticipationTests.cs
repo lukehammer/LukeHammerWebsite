@@ -260,6 +260,24 @@ public class PhotoReviewParticipationTests
     }
 
     [Fact]
+    public void PurgeTestVisitors_RemovesOnlyLabeledTestPeople()
+    {
+        var (doc, real, _) = WithVisitor(name: "Bard");
+        var (_, test, _) = WithVisitor(doc, "[SMOKE TEST] probe");
+        PhotoReviewParticipation.Rate(doc, real, "p1", 8, AnyPhoto, Now);
+        PhotoReviewParticipation.Rate(doc, test, "p1", 2, AnyPhoto, Now);
+        PhotoReviewParticipation.AddComment(doc, test, CommentTarget.Photo, "p1", null, "test", "", Exists, Now);
+        var keep = PhotoReviewParticipation.AddComment(doc, real, CommentTarget.Photo, "p1", null, "real", "", Exists, Now).CreatedId;
+
+        var act = () => PhotoReviewParticipation.PurgeTestVisitors(doc, "[S");
+        act.Should().Throw<ArgumentException>("a short prefix could match real people");
+        PhotoReviewParticipation.PurgeTestVisitors(doc, "[SMOKE TEST]").Should().Be(1);
+        doc.Visitors.Should().ContainSingle(v => v.DisplayName == "Bard");
+        doc.Comments.Should().ContainSingle(c => c.Id == keep);
+        doc.Totals["p1"].Should().BeEquivalentTo(new RatingTotal { Sum = 8, Count = 1 });
+    }
+
+    [Fact]
     public void RestorePerson_BringsBackExactlyWhatWasRemoved()
     {
         var (doc, person, _) = WithVisitor(name: "Pat");

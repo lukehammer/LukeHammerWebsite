@@ -827,6 +827,34 @@ namespace BlazorApp.Shared.PhotoReview
             return count;
         }
 
+        /// <summary>
+        /// Hard-deletes clearly labeled test visitors (display name starts with <paramref name="namePrefix"/>) and
+        /// everything they contributed, then recalculates totals. Used only by the local cleanup tool after
+        /// production smoke tests; never exposed through the API. Returns the number of visitors purged.
+        /// </summary>
+        public static int PurgeTestVisitors(ParticipationDocument doc, string namePrefix)
+        {
+            if (string.IsNullOrWhiteSpace(namePrefix) || namePrefix.Trim().Length < 8)
+            {
+                throw new ArgumentException("Use a long, explicit test prefix.", nameof(namePrefix));
+            }
+
+            var ids = new HashSet<string>(doc.Visitors.Where(v => v.DisplayName.StartsWith(namePrefix, StringComparison.Ordinal)).Select(v => v.Id));
+            if (ids.Count == 0)
+            {
+                return 0;
+            }
+
+            var suggestionIds = new HashSet<string>(doc.Suggestions.Where(s => ids.Contains(s.VisitorId)).Select(s => s.Id));
+            doc.Visitors.RemoveAll(v => ids.Contains(v.Id));
+            doc.Votes.RemoveAll(v => ids.Contains(v.VisitorId));
+            doc.Suggestions.RemoveAll(s => ids.Contains(s.VisitorId));
+            doc.Comments.RemoveAll(c => ids.Contains(c.VisitorId) || (c.Target == CommentTarget.Suggestion && suggestionIds.Contains(c.TargetId)));
+            doc.Audit.RemoveAll(a => ids.Contains(a.VisitorId));
+            RecalculateAllTotals(doc);
+            return ids.Count;
+        }
+
         /// <summary>Repairs nulls after deserialization.</summary>
         public static ParticipationDocument Normalize(ParticipationDocument doc)
         {
