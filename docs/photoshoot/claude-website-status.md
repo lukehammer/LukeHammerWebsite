@@ -42,7 +42,7 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
 
 ## Production proof screenshots
 
-Folder `C:SERSukerappdataocalukehammerphotoshootproof‚61102t2226z-production`, captured 22:26:49 to 22:31:07 utc against `5ad0601`. see `readme.txt` there. main files:
+Folder `C:\Users\LukeR\AppData\Local\LukeHammerPhotoshoot\proof\20261102T2226Z-production\`, captured 22:26:49 to 22:31:07 UTC against `5ad0601`. See `README.txt` there. Main files:
 - `review-dashboard-1366x900.png` (review dashboard)
 - `photo-versions-1366x900.png` (photo page versions table) and `photo-versions-full-1366.png` (all 6 versions, full page)
 - `photo-versions-390.png` (mobile)
