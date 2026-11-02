@@ -34,6 +34,7 @@ public static class Program
             {
                 "build-selection" => BuildSelection(options),
                 "import" => await ImportAsync(options),
+                "purge-test-data" => await PurgeTestDataAsync(options),
                 _ => Usage()
             };
         }
@@ -57,6 +58,69 @@ public static class Program
               Options: --planner SHOOT.json (override planner source), --skip-thumbs, --parallel N
             """);
         return 1;
+    }
+
+    // ---------- purge-test-data ----------
+
+    /// <summary>
+    /// Removes smoke-test visitors (display name starting with --prefix) and their contributions from the
+    /// participation document. Dry run unless --live (or --local-dir). Backs up first; ETag-conditional save.
+    /// </summary>
+    private static async Task<int> PurgeTestDataAsync(Options options)
+    {
+        var prefix = options.Require("prefix");
+        var shootId = options.Get("shoot") ?? "f77cc235728d";
+        IReviewBlobStore store;
+        if (options.Has("live"))
+        {
+            var connection = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING");
+            if (string.IsNullOrWhiteSpace(connection)) throw new ToolException("--live needs AZURE_STORAGE_CONNECTION_STRING.");
+            store = new BlobReviewStore(connection);
+        }
+        else
+        {
+            store = new LocalReviewStore(options.Require("local-dir"));
+        }
+
+        var write = options.Has("live") ? options.Has("confirm") : true;
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var stored = await store.ReadAsync(ReviewBlobNames.Participation(shootId));
+            if (stored == null)
+            {
+                Console.WriteLine("No participation document. Nothing to purge.");
+                return 0;
+            }
+
+            var doc = PhotoReviewParticipation.Normalize(JsonSerializer.Deserialize<ParticipationDocument>(stored.Bytes, Json)!);
+            var matches = doc.Visitors.Where(v => v.DisplayName.StartsWith(prefix, StringComparison.Ordinal)).ToList();
+            Console.WriteLine($"{matches.Count} test visitor(s) match \"{prefix}\": {string.Join(", ", matches.Select(v => v.DisplayName))}");
+            Console.WriteLine($"Others kept: {doc.Visitors.Count - matches.Count} visitor(s).");
+            if (matches.Count == 0) return 0;
+            if (!write)
+            {
+                Console.WriteLine("Dry run. Add --confirm to purge.");
+                return 0;
+            }
+
+            var backupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LukeHammerPhotoshoot", "backups",
+                DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'") + "-participation-before-purge");
+            Directory.CreateDirectory(backupDir);
+            File.WriteAllBytes(Path.Combine(backupDir, "participation.json"), stored.Bytes);
+            PhotoReviewParticipation.PurgeTestVisitors(doc, prefix);
+            doc.Revision++;
+            doc.UpdatedUtc = DateTime.UtcNow;
+            var saved = await store.TryWriteAsync(ReviewBlobNames.Participation(shootId), JsonSerializer.SerializeToUtf8Bytes(doc, Json), "application/json", stored.ETag, createOnly: false);
+            if (saved != null)
+            {
+                Console.WriteLine($"Purged. Backup: {backupDir}");
+                return 0;
+            }
+
+            Console.WriteLine("Document changed meanwhile; retrying.");
+        }
+
+        throw new ToolException("Could not save after several attempts.");
     }
 
     // ---------- build-selection ----------
