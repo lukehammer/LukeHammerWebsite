@@ -3038,3 +3038,54 @@ body:has(.ps-photographer) #app {
     color: var(--ps-burgundy, #831B3F);
 }
 
+
+/* ---------- photo review banner and on-set record labels ---------- */
+
+.ps-review-banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    margin: 0 0 0.9rem;
+    border-radius: var(--ps-radius);
+    background: #fdf2f6;
+    border: 2px solid var(--ps-burgundy);
+}
+
+.ps-review-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1 1 320px;
+    font-size: 0.95rem;
+}
+
+.ps-review-banner-text strong {
+    color: var(--ps-burgundy);
+    font-size: 1.02rem;
+}
+
+.ps-review-banner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ps-onset-title {
+    margin-top: 1rem;
+}
+
+.ps-onset-note {
+    margin: -0.25rem 0 0.5rem;
+}
+
+.ps-live-pill-record {
+    background: #eef0f3 !important;
+    color: #4a4f57 !important;
+}
+
+@media print {
+    .ps-review-banner { display: none; }
+}
