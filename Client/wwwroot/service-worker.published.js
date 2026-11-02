@@ -37,12 +37,17 @@ async function onInstall(event) {
 async function onActivate(event) {
     console.info('Service worker: Activate');
 
-    // Delete unused caches
+    // Delete unused caches. Any older cache means this activation replaces a previous version.
     const cacheKeys = await caches.keys();
-    await Promise.all(cacheKeys
-        .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
-        .map(key => caches.delete(key)));
+    const oldCaches = cacheKeys.filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName);
+    await Promise.all(oldCaches.map(key => caches.delete(key)));
     await self.clients.claim();
+    // Refresh open pages only after an update. On a first visit there is nothing stale to replace, and
+    // reloading would throw away whatever the visitor has started doing on the page.
+    if (oldCaches.length === 0) {
+        return;
+    }
+
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     await Promise.all(windows.map(function (client) {
         if (typeof client.navigate !== 'function') {
