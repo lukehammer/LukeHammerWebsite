@@ -1,24 +1,24 @@
 # Claude website status (photo review)
 
-_Updated 2026-11-02 ~15:05 Pacific by Claude Code. No credentials in this file._
+_Updated 2026-11-02 ~15:25 Pacific by Claude Code. No credentials in this file._
 
 ## Deployed
 
 - **Production:** https://lukehammer.com/photoshoot/review (also `/photoshoot/walkthrough`, `/photoshoot/second-shoot`, `/photoshoot/suggestions`, `/photoshoot/people`).
 - PR [#6](https://github.com/lukehammer/LukeHammerWebsite/pull/6) merged into `main` as `4d1607d`. Workflow run 41532402494 succeeded ("Deployment Complete", 21:56 UTC). The PR preview build also passed and was checked first (read-only).
-- Follow-up PR: smoke-test cleanup command (see below).
+- Follow-up PR [#7](https://github.com/lukehammer/LukeHammerWebsite/pull/7) (smoke-test cleanup command) merged as `d5e59df`; workflow 41533772731 succeeded.
 
 ## For Codex
 
 - Schema and mechanism: [ARTIFACT_MANIFEST.md](ARTIFACT_MANIFEST.md); importer `tools/PhotoReviewImport`.
-- **Observed:** your live import of `derivative-review-manifest.json` (155 photos × 5 kinds = 775 versions, NonGenerative, parents set) has been running since 13:40 Pacific (PID 470416, Debug importer build). At ~15:00 it had uploaded 558 of the ~930 asset blobs. The catalog has **not** been written yet (it is the final step). Claude has not run or duplicated it and has not rebuilt the Debug binaries it uses. Production currently shows 0 derivatives, correctly; they appear automatically when the catalog save completes.
+- **Derivatives are live (imported by Codex, finished 22:16 UTC):** all 155 photos have all six versions (930 assets, 1,860 thumbnails, catalog import #3). Claude verified read-only: 155 originals unchanged (same SHA-256 as the selection); all 775 derivatives NonGenerative, with correct parents (Cropped, Transparent and WhiteBackground ← Original; CroppedTransparent ← Transparent; CroppedWhiteBackground ← WhiteBackground) and thumbnails; no superseded versions; Luke statuses untouched; random sample of 33 derivatives downloaded through the website matched catalog hashes 33/33.
 - Capture assessments are live as **provisional** suggestions (62 / 30 / 26), labeled "provisional, Codex". Luke's statuses always win.
 
 ## Production verification (2026-11-02, real Azure SWA)
 
 | Check | Result |
 | --- | --- |
-| Summary | 118 shots, 155 photos, 92 with photos / 26 without, provisional 62/30/26, Luke-confirmed 0, derivatives 0 |
+| Summary | 118 shots, 155 photos, 92 with photos / 26 without, provisional 62/30/26, Luke-confirmed 0, all 6 version kinds × 155 |
 | **All 155 originals downloaded through the website** (API → SAS redirect, hashed in memory, nothing written to disk) | **155/155 SHA-256 identical** to the selected originals |
 | Forged `x-ms-client-principal` header | stripped by SWA → 401, not admin |
 | Public password `Luke` | `Photographer`; plan edit → 403 |
@@ -42,4 +42,5 @@ _Updated 2026-11-02 ~15:05 Pacific by Claude Code. No credentials in this file._
 
 ## Next
 
-- After Codex's import finishes: verify derivative counts and lineage read-only, and download-check a sample of derivatives.
+- Luke's one-time Microsoft sign-in (above), then optionally pin `PHOTOREVIEW_ADMIN_USER_ID`.
+- Later Codex deliveries: derivative-only manifests via the importer; identical hashes are no-ops, new hashes supersede and keep history.
