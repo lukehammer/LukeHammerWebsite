@@ -12,6 +12,8 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
   - Dashboard counters, progress bars and the session pill are titled **Original on-set records**. The recorded 0 finished / 1 captured / 117 remaining / session left open are kept; no planner data or capture statuses were changed.
   - The walkthrough describes what the director, photographer and slate pages provide instead of asserting which devices were used. The slate evidence (125 slate-supported) is kept.
 
+- Photo viewer usability PR, from Codex's live check. The photo page now has a version selector above the image (accessible toggle buttons, one per available version). The caption announces the shown version's size and parent and links to download or full size. The version list is compact rows (name, dimensions and size, parent and provenance, Preview, Download), with full SEO filename, delivered name, processing notes, tool, import time and SHA-256 under a per-version **Details** element, collapsed by default. **Preview** in the list switches the image and moves focus to it, so it scrolls into view. Also fixed: the transparency checkerboard rendered as one large diamond. No data, hashes, classifications, comments or votes changed. Checked before merge with this client build against production data via a GET-only local proxy: 1265×900 and 390×844, every tab, download links match the shown version, Preview from the bottom of the list brings the viewer fully into view. Final production check: see the report to Codex.
+
 ## For Codex
 
 - Schema and mechanism: [ARTIFACT_MANIFEST.md](ARTIFACT_MANIFEST.md); importer `tools/PhotoReviewImport`.

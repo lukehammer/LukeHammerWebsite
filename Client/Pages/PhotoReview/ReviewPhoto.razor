@@ -45,15 +45,34 @@ else
         </div>
     </header>
 
+    var current = photo.Versions.Where(v => !v.Superseded && v.ThumbWidths.Count > 0).OrderBy(v => v.Kind).ToList();
     <div class="pr-photo-layout">
-        <figure class="pr-photo-big">
+        <figure class="pr-photo-big" id="pr-viewer" tabindex="-1" @ref="viewer">
+            @if (current.Count > 1)
+            {
+                <div class="pr-version-tabs" role="group" aria-label="Choose which version to view">
+                    @foreach (var version in current)
+                    {
+                        var on = display?.Id == version.Id;
+                        <button type="button" class="pr-version-tab @(on ? "pr-version-tab-on" : "")" aria-pressed="@(on ? "true" : "false")" @onclick="() => ShowAsync(version.Id, scroll: false)">
+                            @PhotoReviewLabels.Kind(version.Kind)
+                        </button>
+                    }
+                </div>
+            }
             @if (display != null && display.ThumbWidths.Count > 0)
             {
                 <a href="@State.Api.FileUrl(summary.Id, display.Id, download: false)" target="_blank" rel="noopener" title="Open full size">
                     <img src="@State.Api.ThumbUrl(summary.Id, display.Id, display.ThumbWidths.Max())" srcset="@State.Api.SrcSet(summary.Id, display.Id, display.ThumbWidths)" sizes="(max-width: 900px) 100vw, 640px"
-                         alt="@PrUi.Alt(shot.Title, at + 1)" width="@display.Width" height="@display.Height" class="@(display.Kind is ArtifactKind.Transparent or ArtifactKind.CroppedTransparent ? "pr-checker" : "")" />
+                         alt="@($"{PrUi.Alt(shot.Title, at + 1)}, {PhotoReviewLabels.Kind(display.Kind).ToLowerInvariant()} version")" width="@display.Width" height="@display.Height" class="@(display.Kind is ArtifactKind.Transparent or ArtifactKind.CroppedTransparent ? "pr-checker" : "")" />
                 </a>
-                <figcaption class="pr-small pr-muted">Showing: @PhotoReviewLabels.Kind(display.Kind). Tap the image for full size.</figcaption>
+                <figcaption class="pr-viewer-caption" aria-live="polite">
+                    <span><strong>@PhotoReviewLabels.Kind(display.Kind)</strong> · @display.Width × @display.Height · @PrUi.Bytes(display.Bytes) · from @(display.ParentKind is ArtifactKind p ? PhotoReviewLabels.Kind(p) : "camera")</span>
+                    <span class="pr-viewer-actions">
+                        <a class="ps-btn ps-btn-primary ps-btn-sm" href="@State.Api.FileUrl(summary.Id, display.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download this version</a>
+                        <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(summary.Id, display.Id, download: false)" target="_blank" rel="noopener">Full size</a>
+                    </span>
+                </figcaption>
             }
         </figure>
         <div class="pr-photo-side">
@@ -82,50 +101,57 @@ else
     <section class="pr-section" aria-labelledby="pr-versions-title">
         <h2 id="pr-versions-title">Versions</h2>
         <p class="pr-small pr-muted">Every version links back to the untouched camera original. Edited versions are made by Codex and appear here only after they're imported.</p>
-        <div class="pr-table-wrap">
-            <table class="pr-table">
-                <thead><tr><th>Version</th><th>File</th><th>Size</th><th>Made from</th><th>How</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var kind in PhotoReviewLabels.Kinds)
-                    {
-                        var versions = photo.Versions.Where(v => v.Kind == kind).ToList();
-                        if (versions.Count == 0)
-                        {
-                            <tr class="pr-row-missing"><th scope="row">@PhotoReviewLabels.Kind(kind)</th><td colspan="5" class="pr-muted">Not created yet</td></tr>
-                            continue;
-                        }
+        <ul class="pr-version-list">
+            @foreach (var kind in PhotoReviewLabels.Kinds)
+            {
+                var versions = photo.Versions.Where(v => v.Kind == kind).ToList();
+                if (versions.Count == 0)
+                {
+                    <li class="pr-version-row pr-row-missing"><span class="pr-version-name">@PhotoReviewLabels.Kind(kind)</span><span class="pr-muted">Not created yet</span></li>
+                    continue;
+                }
 
-                        foreach (var version in versions)
-                        {
-                            <tr class="@(version.Superseded ? "pr-row-old" : "")">
-                                <th scope="row">@PhotoReviewLabels.Kind(kind)@(version.Superseded ? " (older)" : "")</th>
-                                <td><code>@version.FileName</code></td>
-                                <td class="pr-nowrap">@version.Width × @version.Height<br /><span class="pr-muted">@PrUi.Bytes(version.Bytes)</span></td>
-                                <td>@(version.ParentKind is ArtifactKind parent ? PhotoReviewLabels.Kind(parent) : "Camera")</td>
-                                <td>
-                                    <span class="pr-badge @(version.Provenance == ArtifactProvenance.Generative ? "pr-badge-warn" : "")">@PhotoReviewLabels.Provenance(version.Provenance)</span>
-                                    @if (PrUi.Has(version.ProcessingNotes))
-                                    {
-                                        <div class="pr-small">@version.ProcessingNotes</div>
-                                    }
-                                    @if (PrUi.Has(version.Tool))
-                                    {
-                                        <div class="pr-small pr-muted">Tool: @version.Tool</div>
-                                    }
-                                </td>
-                                <td class="pr-nowrap">
-                                    @if (version.ThumbWidths.Count > 0)
-                                    {
-                                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => shown = version.Id">Preview</button>
-                                    }
-                                    <a class="ps-btn ps-btn-outline ps-btn-sm" href="@State.Api.FileUrl(summary.Id, version.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download</a>
-                                </td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
+                foreach (var version in versions)
+                {
+                    var on = display?.Id == version.Id;
+                    <li class="pr-version-row @(version.Superseded ? "pr-row-old" : "") @(on ? "pr-version-row-on" : "")">
+                        <span class="pr-version-name">@PhotoReviewLabels.Kind(kind)@(version.Superseded ? " (older)" : "")@(on ? " · viewing" : "")</span>
+                        <span class="pr-version-meta">@version.Width × @version.Height · @PrUi.Bytes(version.Bytes)</span>
+                        <span class="pr-version-meta">from @(version.ParentKind is ArtifactKind parent ? PhotoReviewLabels.Kind(parent) : "camera")
+                            <span class="pr-badge @(version.Provenance == ArtifactProvenance.Generative ? "pr-badge-warn" : "")">@PhotoReviewLabels.Provenance(version.Provenance)</span>
+                        </span>
+                        <span class="pr-version-actions">
+                            @if (version.ThumbWidths.Count > 0)
+                            {
+                                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" aria-controls="pr-viewer" @onclick="() => ShowAsync(version.Id, scroll: true)">Preview</button>
+                            }
+                            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@State.Api.FileUrl(summary.Id, version.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download</a>
+                        </span>
+                        <details class="pr-version-details">
+                            <summary>Details</summary>
+                            <dl class="pr-dl">
+                                <dt>Download name</dt><dd><code class="pr-filename">@version.FileName</code></dd>
+                                @if (PrUi.Has(version.DeliveredFileName) && version.DeliveredFileName != version.FileName)
+                                {
+                                    <dt>Delivered as</dt><dd><code class="pr-filename">@version.DeliveredFileName</code></dd>
+                                }
+                                <dt>Provenance</dt><dd>@PhotoReviewLabels.Provenance(version.Provenance)</dd>
+                                @if (PrUi.Has(version.ProcessingNotes))
+                                {
+                                    <dt>Processing</dt><dd>@version.ProcessingNotes</dd>
+                                }
+                                @if (PrUi.Has(version.Tool))
+                                {
+                                    <dt>Tool</dt><dd>@version.Tool</dd>
+                                }
+                                <dt>Imported</dt><dd>@PrUi.When(version.ImportedUtc)</dd>
+                                <dt>SHA-256</dt><dd><code class="pr-filename">@version.Sha256</code></dd>
+                            </dl>
+                        </details>
+                    </li>
+                }
+            }
+        </ul>
     </section>
 
     <section class="pr-section">
@@ -158,7 +184,26 @@ else
     private string shown = "";
     private bool busy;
 
+    private ElementReference viewer;
+
     protected override void OnInitialized() => State.Changed += OnChanged;
+
+    /// <summary>Shows a version in the viewer. From the list below, also brings the viewer into view (focus scrolls to it).</summary>
+    private async Task ShowAsync(string versionId, bool scroll)
+    {
+        shown = versionId;
+        if (!scroll) return;
+        StateHasChanged();
+        await Task.Yield();
+        try
+        {
+            await viewer.FocusAsync(preventScroll: false);
+        }
+        catch (InvalidOperationException)
+        {
+            // Viewer not rendered yet; nothing to scroll to.
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
