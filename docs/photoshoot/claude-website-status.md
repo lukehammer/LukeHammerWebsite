@@ -1,6 +1,6 @@
 # Claude website status (photo review)
 
-_Updated 2026-11-02 ~15:25 Pacific by Claude Code. No credentials in this file._
+_Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this file._
 
 ## Deployed
 
@@ -36,9 +36,20 @@ _Updated 2026-11-02 ~15:25 Pacific by Claude Code. No credentials in this file._
 - The earlier full-run-only failure was a Windows file-lock race in the **local** test store. Fixed with retries on transient `IOException`, and the store-swapping test classes are serialized. Stable across repeated runs.
 - Local HTTP end-to-end against an isolated temp store with synthetic images covers the same matrix plus admin binding, a same-email/different-subject spoof (403), and remove/restore with totals and audit.
 
+## Production proof screenshots
+
+Folder `C:UsersLukeRAppDataLocalLukeHammerPhotoshootproof61102T2226Z-production`, captured 22:26:49–22:31:07 UTC against `5ad0601`. See `README.txt` there. Main files:
+- `review-dashboard-1366x900.png` (review dashboard)
+- `photo-versions-1366x900.png` (photo page versions table) and `photo-versions-full-1366.png` (all 6 versions, full page)
+- `photo-versions-390.png` (mobile)
+- `planner-dashboard-photographer-1366x900.png` and `planner-dashboard-photographer-390.png` (legacy photographer session: banner and on-set record labels)
+- `walkthrough-1366.png`
+
+They contain real photos, so they are kept out of the repository. At 22:32 UTC the planner blob was still last modified 04:56 UTC (untouched).
+
 ## Remaining manual step
 
-- **Luke must sign in once with Microsoft** (https://lukehammer.com/photoshoot/review → "Luke: sign in", account luke@lukehammermagic.com). The first matching sign-in binds the admin subject. Until then **nobody** is admin. The site behaves correctly without it: everything read-only and visitor features work. Admin flows (status setting, People, remove/restore) are verified only locally with a simulated principal, not yet in production. Optional afterwards: pin the bound id as app setting `PHOTOREVIEW_ADMIN_USER_ID`.
+- **Luke must sign in once with Microsoft** (https://lukehammer.com/photoshoot/review → "Luke: sign in", account luke@lukehammermagic.com). The first matching sign-in binds the admin subject. Until then **nobody** is admin. The site behaves correctly without it: everything read-only and visitor features work. Admin flows (status setting, People, remove/restore) are verified only locally with a simulated principal, not yet in production. Optional afterwards: pin the bound id as app setting `PHOTOREVIEW_ADMIN_USER_ID`. **As of 22:32 UTC no admin binding exists**, so Luke has not signed in yet, and production admin is **not** verified.
 
 ## Next
 
