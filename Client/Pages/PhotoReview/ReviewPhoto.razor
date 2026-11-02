@@ -41,7 +41,7 @@ else
             <span class="pr-badge">@PhotoReviewLabels.Selection(summary.Selection)</span>
             <PrEvidence Evidence="summary.Evidence" />
             <span class="pr-muted">for <a href="@PrUi.ShotLink(shot.ShotId)">@PrUi.Number(shot.Number) @shot.Title</a></span>
-            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" />
+            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" />
         </div>
     </header>
 
@@ -100,7 +100,7 @@ else
                             <tr class="@(version.Superseded ? "pr-row-old" : "")">
                                 <th scope="row">@PhotoReviewLabels.Kind(kind)@(version.Superseded ? " (older)" : "")</th>
                                 <td><code>@version.FileName</code></td>
-                                <td>@version.Width × @version.Height<br /><span class="pr-muted">@PrUi.Bytes(version.Bytes)</span></td>
+                                <td class="pr-nowrap">@version.Width × @version.Height<br /><span class="pr-muted">@PrUi.Bytes(version.Bytes)</span></td>
                                 <td>@(version.ParentKind is ArtifactKind parent ? PhotoReviewLabels.Kind(parent) : "Camera")</td>
                                 <td>
                                     <span class="pr-badge @(version.Provenance == ArtifactProvenance.Generative ? "pr-badge-warn" : "")">@PhotoReviewLabels.Provenance(version.Provenance)</span>

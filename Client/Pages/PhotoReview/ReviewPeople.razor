@@ -1,0 +1,200 @@
+@page "/photoshoot/people"
+@implements IDisposable
+@inject PhotoReviewState State
+@inject NavigationManager Nav
+
+<PageTitle>Lucky Luke Magic · People</PageTitle>
+
+@if (!State.IsAdmin)
+{
+    <div class="ps-panel ps-gate">
+        <h1 class="ps-gate-title">People</h1>
+        <p>Only Luke can see who took part and moderate contributions.</p>
+        <a class="ps-btn ps-btn-primary" href="@State.Api.MicrosoftSignInUrl("/photoshoot/people")">Sign in with Microsoft</a>
+    </div>
+}
+else if (people == null)
+{
+    <div class="ps-panel ps-center" role="status"><div class="spinner-border ps-spinner" aria-hidden="true"></div><p>Loading…</p></div>
+}
+else
+{
+    <header class="pr-hero pr-hero-small">
+        <h1>People</h1>
+        <p class="pr-lead">@people.People.Count(p => !p.Removed) taking part, @people.People.Count(p => p.Removed) removed. Removing someone hides all their ratings, comments and suggestions and blocks new ones from that browser identity. Other people's replies stay. You can restore it all.</p>
+    </header>
+
+    <div class="pr-table-wrap">
+        <table class="pr-table">
+            <thead><tr><th>Name</th><th>First seen</th><th>Latest</th><th>Ratings</th><th>Comments</th><th>Suggestions</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var person in people.People)
+                {
+                    <tr class="@(person.Removed ? "pr-row-old" : "")">
+                        <th scope="row">@person.DisplayName <span class="pr-tag">@person.Tag</span>@(person.Removed ? " (removed)" : "")</th>
+                        <td>@PrUi.When(person.FirstActiveUtc)</td>
+                        <td>@PrUi.Ago(person.LastActiveUtc)</td>
+                        <td>@person.Ratings</td>
+                        <td>@person.Comments</td>
+                        <td>@person.Suggestions</td>
+                        <td class="pr-nowrap">
+                            <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => OpenAsync(person.VisitorId)">@(open?.Person.VisitorId == person.VisitorId ? "Hide" : "Contributions")</button>
+                        </td>
+                    </tr>
+                    @if (open != null && open.Person.VisitorId == person.VisitorId)
+                    {
+                        <tr><td colspan="7">
+                            <div class="pr-person">
+                                <h3>@person.DisplayName's contributions</h3>
+                                <h4 class="pr-sub">Ratings (@open.Votes.Count)</h4>
+                                <p class="pr-small">
+                                    @foreach (var vote in open.Votes)
+                                    {
+                                        <a class="pr-chip-link @(vote.Removed ? "pr-row-old" : "")" href="@PrUi.PhotoLink(vote.PhotoId)">@vote.PhotoKey: @vote.Value</a>
+                                    }
+                                </p>
+                                <h4 class="pr-sub">Comments (@open.Comments.Count)</h4>
+                                @foreach (var comment in open.Comments)
+                                {
+                                    var state = open.CommentStates.GetValueOrDefault(comment.Id, "");
+                                    <p class="pr-small @(state.Length > 0 ? "pr-row-old" : "")">
+                                        <a href="@TargetLink(comment)">@comment.Target</a> · @PrUi.When(comment.CreatedUtc)@(comment.ParentId.Length > 0 ? " · reply" : "")@(state.Length > 0 ? " · " + state : ""): @comment.Text
+                                    </p>
+                                }
+                                <h4 class="pr-sub">Suggestions (@open.Suggestions.Count)</h4>
+                                @foreach (var suggestion in open.Suggestions)
+                                {
+                                    var state = open.SuggestionStates.GetValueOrDefault(suggestion.Id, "");
+                                    <p class="pr-small @(state.Length > 0 ? "pr-row-old" : "")">@PhotoReviewLabels.SuggestionKindLabel(suggestion.Kind)@(suggestion.ShotNumber > 0 ? $" on {PrUi.Number(suggestion.ShotNumber)}" : "")@(state.Length > 0 ? " · " + state : ""): @suggestion.Title @suggestion.Description</p>
+                                }
+
+                                <div class="pr-admin-box">
+                                    @if (person.Removed)
+                                    {
+                                        <input class="form-control ps-input" placeholder="Reason (optional, kept in the audit log)" @bind="note" aria-label="Reason" />
+                                        <button type="button" class="ps-btn ps-btn-success" disabled="@busy" @onclick="() => RestoreAsync(person)">Restore this person and all their contributions</button>
+                                    }
+                                    else
+                                    {
+                                        <p class="pr-small">To remove <strong>@person.DisplayName</strong> and everything they contributed, type their display name to confirm.</p>
+                                        <input class="form-control ps-input" placeholder="@person.DisplayName" @bind="confirm" @bind:event="oninput" aria-label="Type the display name to confirm" />
+                                        <input class="form-control ps-input" placeholder="Reason (optional, kept in the audit log)" @bind="note" aria-label="Reason" />
+                                        <button type="button" class="ps-btn ps-btn-danger" disabled="@(busy || !string.Equals(confirm.Trim(), person.DisplayName, StringComparison.OrdinalIgnoreCase))" @onclick="() => RemoveAsync(person)">Remove person and all contributions</button>
+                                    }
+                                </div>
+                            </div>
+                        </td></tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <section class="pr-section">
+        <h2>Audit log</h2>
+        @if (people.Audit.Count == 0)
+        {
+            <p class="pr-muted">No removals or restores yet.</p>
+        }
+        @foreach (var entry in people.Audit)
+        {
+            var name = people.People.FirstOrDefault(p => p.VisitorId == entry.VisitorId);
+            <p class="pr-small">@PrUi.When(entry.Utc) · <strong>@entry.Actor</strong> @(entry.Action == "RemovePerson" ? "removed" : "restored") @(name?.DisplayName ?? "someone") @name?.Tag: @entry.Votes ratings, @entry.Comments comments, @entry.Suggestions suggestions@(PrUi.Has(entry.Note) ? " · " + entry.Note : "")</p>
+        }
+    </section>
+}
+
+@code {
+    private PeopleResponse? people;
+    private PersonDetailResponse? open;
+    private string confirm = "";
+    private string note = "";
+    private bool busy;
+    private bool triedLoad;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        await State.RefreshViewerAsync();
+        _ = State.EnsureSummaryAsync();
+        if (State.IsAdmin && !triedLoad)
+        {
+            triedLoad = true;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            people = await State.Api.PeopleAsync();
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            State.ShowFlash(ex.Message, true);
+        }
+    }
+
+    private async Task OpenAsync(string visitorId)
+    {
+        if (open?.Person.VisitorId == visitorId)
+        {
+            open = null;
+            return;
+        }
+
+        confirm = "";
+        note = "";
+        try
+        {
+            open = await State.Api.PersonAsync(visitorId);
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            State.ShowFlash(ex.Message, true);
+        }
+    }
+
+    private string TargetLink(CommentView comment) => comment.Target switch
+    {
+        CommentTarget.Photo => PrUi.PhotoLink(comment.TargetId),
+        CommentTarget.Shot => PrUi.ShotLink(comment.TargetId),
+        _ => "photoshoot/suggestions"
+    };
+
+    private async Task RemoveAsync(PersonView person)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.RemovePersonAsync(person.VisitorId, confirm, note), $"Removed {person.DisplayName} and their contributions. Ratings were recalculated.");
+        busy = false;
+        if (result == null) return;
+        await ReloadAsync();
+        open = await State.Api.PersonAsync(person.VisitorId);
+        await State.EnsureSummaryAsync(force: true);
+    }
+
+    private async Task RestoreAsync(PersonView person)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.RestorePersonAsync(person.VisitorId, note), $"Restored {person.DisplayName} and their contributions.");
+        busy = false;
+        if (result == null) return;
+        await ReloadAsync();
+        open = await State.Api.PersonAsync(person.VisitorId);
+        await State.EnsureSummaryAsync(force: true);
+    }
+
+    private void OnChanged()
+    {
+        if (State.IsAdmin && people == null && !triedLoad)
+        {
+            triedLoad = true;
+            _ = InvokeAsync(async () => { await ReloadAsync(); StateHasChanged(); });
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

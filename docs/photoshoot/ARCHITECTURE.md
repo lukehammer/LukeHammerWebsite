@@ -66,8 +66,10 @@ Everything is additive to the existing site: no existing pages, routes, function
 
 Defense in depth:
 
+> **Current (2026-11, photo review branch):** there is no SWA route rule; every endpoint authorizes itself. Admin is Luke's Microsoft account bound by provider subject. The shared planner password (public in this repo) grants **photographer only**, and `LukeAdmin` no longer exists. Owner-level planner edits, export and hard delete need the Microsoft admin. Details: [PHOTO_REVIEW.md](PHOTO_REVIEW.md#who-can-do-what). The list below is the original design, kept for history.
+
 1. **SWA route rule** (`Client/staticwebapp.config.json`): `/api/photoshoot/*` requires role `photoshoot-owner` or `photoshoot-photographer`. Unauthenticated users get 401, and signed-in users without a role get 403, before the function runs.
-2. **Server-side check** in every endpoint (`PhotoShootAuth.Resolve`): decodes `x-ms-client-principal` (must contain a `userId`), maps roles to `Owner` / `Photographer` / `None`, then:
+2. **Server-side check** in every endpoint (`PhotoShootAuth.ResolveAsync`): decodes `x-ms-client-principal` (must contain a `userId`), maps roles to `Owner` / `Photographer` / `None`, then:
    - Owner: everything.
    - Photographer: read the shoot, references and images; session commands `RequestNext`, `CompleteCurrent`, `AddNote`, plus `Next`/`Previous` only when the owner enables **Photographer can advance**. Everything else returns 403.
 3. **Dev bypass** (`PHOTOSHOOT_DEV_AUTH=true`) is honored only when `WEBSITE_SITE_NAME` is *not* set, so it can never activate in Azure.

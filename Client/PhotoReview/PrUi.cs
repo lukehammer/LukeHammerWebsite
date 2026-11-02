@@ -53,6 +53,18 @@ namespace BlazorApp.Client.PhotoReview
 
         public static bool Has(string? text) => !string.IsNullOrWhiteSpace(text);
 
+        /// <summary>"(provisional)", "(all set by Luke)" or "(58 provisional · 4 by Luke)" for a status tile.</summary>
+        public static string Split(ReviewCounts? counts, ShotReviewStatus status)
+        {
+            if (counts == null) return "(provisional)";
+            var total = counts.ByProvisionalStatus.GetValueOrDefault(status);
+            var byLuke = counts.ByStatus.GetValueOrDefault(status);
+            var provisional = total - byLuke;
+            if (byLuke == 0) return "(provisional)";
+            if (provisional == 0) return "(all set by Luke)";
+            return $"({provisional} provisional · {byLuke} by Luke)";
+        }
+
         public static string NewRequestId() => Guid.NewGuid().ToString("N");
 
         public static string ShotLink(string shotId) => "photoshoot/review/shot/" + shotId;

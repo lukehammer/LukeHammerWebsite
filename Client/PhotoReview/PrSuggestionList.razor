@@ -32,7 +32,7 @@
             }
             @if (item.SuggestedStatus is ShotReviewStatus suggested)
             {
-                <p>Suggests: <PrStatus Status="suggested" Confirmed="true" ShowSuggestion="false" /></p>
+                <p>Suggests: <span class="pr-status @PrUi.StatusClass(suggested)"><i class="bi @PrUi.StatusIcon(suggested)" aria-hidden="true"></i> @PhotoReviewLabels.Status(suggested)</span></p>
             }
             @if (editing == item.Id)
             {

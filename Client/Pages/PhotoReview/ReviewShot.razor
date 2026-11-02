@@ -36,12 +36,20 @@ else
         <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
         <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
         <div class="pr-shot-meta">
-            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" />
+            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" ShowPending="true" />
             <span class="pr-muted">@PhotoReviewLabels.Coverage(shot.Coverage)</span>
         </div>
         @if (PrUi.Has(shot.OwnerNote))
         {
             <p class="pr-note"><strong>Luke:</strong> @shot.OwnerNote</p>
+        }
+        @if (PrUi.Has(shot.SuggestionReason))
+        {
+            <p class="pr-note pr-note-provisional">
+                <strong>@(PrUi.Has(shot.SuggestedBy) ? shot.SuggestedBy : "Selection pass")'s provisional assessment@(shot.SuggestedStatus is ShotReviewStatus s ? $" ({PhotoReviewLabels.Status(s)})" : ""):</strong>
+                @shot.SuggestionReason
+                @(shot.StatusConfirmed ? " Luke has since set the status above." : " Luke makes the final decision.")
+            </p>
         }
         @if (State.IsAdmin)
         {

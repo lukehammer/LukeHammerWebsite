@@ -24,21 +24,20 @@ else
         <p class="pr-lead">Every planned shot next to what the camera actually captured. Rate photos, comment, and suggest poses for the next shoot.</p>
         <div class="pr-tiles">
             <a class="pr-tile" href="photoshoot/review?show=all"><span class="pr-tile-n">@counts.PlannedShots</span><span>planned shots</span></a>
-            <a class="pr-tile pr-tile-review" href="photoshoot/review?coverage=with"><span class="pr-tile-n">@counts.ShotsWithPhotos</span><span>have selected photos</span></a>
-            <a class="pr-tile pr-tile-missing" href="photoshoot/review?coverage=without"><span class="pr-tile-n">@counts.ShotsWithoutMatch</span><span>no photo found yet</span></a>
-            <a class="pr-tile pr-tile-success" href="photoshoot/review?status=Successful"><span class="pr-tile-n">@counts.ByStatus.GetValueOrDefault(ShotReviewStatus.Successful)</span><span>confirmed successful by Luke</span></a>
+            <a class="pr-tile pr-tile-review" href="photoshoot/review?coverage=with"><span class="pr-tile-n">@counts.ShotsWithPhotos</span><span>represented by selected photos</span></a>
             <a class="pr-tile" href="photoshoot/review?view=photos"><span class="pr-tile-n">@counts.Photos</span><span>selected originals</span></a>
+            <a class="pr-tile pr-tile-success pr-tile-provisional" href="photoshoot/review?status=Successful"><span class="pr-tile-n">@counts.ByProvisionalStatus.GetValueOrDefault(ShotReviewStatus.Successful)</span><span>successful <em>@PrUi.Split(counts, ShotReviewStatus.Successful)</em></span></a>
+            <a class="pr-tile pr-tile-partial pr-tile-provisional" href="photoshoot/review?status=PartiallySuccessful"><span class="pr-tile-n">@counts.ByProvisionalStatus.GetValueOrDefault(ShotReviewStatus.PartiallySuccessful)</span><span>partially successful <em>@PrUi.Split(counts, ShotReviewStatus.PartiallySuccessful)</em></span></a>
+            <a class="pr-tile pr-tile-missing pr-tile-provisional" href="photoshoot/review?status=NotCaptured"><span class="pr-tile-n">@counts.ByProvisionalStatus.GetValueOrDefault(ShotReviewStatus.NotCaptured)</span><span>not captured <em>@PrUi.Split(counts, ShotReviewStatus.NotCaptured)</em></span></a>
+            <a class="pr-tile pr-tile-owner" href="photoshoot/review?confirmed=1"><span class="pr-tile-n">@counts.OwnerConfirmed</span><span>reviewed by Luke</span></a>
             <a class="pr-tile" href="photoshoot/second-shoot"><span class="pr-tile-n">@counts.SecondShootItems</span><span>in the second-shoot plan</span></a>
         </div>
-        @if (counts.ByStatus.GetValueOrDefault(ShotReviewStatus.NeedsReview) > 0)
-        {
-            <p class="pr-note">
-                <i class="bi bi-info-circle" aria-hidden="true"></i>
-                @counts.ByStatus.GetValueOrDefault(ShotReviewStatus.NeedsReview) shots still <strong>need Luke's review</strong>.
-                A selected photo is evidence, not approval: matches are marked slate-supported, inferred or approximate.
-                Luke sets the final status.
-            </p>
-        }
+        <p class="pr-note pr-note-provisional">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <strong>Provisional</strong> statuses are Codex's capture assessments of the selected photos. Luke has reviewed
+            <strong>@counts.OwnerConfirmed</strong> of @counts.PlannedShots shots; his decision always replaces the provisional one.
+            Photo matches are marked slate-supported, inferred or approximate.
+        </p>
         <ol class="pr-steps">
             <li><button type="button" class="pr-link-btn" @onclick="OpenName">Enter your name</button>. No password.</li>
             <li>Open a shot, compare the plan with the photos, and <strong>rate each photo 1–10</strong>.</li>
@@ -56,6 +55,7 @@ else
                 <option value="@option">@PhotoReviewLabels.Status(option)</option>
             }
         </select>
+        <label class="ps-toggle" title="Only shots Luke has reviewed"><input type="checkbox" @bind="confirmedOnly" @bind:after="SyncUrl" /> Luke-reviewed only</label>
         <select class="form-select ps-input" @bind="coverage" @bind:after="SyncUrl" aria-label="Filter by photos">
             <option value="">With or without photos</option>
             <option value="with">Has selected photos</option>
@@ -144,7 +144,7 @@ else
                             <div class="pr-shot-body">
                                 <div class="pr-shot-title"><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</div>
                                 <div class="pr-shot-meta">
-                                    <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" />
+                                    <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" />
                                     @if (shot.BestEvidence is MatchEvidence best)
                                     {
                                         <PrEvidence Evidence="best" />
@@ -180,6 +180,7 @@ else
     private string view = "shots";
     private bool warningsOnly;
     private bool mustOnly;
+    private bool confirmedOnly;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,6 +208,7 @@ else
         view = q.Get("view") == "photos" ? "photos" : "shots";
         warningsOnly = q.Get("warnings") == "1";
         mustOnly = q.Get("must") == "1";
+        confirmedOnly = q.Get("confirmed") == "1";
     }
 
     private void SyncUrl()
@@ -221,6 +223,7 @@ else
         Add("view", view == "photos" ? "photos" : "");
         Add("warnings", warningsOnly ? "1" : "");
         Add("must", mustOnly ? "1" : "");
+        Add("confirmed", confirmedOnly ? "1" : "");
         Nav.NavigateTo("photoshoot/review" + (parts.Count > 0 ? "?" + string.Join("&", parts) : ""), new NavigationOptions { ReplaceHistoryEntry = true });
     }
 
@@ -245,7 +248,8 @@ else
     {
         IEnumerable<ShotSummary> shots = summary.Shots;
         if (category != "") shots = shots.Where(s => PhotoReviewLabels.CategorySlug(s.Category) == category);
-        if (Enum.TryParse<ShotReviewStatus>(status, out var st)) shots = shots.Where(s => s.Status == st);
+        if (Enum.TryParse<ShotReviewStatus>(status, out var st)) shots = shots.Where(s => s.ProvisionalStatus == st);
+        if (confirmedOnly) shots = shots.Where(s => s.StatusConfirmed);
         if (coverage == "with") shots = shots.Where(s => s.PhotoIds.Count > 0);
         if (coverage == "without") shots = shots.Where(s => s.PhotoIds.Count == 0);
         if (Enum.TryParse<MatchEvidence>(evidence, out var ev)) shots = shots.Where(s => s.PhotoIds.Any(id => State.Photo(id)?.Evidence == ev));
