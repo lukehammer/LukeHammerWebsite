@@ -1,0 +1,24 @@
+@* Renders selection notes from a tiny, HTML-free Markdown subset (all text is encoded). *@
+<div class="pr-notes">
+    @foreach (var (kind, text) in PrUi.MarkdownBlocks(Markdown))
+    {
+        switch (kind)
+        {
+            case "h1":
+                break;
+            case "h2":
+                <h4 class="pr-notes-h">@text</h4>
+                break;
+            case "li":
+                <p class="pr-notes-li">• @text</p>
+                break;
+            default:
+                <p class="pr-notes-p">@text</p>
+                break;
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public string Markdown { get; set; } = "";
+}

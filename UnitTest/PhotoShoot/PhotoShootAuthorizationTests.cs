@@ -121,16 +121,16 @@ public class PhotoShootAuthorizationTests
     }
 
     [Fact]
-    public void Resolve_MasterPassword_GrantsOwnerEvenInProduction()
+    public void Resolve_PublicMasterPassword_IsPhotographerOnly_InProduction()
     {
+        // The password is in a public repository, so by default it can read and upload but never edit the plan.
         var header = PhotoShootAuthorization.Resolve(null, "photographer", "lukehammer-swa", "true", "owner", PhotoShootAuthorization.MasterPassword, null);
-        header.Access.Should().Be(PhotoShootAccess.Owner);
-        header.UserName.Should().Be("Luke");
+        header.Access.Should().Be(PhotoShootAccess.Photographer);
         header.DevBypass.Should().BeFalse();
 
         var cookie = "theme=dark; " + PhotoShootAuthorization.PasswordCookie + "=" + Uri.EscapeDataString(PhotoShootAuthorization.MasterPassword);
         var fromCookie = PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, null, cookie);
-        fromCookie.Access.Should().Be(PhotoShootAccess.Owner);
+        fromCookie.Access.Should().Be(PhotoShootAccess.Photographer);
 
         PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, "nope", null).Access.Should().Be(PhotoShootAccess.None);
         PhotoShootAuthorization.Resolve(null, null, "lukehammer-swa", null, null, "luke", null).Access.Should().Be(PhotoShootAccess.None);

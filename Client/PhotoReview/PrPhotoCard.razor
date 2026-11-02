@@ -1,0 +1,68 @@
+@inject PhotoReviewState State
+
+@* One captured photo on a shot page: preview, how it was matched, rating, and which versions exist. *@
+@{
+    var summary = Photo.Summary;
+    var original = Photo.Versions.FirstOrDefault(v => v.Kind == ArtifactKind.Original && !v.Superseded);
+}
+<article class="pr-photo-card @(Compact ? "pr-photo-card-compact" : "") @(summary.Hidden ? "pr-hidden" : "")">
+    <a class="pr-photo-preview" href="@PrUi.PhotoLink(summary.Id)">
+        @if (summary.Thumb.Widths.Count > 0)
+        {
+            <img src="@State.Api.ThumbUrl(summary, 1280)" srcset="@State.Api.SrcSet(summary.Id, summary.Thumb.VersionId, summary.Thumb.Widths)"
+                 sizes="(max-width: 760px) 100vw, 560px" alt="@PrUi.Alt(ShotTitle, Index)" loading="lazy" width="@summary.Thumb.Width" height="@summary.Thumb.Height" />
+        }
+        else
+        {
+            <span class="pr-noimg"><i class="bi bi-image" aria-hidden="true"></i>Preview not available</span>
+        }
+    </a>
+    <div class="pr-photo-info">
+        <div class="pr-shot-meta">
+            <span class="pr-badge">@PhotoReviewLabels.Selection(summary.Selection)</span>
+            <PrEvidence Evidence="summary.Evidence" />
+            @if (summary.Hidden)
+            {
+                <span class="pr-badge pr-badge-muted">Hidden from visitors</span>
+            }
+        </div>
+        @foreach (var warning in Photo.Warnings)
+        {
+            <p class="pr-note pr-note-warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> @warning</p>
+        }
+        @if (!Compact)
+        {
+            @if (PrUi.Has(Photo.Reason))
+            {
+                <p class="pr-small"><strong>Why selected:</strong> @Photo.Reason</p>
+            }
+            @if (PrUi.Has(Photo.EvidenceText))
+            {
+                <p class="pr-small pr-muted"><strong>Matching evidence:</strong> @Photo.EvidenceText</p>
+            }
+        }
+        <PrRating Photo="summary" Changed="Changed" />
+        <div class="pr-versions-mini">
+            @foreach (var kind in PhotoReviewLabels.Kinds)
+            {
+                var has = summary.Kinds.Contains(kind);
+                <span class="pr-kind-chip @(has ? "pr-kind-on" : "")" title="@(has ? "Available" : "Not created yet")">@PhotoReviewLabels.Kind(kind)@(has ? "" : ": not yet")</span>
+            }
+        </div>
+        <div class="pr-photo-actions">
+            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.PhotoLink(summary.Id)"><i class="bi bi-info-circle" aria-hidden="true"></i> Notes, versions and comments@(summary.CommentCount > 0 ? $" ({summary.CommentCount})" : "")</a>
+            @if (original != null)
+            {
+                <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(summary.Id, original.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Original (@PrUi.Bytes(original.Bytes))</a>
+            }
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public PhotoDetail Photo { get; set; } = new();
+    [Parameter] public string ShotTitle { get; set; } = "";
+    [Parameter] public int Index { get; set; }
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+}

@@ -1,0 +1,214 @@
+@page "/photoshoot/review/photo/{PhotoId}"
+@implements IDisposable
+@inject PhotoReviewState State
+
+<PageTitle>@(photo == null || detail == null ? "Lucky Luke Magic · Photo review" : $"{photo.Summary.PhotoKey} · Lucky Luke Magic photo review")</PageTitle>
+
+@if (photo == null || detail == null)
+{
+    @if (PrUi.Has(error))
+    {
+        <div class="ps-panel ps-gate"><p class="ps-error-text">@error</p><a class="ps-btn ps-btn-outline" href="photoshoot/review">Back to the review</a></div>
+    }
+    else
+    {
+        <div class="ps-panel ps-center" role="status"><div class="spinner-border ps-spinner" aria-hidden="true"></div><p>Loading…</p></div>
+    }
+}
+else
+{
+    var summary = photo.Summary;
+    var shot = detail.Shot;
+    var siblings = detail.Photos.Select(p => p.Summary.Id).ToList();
+    var at = siblings.IndexOf(summary.Id);
+    var display = photo.Versions.FirstOrDefault(v => v.Id == shown) ?? photo.Versions.FirstOrDefault(v => v.Kind == ArtifactKind.Original && !v.Superseded);
+    <nav class="pr-pager" aria-label="Photo navigation">
+        <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@PrUi.ShotLink(shot.ShotId)"><i class="bi bi-arrow-left" aria-hidden="true"></i> @PrUi.Number(shot.Number) @shot.Title</a>
+        <span class="pr-identity-spacer"></span>
+        @if (at > 0)
+        {
+            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.PhotoLink(siblings[at - 1])"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous photo</a>
+        }
+        @if (at >= 0 && at < siblings.Count - 1)
+        {
+            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.PhotoLink(siblings[at + 1])">Next photo <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+        }
+    </nav>
+
+    <header class="pr-shot-header">
+        <h1 class="pr-photo-title">@summary.PhotoKey</h1>
+        <div class="pr-shot-meta">
+            <span class="pr-badge">@PhotoReviewLabels.Selection(summary.Selection)</span>
+            <PrEvidence Evidence="summary.Evidence" />
+            <span class="pr-muted">for <a href="@PrUi.ShotLink(shot.ShotId)">@PrUi.Number(shot.Number) @shot.Title</a></span>
+            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" />
+        </div>
+    </header>
+
+    <div class="pr-photo-layout">
+        <figure class="pr-photo-big">
+            @if (display != null && display.ThumbWidths.Count > 0)
+            {
+                <a href="@State.Api.FileUrl(summary.Id, display.Id, download: false)" target="_blank" rel="noopener" title="Open full size">
+                    <img src="@State.Api.ThumbUrl(summary.Id, display.Id, display.ThumbWidths.Max())" srcset="@State.Api.SrcSet(summary.Id, display.Id, display.ThumbWidths)" sizes="(max-width: 900px) 100vw, 640px"
+                         alt="@PrUi.Alt(shot.Title, at + 1)" width="@display.Width" height="@display.Height" class="@(display.Kind is ArtifactKind.Transparent or ArtifactKind.CroppedTransparent ? "pr-checker" : "")" />
+                </a>
+                <figcaption class="pr-small pr-muted">Showing: @PhotoReviewLabels.Kind(display.Kind). Tap the image for full size.</figcaption>
+            }
+        </figure>
+        <div class="pr-photo-side">
+            <PrRating Photo="summary" Changed="ReloadAsync" />
+            @foreach (var warning in photo.Warnings)
+            {
+                <p class="pr-note pr-note-warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> @warning</p>
+            }
+            <p class="pr-small"><strong>Match:</strong> @PhotoReviewLabels.EvidenceHelp(summary.Evidence)</p>
+            @if (PrUi.Has(photo.EvidenceText))
+            {
+                <p class="pr-small pr-muted">@photo.EvidenceText</p>
+            }
+            @if (State.IsAdmin)
+            {
+                <div class="pr-admin-box">
+                    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="ToggleHiddenAsync">
+                        @(summary.Hidden ? "Show to visitors again" : "Hide from visitors")
+                    </button>
+                    <span class="pr-small pr-muted">Hiding never deletes the photo or its ratings.</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <section class="pr-section" aria-labelledby="pr-versions-title">
+        <h2 id="pr-versions-title">Versions</h2>
+        <p class="pr-small pr-muted">Every version links back to the untouched camera original. Edited versions are made by Codex and appear here only after they're imported.</p>
+        <div class="pr-table-wrap">
+            <table class="pr-table">
+                <thead><tr><th>Version</th><th>File</th><th>Size</th><th>Made from</th><th>How</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var kind in PhotoReviewLabels.Kinds)
+                    {
+                        var versions = photo.Versions.Where(v => v.Kind == kind).ToList();
+                        if (versions.Count == 0)
+                        {
+                            <tr class="pr-row-missing"><th scope="row">@PhotoReviewLabels.Kind(kind)</th><td colspan="5" class="pr-muted">Not created yet</td></tr>
+                            continue;
+                        }
+
+                        foreach (var version in versions)
+                        {
+                            <tr class="@(version.Superseded ? "pr-row-old" : "")">
+                                <th scope="row">@PhotoReviewLabels.Kind(kind)@(version.Superseded ? " (older)" : "")</th>
+                                <td><code>@version.FileName</code></td>
+                                <td>@version.Width × @version.Height<br /><span class="pr-muted">@PrUi.Bytes(version.Bytes)</span></td>
+                                <td>@(version.ParentKind is ArtifactKind parent ? PhotoReviewLabels.Kind(parent) : "Camera")</td>
+                                <td>
+                                    <span class="pr-badge @(version.Provenance == ArtifactProvenance.Generative ? "pr-badge-warn" : "")">@PhotoReviewLabels.Provenance(version.Provenance)</span>
+                                    @if (PrUi.Has(version.ProcessingNotes))
+                                    {
+                                        <div class="pr-small">@version.ProcessingNotes</div>
+                                    }
+                                    @if (PrUi.Has(version.Tool))
+                                    {
+                                        <div class="pr-small pr-muted">Tool: @version.Tool</div>
+                                    }
+                                </td>
+                                <td class="pr-nowrap">
+                                    @if (version.ThumbWidths.Count > 0)
+                                    {
+                                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="() => shown = version.Id">Preview</button>
+                                    }
+                                    <a class="ps-btn ps-btn-outline ps-btn-sm" href="@State.Api.FileUrl(summary.Id, version.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="pr-section">
+        <PrThread Comments="detail.Comments" Target="CommentTarget.Photo" TargetId="@summary.Id" Title="Comments on this photo" Changed="ReloadAsync" />
+    </section>
+
+    <section class="pr-section" aria-labelledby="pr-notes-title">
+        <h2 id="pr-notes-title">Selection notes</h2>
+        <PrNotes Markdown="@photo.NotesMarkdown" />
+        @if (PrUi.Has(photo.Source.Url) || photo.Source.PhotoNumber > 0)
+        {
+            <p class="pr-small pr-muted">
+                Source photo @photo.Source.PhotoNumber@(PrUi.Has(photo.Source.OriginalFileName) ? $" ({photo.Source.OriginalFileName})" : "")
+                @if (PrUi.Has(photo.Source.Url))
+                {
+                    <text> · </text><a href="@photo.Source.Url" target="_blank" rel="noopener noreferrer">album</a>
+                }
+            </p>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public string PhotoId { get; set; } = "";
+
+    private ShotDetailResponse? detail;
+    private PhotoDetail? photo;
+    private string error = "";
+    private string loadedId = "";
+    private string shown = "";
+    private bool busy;
+
+    protected override void OnInitialized() => State.Changed += OnChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loadedId != PhotoId)
+        {
+            loadedId = PhotoId;
+            photo = null;
+            shown = "";
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            var summary = await State.EnsureSummaryAsync();
+            var shotId = summary?.Photos.FirstOrDefault(p => p.Id == PhotoId)?.ShotId;
+            if (shotId == null)
+            {
+                error = "That photo isn't in the review.";
+                return;
+            }
+
+            detail = await State.Api.ShotAsync(shotId);
+            State.UseViewer(detail.Viewer);
+            photo = detail.Photos.Concat(detail.RelatedPhotos).FirstOrDefault(p => p.Summary.Id == PhotoId);
+            error = photo == null ? "That photo isn't in the review." : "";
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task ToggleHiddenAsync()
+    {
+        if (photo == null) return;
+        busy = true;
+        var hide = !photo.Summary.Hidden;
+        var result = await State.RunAsync(() => State.Api.SetHiddenAsync(photo.Summary.Id, hide), hide ? "Hidden from visitors." : "Visible again.");
+        busy = false;
+        if (result != null)
+        {
+            await State.EnsureSummaryAsync(force: true);
+            await ReloadAsync();
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

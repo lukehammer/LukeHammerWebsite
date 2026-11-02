@@ -1,0 +1,153 @@
+@inject PhotoReviewState State
+
+@* Threaded comments for one photo, shot or suggestion. Removed comments with replies show as placeholders. *@
+<section class="pr-thread" aria-label="@Title">
+    @if (ShowTitle)
+    {
+        <h3 class="pr-thread-title">@Title <span class="pr-muted">(@Mine.Count(c => !c.Placeholder))</span></h3>
+    }
+
+    @foreach (var root in Roots)
+    {
+        @Render(root, 0)
+    }
+
+    @if (replyTo == "")
+    {
+        <form class="pr-comment-form" @onsubmit="() => PostAsync(null)" @onsubmit:preventDefault="true">
+            <textarea class="form-control ps-input" rows="2" maxlength="@PhotoReviewParticipation.MaxCommentLength" placeholder="@Placeholder" @bind="draft" @bind:event="oninput" aria-label="@Placeholder"></textarea>
+            <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@(busy || string.IsNullOrWhiteSpace(draft))">Post</button>
+        </form>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public List<CommentView> Comments { get; set; } = new();
+    [Parameter] public CommentTarget Target { get; set; }
+    [Parameter] public string TargetId { get; set; } = "";
+    [Parameter] public string Title { get; set; } = "Comments";
+    [Parameter] public bool ShowTitle { get; set; } = true;
+    [Parameter] public string Placeholder { get; set; } = "Add a comment…";
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string draft = "";
+    private string replyDraft = "";
+    private string replyTo = "";
+    private string editing = "";
+    private string editDraft = "";
+    private bool busy;
+    private string requestId = PrUi.NewRequestId();
+
+    private List<CommentView> Mine => Comments.Where(c => c.Target == Target && c.TargetId == TargetId).ToList();
+    private List<CommentView> Roots => Mine.Where(c => c.ParentId == "" || Mine.All(p => p.Id != c.ParentId)).ToList();
+
+    private RenderFragment Render(CommentView comment, int depth) => __builder =>
+    {
+        <article class="pr-comment @(comment.Placeholder ? "pr-comment-gone" : "") @(comment.ByOwner ? "pr-comment-owner" : "")" style="--depth:@Math.Min(depth, 5)">
+            @if (comment.Placeholder)
+            {
+                <p class="pr-muted"><i class="bi bi-dash-circle" aria-hidden="true"></i> @comment.PlaceholderText</p>
+            }
+            else
+            {
+                <header class="pr-comment-head">
+                    <strong>@comment.AuthorName</strong>
+                    <span class="pr-tag">@comment.AuthorTag</span>
+                    @if (comment.ByOwner)
+                    {
+                        <span class="pr-badge pr-badge-owner">Luke</span>
+                    }
+                    <span class="pr-muted" title="@PrUi.When(comment.CreatedUtc)">@PrUi.Ago(comment.CreatedUtc)@(comment.EditedUtc != null ? " · edited" : "")</span>
+                </header>
+                @if (editing == comment.Id)
+                {
+                    <form class="pr-comment-form" @onsubmit="() => SaveEditAsync(comment)" @onsubmit:preventDefault="true">
+                        <textarea class="form-control ps-input" rows="2" maxlength="@PhotoReviewParticipation.MaxCommentLength" @bind="editDraft" @bind:event="oninput" aria-label="Edit comment"></textarea>
+                        <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy">Save</button>
+                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="@(() => editing = "")">Cancel</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="pr-comment-text">@comment.Text</p>
+                }
+                <div class="pr-comment-actions">
+                    @if (depth < PhotoReviewParticipation.MaxThreadDepth - 1)
+                    {
+                        <button type="button" class="pr-link-btn" @onclick="() => StartReply(comment)">Reply</button>
+                    }
+                    @if (comment.Mine)
+                    {
+                        <button type="button" class="pr-link-btn" @onclick="() => StartEdit(comment)">Edit</button>
+                        <button type="button" class="pr-link-btn" disabled="@busy" @onclick="() => DeleteAsync(comment)">Remove</button>
+                    }
+                </div>
+            }
+
+            @if (replyTo == comment.Id)
+            {
+                <form class="pr-comment-form pr-reply-form" @onsubmit="() => PostAsync(comment.Id)" @onsubmit:preventDefault="true">
+                    <textarea class="form-control ps-input" rows="2" maxlength="@PhotoReviewParticipation.MaxCommentLength" placeholder="Write a reply…" @bind="replyDraft" @bind:event="oninput" aria-label="Reply"></textarea>
+                    <button type="submit" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@(busy || string.IsNullOrWhiteSpace(replyDraft))">Reply</button>
+                    <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="@(() => replyTo = "")">Cancel</button>
+                </form>
+            }
+
+            @foreach (var child in Mine.Where(c => c.ParentId == comment.Id))
+            {
+                @Render(child, depth + 1)
+            }
+        </article>
+    };
+
+    private void StartReply(CommentView comment)
+    {
+        if (!State.RequireIdentity()) return;
+        replyTo = comment.Id;
+        replyDraft = "";
+    }
+
+    private void StartEdit(CommentView comment)
+    {
+        editing = comment.Id;
+        editDraft = comment.Text;
+    }
+
+    private async Task PostAsync(string? parentId)
+    {
+        if (!State.RequireIdentity()) return;
+        busy = true;
+        var text = parentId == null ? draft : replyDraft;
+        var result = await State.RunAsync(() => State.Api.AddCommentAsync(new CommentRequest
+        {
+            Target = Target,
+            TargetId = TargetId,
+            ParentId = parentId ?? "",
+            Text = text,
+            ClientRequestId = requestId
+        }));
+        busy = false;
+        if (result == null) return;
+        requestId = PrUi.NewRequestId();
+        if (parentId == null) draft = ""; else { replyDraft = ""; replyTo = ""; }
+        await Changed.InvokeAsync();
+    }
+
+    private async Task SaveEditAsync(CommentView comment)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.EditCommentAsync(comment.Id, editDraft));
+        busy = false;
+        if (result == null) return;
+        editing = "";
+        await Changed.InvokeAsync();
+    }
+
+    private async Task DeleteAsync(CommentView comment)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.DeleteCommentAsync(comment.Id), "Comment removed.");
+        busy = false;
+        if (result != null) await Changed.InvokeAsync();
+    }
+}

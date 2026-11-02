@@ -1,0 +1,6 @@
+@* How confidently a photo was matched to its planned shot. *@
+<span class="pr-ev @PrUi.EvidenceClass(Evidence)" title="@PhotoReviewLabels.EvidenceHelp(Evidence)">@PhotoReviewLabels.Evidence(Evidence)</span>
+
+@code {
+    [Parameter] public MatchEvidence Evidence { get; set; }
+}

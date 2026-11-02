@@ -1,0 +1,83 @@
+@inject PhotoReviewState State
+
+@* Suggest a status, a change to a planned pose, or a brand-new pose. Suggestions never change the plan by themselves. *@
+<form class="pr-suggest" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    @if (string.IsNullOrEmpty(ShotId))
+    {
+        <label class="pr-label" for="pr-sg-title">New pose name</label>
+        <input id="pr-sg-title" class="form-control ps-input" maxlength="@PhotoReviewParticipation.MaxTitleLength" @bind="title" @bind:event="oninput" placeholder="e.g. Card fan behind the head" />
+        <label class="pr-label" for="pr-sg-shot">Related planned shot (optional)</label>
+        <select id="pr-sg-shot" class="form-select ps-input" @bind="relatedShot">
+            <option value="">None: a brand-new idea</option>
+            @foreach (var shot in State.Summary?.Shots ?? new List<ShotSummary>())
+            {
+                <option value="@shot.ShotId">@PrUi.Number(shot.Number) @shot.Title</option>
+            }
+        </select>
+        <label class="pr-label" for="pr-sg-desc">Describe the pose</label>
+        <textarea id="pr-sg-desc" class="form-control ps-input" rows="3" maxlength="@PhotoReviewParticipation.MaxDescriptionLength" @bind="description" @bind:event="oninput"
+                  placeholder="Expression, body and hands, props, framing, what it would be used for…"></textarea>
+    }
+    else
+    {
+        <div class="pr-segmented" role="radiogroup" aria-label="Suggestion type">
+            <label><input type="radio" name="pr-kind-@ShotId" checked="@(kind == SuggestionKind.StatusChange)" @onchange="() => kind = SuggestionKind.StatusChange" /> Status</label>
+            <label><input type="radio" name="pr-kind-@ShotId" checked="@(kind == SuggestionKind.PoseChange)" @onchange="() => kind = SuggestionKind.PoseChange" /> Pose change</label>
+        </div>
+        @if (kind == SuggestionKind.StatusChange)
+        {
+            <label class="pr-label" for="pr-sg-status-@ShotId">I think this shot is…</label>
+            <select id="pr-sg-status-@ShotId" class="form-select ps-input" @bind="status">
+                @foreach (var option in PhotoReviewLabels.Statuses.Where(s => s != ShotReviewStatus.NeedsReview))
+                {
+                    <option value="@option">@PhotoReviewLabels.Status(option)</option>
+                }
+            </select>
+            <label class="pr-label" for="pr-sg-why-@ShotId">Why (optional)</label>
+        }
+        else
+        {
+            <label class="pr-label" for="pr-sg-why-@ShotId">How should the pose change next time?</label>
+        }
+        <textarea id="pr-sg-why-@ShotId" class="form-control ps-input" rows="2" maxlength="@PhotoReviewParticipation.MaxDescriptionLength" @bind="description" @bind:event="oninput"></textarea>
+    }
+    <div class="pr-suggest-actions">
+        <button type="submit" class="ps-btn ps-btn-teal ps-btn-sm" disabled="@(busy || !Valid)"><i class="bi bi-lightbulb" aria-hidden="true"></i> @(busy ? "Sending…" : "Send suggestion")</button>
+        <span class="pr-muted pr-small">Luke reviews suggestions. They don't change the plan until he approves them.</span>
+    </div>
+</form>
+
+@code {
+    /// <summary>Empty = new pose form.</summary>
+    [Parameter] public string ShotId { get; set; } = "";
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private SuggestionKind kind = SuggestionKind.StatusChange;
+    private ShotReviewStatus status = ShotReviewStatus.Successful;
+    private string title = "";
+    private string description = "";
+    private string relatedShot = "";
+    private bool busy;
+    private string requestId = PrUi.NewRequestId();
+
+    private bool Valid => string.IsNullOrEmpty(ShotId)
+        ? PrUi.Has(title) && PrUi.Has(description)
+        : kind == SuggestionKind.StatusChange || PrUi.Has(description);
+
+    private async Task SubmitAsync()
+    {
+        if (!State.RequireIdentity()) return;
+        busy = true;
+        var request = string.IsNullOrEmpty(ShotId)
+            ? new SuggestionRequest { Kind = SuggestionKind.NewPose, ShotId = relatedShot, Title = title, Description = description, ClientRequestId = requestId }
+            : new SuggestionRequest { Kind = kind, ShotId = ShotId, SuggestedStatus = kind == SuggestionKind.StatusChange ? status : null, Description = description, ClientRequestId = requestId };
+        var result = await State.RunAsync(() => State.Api.AddSuggestionAsync(request), "Thanks! Your suggestion is in.");
+        busy = false;
+        if (result == null) return;
+        requestId = PrUi.NewRequestId();
+        title = "";
+        description = "";
+        relatedShot = "";
+        await Changed.InvokeAsync();
+    }
+}

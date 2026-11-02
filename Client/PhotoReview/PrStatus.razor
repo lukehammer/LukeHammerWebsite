@@ -1,0 +1,15 @@
+@* Luke's verdict for a planned shot, with the selection pass's suggestion shown as a hint only. *@
+<span class="pr-status @PrUi.StatusClass(Status)" title="@(Confirmed ? "Set by Luke" : "Not reviewed by Luke yet")">
+    <i class="bi @PrUi.StatusIcon(Status)" aria-hidden="true"></i> @PhotoReviewLabels.Status(Status)
+</span>
+@if (ShowSuggestion && !Confirmed && Suggested != null && Suggested != Status)
+{
+    <span class="pr-hint" title="Suggested by the selection pass; Luke decides">Codex suggests: @PhotoReviewLabels.Status(Suggested.Value)</span>
+}
+
+@code {
+    [Parameter] public ShotReviewStatus Status { get; set; }
+    [Parameter] public bool Confirmed { get; set; }
+    [Parameter] public ShotReviewStatus? Suggested { get; set; }
+    [Parameter] public bool ShowSuggestion { get; set; } = true;
+}

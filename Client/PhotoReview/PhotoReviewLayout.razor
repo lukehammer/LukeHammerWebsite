@@ -1,0 +1,137 @@
+@inherits LayoutComponentBase
+@layout BlazorApp.Client.Shared.MainLayout
+@implements IDisposable
+@inject PhotoReviewState State
+@inject NavigationManager Nav
+
+<HeadContent>
+    <link rel="stylesheet" href="css/photoshoot.css" />
+    <link rel="stylesheet" href="css/photoreview.css" />
+    <meta name="description" content="Lucky Luke Magic photo shoot review: planned shots versus captured photos for a family magician serving Vancouver, WA and Portland, OR." />
+</HeadContent>
+
+<div class="ps-root pr-root">
+    <nav class="ps-subnav pr-subnav" aria-label="Photo review sections">
+        <NavLink class="ps-subnav-link" href="photoshoot/review" Match="NavLinkMatch.Prefix"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i><span>Review</span></NavLink>
+        <NavLink class="ps-subnav-link" href="photoshoot/walkthrough"><i class="bi bi-easel" aria-hidden="true"></i><span>Walkthrough</span></NavLink>
+        <NavLink class="ps-subnav-link" href="photoshoot/suggestions"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>Pose ideas</span></NavLink>
+        <NavLink class="ps-subnav-link" href="photoshoot/second-shoot"><i class="bi bi-camera" aria-hidden="true"></i><span>Second shoot</span></NavLink>
+        @if (State.IsAdmin)
+        {
+            <NavLink class="ps-subnav-link" href="photoshoot/people"><i class="bi bi-people" aria-hidden="true"></i><span>People</span></NavLink>
+        }
+        <NavLink class="ps-subnav-link pr-subnav-planner" href="photoshoot" Match="NavLinkMatch.All"><i class="bi bi-clipboard-check" aria-hidden="true"></i><span>Planner</span></NavLink>
+    </nav>
+
+    <div class="pr-identity" role="region" aria-label="Your participation">
+        @if (State.Viewer.IsAdmin)
+        {
+            <span class="pr-badge pr-badge-owner"><i class="bi bi-shield-check" aria-hidden="true"></i> Luke (admin)</span>
+        }
+
+        @if (State.Viewer.Suspended)
+        {
+            <span class="pr-muted">@PhotoReviewParticipation.SuspendedMessage</span>
+        }
+        else if (State.Viewer.HasIdentity)
+        {
+            <span>Taking part as <strong>@State.Viewer.DisplayName</strong> <span class="pr-tag">@State.Viewer.Tag</span></span>
+            <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="OpenRename">Change name</button>
+        }
+        else
+        {
+            <span class="pr-muted">Anyone can rate, comment and suggest poses. No password needed.</span>
+            <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" @onclick="OpenRename"><i class="bi bi-person-plus" aria-hidden="true"></i> Enter your name</button>
+        }
+
+        <span class="pr-identity-spacer"></span>
+        @if (State.Viewer.IsAdmin || State.Viewer.SignedInWithMicrosoft)
+        {
+            <a class="pr-link-quiet" href="@State.Api.SignOutUrl("/" + Nav.ToBaseRelativePath(Nav.Uri))">Sign out of Microsoft</a>
+        }
+        else
+        {
+            <a class="pr-link-quiet" href="@State.Api.MicrosoftSignInUrl("/" + Nav.ToBaseRelativePath(Nav.Uri))">Luke: sign in</a>
+        }
+    </div>
+
+    @if (PrUi.Has(State.Viewer.AdminProblem))
+    {
+        <p class="pr-note pr-note-warn">@State.Viewer.AdminProblem</p>
+    }
+
+    @if (PrUi.Has(State.Flash))
+    {
+        <div class="pr-flash @(State.FlashIsError ? "pr-flash-error" : "")" role="@(State.FlashIsError ? "alert" : "status")">
+            <span>@State.Flash</span>
+            <button type="button" class="pr-flash-close" aria-label="Dismiss" @onclick="State.ClearFlash"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
+    }
+
+    @if (State.NamePromptOpen)
+    {
+        <div class="pr-modal-backdrop" @onclick="State.CloseNamePrompt"></div>
+        <div class="pr-modal" role="dialog" aria-modal="true" aria-labelledby="pr-name-title">
+            <h2 id="pr-name-title">@(State.Viewer.HasIdentity ? "Change your display name" : "What should we call you?")</h2>
+            <p class="pr-muted">No password or account. Your name appears next to your ratings, comments and pose ideas. This browser remembers you; on another device just enter your name again.</p>
+            <form @onsubmit="SaveNameAsync" @onsubmit:preventDefault="true">
+                <label class="pr-label" for="pr-name">Display name</label>
+                <input id="pr-name" class="form-control ps-input" maxlength="@PhotoReviewParticipation.MaxNameLength" @bind="name" @bind:event="oninput" autocomplete="nickname" placeholder="e.g. Bard" />
+                <div class="pr-modal-actions">
+                    <button type="submit" class="ps-btn ps-btn-primary" disabled="@(saving || string.IsNullOrWhiteSpace(name))">@(saving ? "Saving…" : "Continue")</button>
+                    <button type="button" class="ps-btn ps-btn-ghost" @onclick="State.CloseNamePrompt">Cancel</button>
+                    @if (State.Viewer.HasIdentity)
+                    {
+                        <button type="button" class="ps-btn ps-btn-ghost pr-push-right" @onclick="ForgetAsync">Forget me on this browser</button>
+                    }
+                </div>
+            </form>
+        </div>
+    }
+
+    @Body
+</div>
+
+@code {
+    private string name = "";
+    private bool saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        await State.RefreshViewerAsync();
+    }
+
+    private void OpenRename()
+    {
+        name = State.Viewer.DisplayName;
+        State.OpenNamePrompt();
+    }
+
+    private async Task SaveNameAsync()
+    {
+        saving = true;
+        try
+        {
+            if (await State.SetNameAsync(name))
+            {
+                await State.EnsureSummaryAsync(force: true);
+            }
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task ForgetAsync()
+    {
+        State.CloseNamePrompt();
+        await State.ForgetAsync();
+        await State.EnsureSummaryAsync(force: true);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}
