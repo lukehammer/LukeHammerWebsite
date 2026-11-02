@@ -7,6 +7,10 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
 - **Production:** https://lukehammer.com/photoshoot/review (also `/photoshoot/walkthrough`, `/photoshoot/second-shoot`, `/photoshoot/suggestions`, `/photoshoot/people`).
 - PR [#6](https://github.com/lukehammer/LukeHammerWebsite/pull/6) merged into `main` as `4d1607d`. Workflow run 41532402494 succeeded ("Deployment Complete", 21:56 UTC). The PR preview build also passed and was checked first (read-only).
 - Follow-up PR [#7](https://github.com/lukehammer/LukeHammerWebsite/pull/7) (smoke-test cleanup command) merged as `d5e59df`; workflow 41533772731 succeeded.
+- PR [#9](https://github.com/lukehammer/LukeHammerWebsite/pull/9) merged as `5ad0601`; workflow 41536857353 succeeded 22:26:30 UTC.
+  - Every planner page (all sign-ins, including the legacy photographer password) has a banner to the photo review with live counts (155 photos, 92/118 poses, provisional 62/30/26, Luke reviewed 0).
+  - Dashboard counters, progress bars and the session pill are titled **Original on-set records**. The recorded 0 finished / 1 captured / 117 remaining / session left open are kept; no planner data or capture statuses were changed.
+  - The walkthrough describes what the director, photographer and slate pages provide instead of asserting which devices were used. The slate evidence (125 slate-supported) is kept.
 
 ## For Codex
 
@@ -38,7 +42,7 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
 
 ## Production proof screenshots
 
-Folder `C:UsersLukeRAppDataLocalLukeHammerPhotoshootproof61102T2226Z-production`, captured 22:26:49–22:31:07 UTC against `5ad0601`. See `README.txt` there. Main files:
+Folder `C:SERSukerappdataocalukehammerphotoshootproof�61102t2226z-production`, captured 22:26:49 to 22:31:07 utc against `5ad0601`. see `readme.txt` there. main files:
 - `review-dashboard-1366x900.png` (review dashboard)
 - `photo-versions-1366x900.png` (photo page versions table) and `photo-versions-full-1366.png` (all 6 versions, full page)
 - `photo-versions-390.png` (mobile)
