@@ -1,0 +1,61 @@
+@inject PhotoReviewState State
+
+@* 1–10 rating. One current vote per person; tapping another number replaces it. *@
+<div class="pr-rating @(Compact ? "pr-rating-compact" : "")">
+    <div class="pr-rating-summary">
+        @if (Photo.RatingCount > 0)
+        {
+            <strong>@Photo.Average.ToString("0.0")</strong><span class="pr-muted">/10 · @Photo.RatingCount @(Photo.RatingCount == 1 ? "rating" : "ratings")</span>
+        }
+        else
+        {
+            <span class="pr-muted">No ratings yet</span>
+        }
+        @if (Photo.MyRating is int mine)
+        {
+            <span class="pr-mine">You: @mine</span>
+            <button type="button" class="pr-link-btn" disabled="@busy" @onclick="ClearAsync">clear</button>
+        }
+    </div>
+    <div class="pr-rating-buttons" role="group" aria-label="Rate this photo from 1 to 10">
+        @for (var i = 1; i <= 10; i++)
+        {
+            var value = i;
+            <button type="button" class="pr-rate @(Photo.MyRating == value ? "pr-rate-on" : "")" aria-pressed="@(Photo.MyRating == value ? "true" : "false")"
+                    aria-label="@($"Rate {value} out of 10")" disabled="@busy" @onclick="() => RateAsync(value)">@value</button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PhotoSummary Photo { get; set; } = new();
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool busy;
+
+    private async Task RateAsync(int value)
+    {
+        if (!State.RequireIdentity()) return;
+        busy = true;
+        var previous = (Photo.MyRating, Photo.Average, Photo.RatingCount);
+        // Optimistic update so the tap feels instant; the server total replaces it after reload.
+        var sum = Photo.Average * Photo.RatingCount - (Photo.MyRating ?? 0) + value;
+        var count = Photo.RatingCount + (Photo.MyRating == null ? 1 : 0);
+        Photo.MyRating = value;
+        Photo.RatingCount = count;
+        Photo.Average = Math.Round(sum / count, 2);
+        var result = await State.RunAsync(() => State.Api.RateAsync(Photo.Id, value));
+        if (result == null) (Photo.MyRating, Photo.Average, Photo.RatingCount) = previous;
+        busy = false;
+        await Changed.InvokeAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.ClearRatingAsync(Photo.Id));
+        busy = false;
+        if (result != null) await Changed.InvokeAsync();
+    }
+}

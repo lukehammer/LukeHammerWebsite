@@ -1,0 +1,135 @@
+@inject PhotoReviewState State
+
+@foreach (var item in Items)
+{
+    <article class="pr-suggestion pr-suggestion-@item.State.ToString().ToLowerInvariant()">
+        @if (item.Placeholder)
+        {
+            <p class="pr-muted"><i class="bi bi-dash-circle" aria-hidden="true"></i> @item.Description</p>
+        }
+        else
+        {
+            <header class="pr-comment-head">
+                <span class="pr-kind">@PhotoReviewLabels.SuggestionKindLabel(item.Kind)</span>
+                @if (item.State != SuggestionState.Open)
+                {
+                    <span class="pr-badge @(item.State == SuggestionState.Approved ? "pr-badge-ok" : "pr-badge-muted")">@(item.State == SuggestionState.Approved ? "Approved for the second shoot" : "Declined")</span>
+                }
+                <strong>@item.AuthorName</strong> <span class="pr-tag">@item.AuthorTag</span>
+                @if (item.ByOwner)
+                {
+                    <span class="pr-badge pr-badge-owner">Luke</span>
+                }
+                <span class="pr-muted" title="@PrUi.When(item.CreatedUtc)">@PrUi.Ago(item.CreatedUtc)@(item.EditedUtc != null ? " · edited" : "")</span>
+            </header>
+            @if (ShowShot && PrUi.Has(item.ShotId))
+            {
+                <p class="pr-small"><a href="@PrUi.ShotLink(item.ShotId)">@PrUi.Number(item.ShotNumber) @item.ShotTitle</a></p>
+            }
+            @if (PrUi.Has(item.Title))
+            {
+                <h4 class="pr-suggestion-title">@item.Title</h4>
+            }
+            @if (item.SuggestedStatus is ShotReviewStatus suggested)
+            {
+                <p>Suggests: <span class="pr-status @PrUi.StatusClass(suggested)"><i class="bi @PrUi.StatusIcon(suggested)" aria-hidden="true"></i> @PhotoReviewLabels.Status(suggested)</span></p>
+            }
+            @if (editing == item.Id)
+            {
+                <textarea class="form-control ps-input" rows="3" @bind="editText" @bind:event="oninput" aria-label="Edit suggestion"></textarea>
+                <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy" @onclick="() => SaveAsync(item)">Save</button>
+                <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="@(() => editing = "")">Cancel</button>
+            }
+            else if (PrUi.Has(item.Description))
+            {
+                <p class="pr-comment-text">@item.Description</p>
+            }
+            @if (PrUi.Has(item.StateNote))
+            {
+                <p class="pr-note"><strong>Luke:</strong> @item.StateNote</p>
+            }
+            <div class="pr-comment-actions">
+                @if (item.Mine && item.State == SuggestionState.Open)
+                {
+                    <button type="button" class="pr-link-btn" @onclick="() => StartEdit(item)">Edit</button>
+                }
+                @if (item.Mine)
+                {
+                    <button type="button" class="pr-link-btn" disabled="@busy" @onclick="() => WithdrawAsync(item)">Withdraw</button>
+                }
+                @if (State.IsAdmin)
+                {
+                    @if (item.State != SuggestionState.Approved)
+                    {
+                        <button type="button" class="ps-btn ps-btn-success ps-btn-sm" disabled="@busy" @onclick="() => DecideAsync(item, SuggestionState.Approved)">Approve for second shoot</button>
+                    }
+                    @if (item.State != SuggestionState.Declined)
+                    {
+                        <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => DecideAsync(item, SuggestionState.Declined)">Decline</button>
+                    }
+                    @if (item.State != SuggestionState.Open)
+                    {
+                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => DecideAsync(item, SuggestionState.Open)">Reopen</button>
+                    }
+                    <input class="form-control ps-input pr-inline-input" placeholder="Note to the author (optional)" @bind="notes[item.Id]" aria-label="Decision note" />
+                }
+            </div>
+        }
+        <details class="pr-replies" open="@(item.Comments.Count > 0)">
+            <summary>Replies (@item.Comments.Count(c => !c.Placeholder))</summary>
+            <PrThread Comments="item.Comments" Target="CommentTarget.Suggestion" TargetId="@item.Id" ShowTitle="false" Placeholder="Reply to this suggestion…" Changed="Changed" />
+        </details>
+    </article>
+}
+
+@code {
+    [Parameter, EditorRequired] public List<SuggestionView> Items { get; set; } = new();
+    [Parameter] public bool ShowShot { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string editing = "";
+    private string editText = "";
+    private bool busy;
+    private readonly Dictionary<string, string> notes = new();
+
+    protected override void OnParametersSet()
+    {
+        foreach (var item in Items)
+        {
+            notes.TryAdd(item.Id, "");
+        }
+    }
+
+    private void StartEdit(SuggestionView item)
+    {
+        editing = item.Id;
+        editText = item.Description;
+    }
+
+    private async Task SaveAsync(SuggestionView item)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.EditSuggestionAsync(item.Id, new SuggestionRequest { Title = item.Title, Description = editText, SuggestedStatus = item.SuggestedStatus }));
+        busy = false;
+        if (result == null) return;
+        editing = "";
+        await Changed.InvokeAsync();
+    }
+
+    private async Task WithdrawAsync(SuggestionView item)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.DeleteSuggestionAsync(item.Id), "Suggestion withdrawn.");
+        busy = false;
+        if (result != null) await Changed.InvokeAsync();
+    }
+
+    private async Task DecideAsync(SuggestionView item, SuggestionState state)
+    {
+        busy = true;
+        var label = state == SuggestionState.Approved ? "Approved. It's now in the second-shoot plan." : state == SuggestionState.Declined ? "Declined." : "Reopened.";
+        var result = await State.RunAsync(() => State.Api.DecideAsync(item.Id, state, notes.GetValueOrDefault(item.Id, "")), label);
+        busy = false;
+        if (result != null) await Changed.InvokeAsync();
+    }
+}

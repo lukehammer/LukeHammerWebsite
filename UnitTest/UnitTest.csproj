@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
+    <ProjectReference Include="..\Api\Api.csproj" />
+    <ProjectReference Include="..\tools\PhotoReviewImport\PhotoReviewImport.csproj" Aliases="importer" />
   </ItemGroup>
 
   <ItemGroup>

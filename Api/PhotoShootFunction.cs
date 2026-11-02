@@ -35,7 +35,7 @@ namespace ApiIsolated
         public async Task<HttpResponseData> Me(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoshoot/me")] HttpRequestData req)
         {
-            var me = PhotoShootAuth.Resolve(req);
+            var me = await PhotoShootAuth.ResolveAsync(req, allowBind: true);
             if (me.Access == PhotoShootAccess.None)
             {
                 return await Text(req, PhotoShootAuth.IsAuthenticated(req) ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized,
@@ -600,7 +600,7 @@ namespace ApiIsolated
 
         private async Task<HttpResponseData> Guarded(HttpRequestData req, bool ownerOnly, Func<PhotoShootMe, Task<HttpResponseData>> handler)
         {
-            var me = PhotoShootAuth.Resolve(req);
+            var me = await PhotoShootAuth.ResolveAsync(req);
             if (me.Access == PhotoShootAccess.None)
             {
                 return await Text(req, PhotoShootAuth.IsAuthenticated(req) ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized,

@@ -1,0 +1,69 @@
+@page "/photoshoot/suggestions"
+@implements IDisposable
+@inject PhotoReviewState State
+
+<PageTitle>Lucky Luke Magic · Pose ideas for the next shoot</PageTitle>
+
+<header class="pr-hero pr-hero-small">
+    <h1>Pose ideas</h1>
+    <p class="pr-lead">Suggest a new pose for the second shoot, or browse what others have suggested. To change an existing planned shot, open that shot and use "Suggestions for this shot".</p>
+</header>
+
+<section class="pr-section" aria-labelledby="pr-new-pose">
+    <h2 id="pr-new-pose">Suggest a new pose</h2>
+    <PrSuggestForm Changed="ReloadAsync" />
+</section>
+
+<section class="pr-section" aria-labelledby="pr-all-suggestions">
+    <h2 id="pr-all-suggestions">All suggestions <span class="pr-muted">(@(items?.Count(i => !i.Placeholder) ?? 0))</span></h2>
+    <div class="pr-segmented" role="radiogroup" aria-label="Show">
+        @foreach (var (value, label) in new[] { ("open", "Waiting for Luke"), ("approved", "Approved"), ("declined", "Declined"), ("all", "All") })
+        {
+            <label><input type="radio" name="pr-sg-filter" checked="@(filter == value)" @onchange="() => filter = value" /> @label</label>
+        }
+    </div>
+    @if (items == null)
+    {
+        <p class="pr-muted">Loading…</p>
+    }
+    else
+    {
+        var shown = items.Where(i => filter == "all" || (filter == "open" && i.State == SuggestionState.Open) || (filter == "approved" && i.State == SuggestionState.Approved) || (filter == "declined" && i.State == SuggestionState.Declined)).ToList();
+        @if (shown.Count == 0)
+        {
+            <p class="pr-muted">Nothing here yet.</p>
+        }
+        <PrSuggestionList Items="shown" ShowShot="true" Changed="ReloadAsync" />
+    }
+</section>
+
+@code {
+    private List<SuggestionView>? items;
+    private string filter = "open";
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        _ = State.EnsureSummaryAsync();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            var response = await State.Api.SuggestionsAsync();
+            State.UseViewer(response.Viewer);
+            items = response.Suggestions;
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            State.ShowFlash(ex.Message, true);
+            items ??= new List<SuggestionView>();
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

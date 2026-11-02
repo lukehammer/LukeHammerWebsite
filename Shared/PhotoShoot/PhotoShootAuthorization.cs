@@ -54,8 +54,6 @@ namespace BlazorApp.Shared.PhotoShoot
         public static bool CanDownloadFinals(PhotoShootAccess access) =>
             access == PhotoShootAccess.Owner || access == PhotoShootAccess.Admin;
 
-        public const string AdminPassword = "LukeAdmin";
-
         /// <summary>Decodes the base64 JSON principal header. Returns false for missing or malformed values.</summary>
         public static bool TryDecodePrincipal(string? headerValue, out SwaClientPrincipal principal)
         {
@@ -120,9 +118,6 @@ namespace BlazorApp.Shared.PhotoShoot
         public static bool PasswordMatches(string? value) =>
             string.Equals((value ?? "").Trim(), MasterPassword, StringComparison.Ordinal);
 
-        public static bool PasswordMatchesAdmin(string? value) =>
-            string.Equals((value ?? "").Trim(), AdminPassword, StringComparison.Ordinal);
-
         public static string? PasswordFromCookie(string? cookieHeader)
         {
             if (string.IsNullOrEmpty(cookieHeader))
@@ -162,14 +157,22 @@ namespace BlazorApp.Shared.PhotoShoot
         public static bool HasMasterPassword(string? passwordHeader, string? cookieHeader) =>
             PasswordMatches(passwordHeader) || PasswordMatches(PasswordFromCookie(cookieHeader));
 
-        public static bool HasAdminPassword(string? passwordHeader, string? cookieHeader) =>
-            PasswordMatchesAdmin(passwordHeader) || PasswordMatchesAdmin(PasswordFromCookie(cookieHeader));
-
         /// <summary>
-        /// Resolves the caller's access. The master password works in production. The local developer
-        /// bypass does not. A Static Web Apps principal is used when no password is presented.
+        /// Resolves the caller's access. Admin comes only from the bound Microsoft account
+        /// (<paramref name="microsoftAdmin"/>, decided by the API). The shared password is public, so it is a legacy
+        /// door at photographer level by default (<paramref name="passwordAccess"/>) and can never reach Admin. The
+        /// local developer bypass never works in Azure. A Static Web Apps role principal is used otherwise.
         /// </summary>
-        public static PhotoShootMe Resolve(string? principalHeader, string? devRoleHeader, string? websiteSiteName, string? devAuthSetting, string? devRoleSetting, string? passwordHeader = null, string? cookieHeader = null)
+        public static PhotoShootMe Resolve(
+            string? principalHeader,
+            string? devRoleHeader,
+            string? websiteSiteName,
+            string? devAuthSetting,
+            string? devRoleSetting,
+            string? passwordHeader = null,
+            string? cookieHeader = null,
+            bool microsoftAdmin = false,
+            PhotoShootAccess passwordAccess = PhotoShootAccess.Photographer)
         {
             if (IsDevBypassEnabled(websiteSiteName, devAuthSetting))
             {
@@ -184,21 +187,22 @@ namespace BlazorApp.Shared.PhotoShoot
                 };
             }
 
-            if (HasAdminPassword(passwordHeader, cookieHeader))
+            if (microsoftAdmin && TryDecodePrincipal(principalHeader, out var adminPrincipal))
             {
                 return new PhotoShootMe
                 {
                     Access = PhotoShootAccess.Admin,
-                    UserName = "Luke",
-                    IdentityProvider = "password"
+                    UserName = adminPrincipal.UserDetails ?? "",
+                    IdentityProvider = adminPrincipal.IdentityProvider ?? ""
                 };
             }
 
-            if (HasMasterPassword(passwordHeader, cookieHeader))
+            if (HasMasterPassword(passwordHeader, cookieHeader) && passwordAccess != PhotoShootAccess.None)
             {
                 return new PhotoShootMe
                 {
-                    Access = PhotoShootAccess.Owner,
+                    // The password can never reach Admin.
+                    Access = passwordAccess >= PhotoShootAccess.Admin ? PhotoShootAccess.Owner : passwordAccess,
                     UserName = "Luke",
                     IdentityProvider = "password"
                 };
@@ -218,6 +222,6 @@ namespace BlazorApp.Shared.PhotoShoot
         }
 
         public static bool IsAuthenticated(string? principalHeader, string? passwordHeader = null, string? cookieHeader = null) =>
-            HasAdminPassword(passwordHeader, cookieHeader) || HasMasterPassword(passwordHeader, cookieHeader) || TryDecodePrincipal(principalHeader, out _);
+            HasMasterPassword(passwordHeader, cookieHeader) || TryDecodePrincipal(principalHeader, out _);
     }
 }

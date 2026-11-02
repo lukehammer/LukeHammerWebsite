@@ -1,0 +1,31 @@
+@* Shot status. Luke's verdict is solid and labeled "Luke". Without it, a suggestion shows dashed and
+   labeled provisional, so a suggestion never reads as Luke's decision. *@
+@if (Confirmed)
+{
+    <span class="pr-status @PrUi.StatusClass(Status)" title="Set by Luke">
+        <i class="bi @PrUi.StatusIcon(Status)" aria-hidden="true"></i> @PhotoReviewLabels.Status(Status) <span class="pr-status-by">· Luke</span>
+    </span>
+}
+else if (Suggested is ShotReviewStatus suggested)
+{
+    <span class="pr-status pr-status-provisional @PrUi.StatusClass(suggested)" title="Provisional @(PrUi.Has(SuggestedBy) ? SuggestedBy + " " : "")suggestion. Luke hasn't reviewed this shot yet.">
+        <i class="bi @PrUi.StatusIcon(suggested)" aria-hidden="true"></i> @PhotoReviewLabels.Status(suggested) <span class="pr-status-by">· provisional@(PrUi.Has(SuggestedBy) ? ", " + SuggestedBy : "")</span>
+    </span>
+    @if (ShowPending)
+    {
+        <span class="pr-hint">Needs Luke's review</span>
+    }
+}
+else
+{
+    <span class="pr-status pr-status-review" title="No verdict yet"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Needs review</span>
+}
+
+@code {
+    /// <summary>Luke's verdict (only meaningful when <see cref="Confirmed"/>).</summary>
+    [Parameter] public ShotReviewStatus Status { get; set; }
+    [Parameter] public bool Confirmed { get; set; }
+    [Parameter] public ShotReviewStatus? Suggested { get; set; }
+    [Parameter] public string SuggestedBy { get; set; } = "";
+    [Parameter] public bool ShowPending { get; set; }
+}

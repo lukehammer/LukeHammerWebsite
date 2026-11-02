@@ -1,0 +1,151 @@
+@page "/photoshoot/walkthrough"
+@implements IDisposable
+@inject PhotoReviewState State
+
+<PageTitle>Lucky Luke Magic · How the photo shoot was planned and reviewed</PageTitle>
+
+@{
+    var counts = State.Summary?.Counts;
+    int Ev(MatchEvidence e) => counts?.PhotosByEvidence.GetValueOrDefault(e) ?? 0;
+    int Prov(ShotReviewStatus s) => counts?.ByProvisionalStatus.GetValueOrDefault(s) ?? 0;
+    int Kind(ArtifactKind k) => counts?.VersionsByKind.GetValueOrDefault(k) ?? 0;
+    var derivatives = PhotoReviewLabels.Kinds.Where(k => k != ArtifactKind.Original).Sum(Kind);
+}
+
+<article class="pr-walk">
+    <header class="pr-hero">
+        <p class="pr-kicker">For Bard Ross and anyone helping with the next shoot</p>
+        <h1>How the Lucky Luke Magic photo shoot was planned, shot and reviewed</h1>
+        <p class="pr-lead">A ten-minute tour: what was planned, what the camera caught, how photos were matched to the plan, and where your eye helps most.</p>
+        <div class="pr-walk-cta">
+            <a class="ps-btn ps-btn-primary ps-btn-lg" href="photoshoot/review"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Start reviewing</a>
+            <a class="ps-btn ps-btn-teal ps-btn-lg" href="photoshoot/second-shoot"><i class="bi bi-camera" aria-hidden="true"></i> Second-shoot plan</a>
+            <a class="ps-btn ps-btn-outline ps-btn-lg" href="photoshoot/suggestions"><i class="bi bi-lightbulb" aria-hidden="true"></i> Suggest a pose</a>
+        </div>
+    </header>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">1</span>
+        <div>
+            <h2>Luke planned @(counts?.PlannedShots ?? 118) poses</h2>
+            <p>Before the shoot, Luke built a shot list of @(counts?.PlannedShots ?? 118) poses for Lucky Luke Magic, a family magician serving Vancouver, WA and Portland, OR. Each pose has a written brief: what the photo is for, the facial expression, body, hands and eyes, framing and crop, and reference images. Every planned pose is listed in the review, captured or not, across nine broad categories:</p>
+            <p class="pr-cat-list">
+                @foreach (var category in PhotoReviewLabels.Categories)
+                {
+                    var view = State.Summary?.Categories.FirstOrDefault(c => c.Category == category);
+                    <a class="pr-chip-link" href="@($"photoshoot/review?c={PhotoReviewLabels.CategorySlug(category)}")">@PhotoReviewLabels.Category(category)@(view == null ? "" : $" · {view.ShotCount}")</a>
+                }
+            </p>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">2</span>
+        <div>
+            <h2>On set: director pages and slates</h2>
+            <p>Luke ran the day from the site's director page on his phone while the photographer followed on a second phone. Before each pose, an iPad "slate" showing the shot name was photographed so the camera roll would show where each pose began.</p>
+            <p>The slate sequence wasn't perfect. Some slates were skipped, and later wardrobe changes were shot outside their slate's run. So slates are treated as evidence, not proof. Every photo was also matched by its visible pose against the ordered brief.</p>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">3</span>
+        <div>
+            <h2>Codex reviewed 882 source photos and selected @(counts?.Photos ?? 155)</h2>
+            <p>Codex (an AI assistant working for Luke) went through both albums, 882 numbered photos including the slates, and saved <strong>@(counts?.Photos ?? 155) untouched originals</strong> in the nine categories. They represent <strong>@(counts?.ShotsWithPhotos ?? 92) planned poses</strong>. For <strong>@(counts?.ShotsWithoutMatch ?? 26)</strong> poses no dedicated match was found; they are listed as missing rather than forced to fit. No children appear in the albums, so the Kids and Volunteers poses all wait for the next shoot.</p>
+            <p>Each photo records how confidently it matches its pose:</p>
+            <ul class="pr-walk-list">
+                <li><PrEvidence Evidence="MatchEvidence.SlateSupported" /> <strong>@Ev(MatchEvidence.SlateSupported)</strong>: a photographed slate identifies the pose.</li>
+                <li><PrEvidence Evidence="MatchEvidence.Inferred" /> <strong>@Ev(MatchEvidence.Inferred)</strong>: no slate; matched from the shot order and the visible pose.</li>
+                <li><PrEvidence Evidence="MatchEvidence.Approximate" /> <strong>@Ev(MatchEvidence.Approximate)</strong>: close but not exact, such as a related pose or a later wardrobe variation.</li>
+            </ul>
+            <p class="pr-note pr-note-warn"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> One known contradiction: the slate in source photo 827 says "Magic Print Shirt", but the photos after it show a white speckled shirt and plaid. Those photos are matched by pose instead, and the Magic Print Shirt pose is listed as not captured.</p>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">4</span>
+        <div>
+            <h2>Provisional results. Luke makes the final call.</h2>
+            <p>Codex also assessed each pose against its brief. These are <strong>provisional</strong> suggestions, shown with a dashed outline:</p>
+            <div class="pr-tiles">
+                <a class="pr-tile pr-tile-success pr-tile-provisional" href="photoshoot/review?status=Successful"><span class="pr-tile-n">@Prov(ShotReviewStatus.Successful)</span><span>successful <em>@PrUi.Split(counts, ShotReviewStatus.Successful)</em></span></a>
+                <a class="pr-tile pr-tile-partial pr-tile-provisional" href="photoshoot/review?status=PartiallySuccessful"><span class="pr-tile-n">@Prov(ShotReviewStatus.PartiallySuccessful)</span><span>partially successful <em>@PrUi.Split(counts, ShotReviewStatus.PartiallySuccessful)</em></span></a>
+                <a class="pr-tile pr-tile-missing pr-tile-provisional" href="photoshoot/review?status=NotCaptured"><span class="pr-tile-n">@Prov(ShotReviewStatus.NotCaptured)</span><span>not captured <em>@PrUi.Split(counts, ShotReviewStatus.NotCaptured)</em></span></a>
+                <a class="pr-tile pr-tile-owner" href="photoshoot/review?confirmed=1"><span class="pr-tile-n">@(counts?.OwnerConfirmed ?? 0)</span><span>reviewed by Luke so far</span></a>
+            </div>
+            <p>Luke sets each pose's final status: successful, partially successful, unsuccessful or not captured. His decision always replaces the provisional one. Your ratings and suggestions inform him but never change a status on their own.</p>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">5</span>
+        <div>
+            <h2>One original, several tracked versions</h2>
+            <p>Every photo starts as the camera original, stored byte-for-byte as delivered with its metadata. Codex prepares edited versions with conventional, non-generative tools such as crops and masks, keeping the original's colors. Each version is tracked separately and links back to the version it was made from:</p>
+            <div class="pr-lineage" aria-label="How versions relate">
+                <span class="pr-lineage-box pr-lineage-root">Original<small>camera file, never changed</small></span>
+                <span class="pr-lineage-arrow" aria-hidden="true">→</span>
+                <span class="pr-lineage-col">
+                    <span class="pr-lineage-box">Cropped</span>
+                    <span class="pr-lineage-box">Transparent<small>background masked out</small></span>
+                    <span class="pr-lineage-box">White background (cleaned)</span>
+                </span>
+                <span class="pr-lineage-arrow" aria-hidden="true">→</span>
+                <span class="pr-lineage-col">
+                    <span class="pr-lineage-box">Cropped transparent</span>
+                    <span class="pr-lineage-box">Cropped white background</span>
+                </span>
+            </div>
+            <p>
+                <strong>Current status:</strong> @(counts?.VersionsByKind.GetValueOrDefault(ArtifactKind.Original) ?? 0) originals are available.
+                @if (derivatives == 0)
+                {
+                    <span>Edited versions are still in quality review and <strong>not imported yet</strong>; each photo's page says "Not created yet" until they arrive.</span>
+                }
+                else
+                {
+                    <span>@derivatives edited versions have been imported so far.</span>
+                }
+                Each version is labeled non-generative or generative. Sites such as Facebook apply their own AI labels, and this site can't guarantee how they will label a photo.
+            </p>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">6</span>
+        <div>
+            <h2>Who did what</h2>
+            <ul class="pr-walk-list">
+                <li><strong>Luke</strong> planned the shoot, directed on set, and makes every final decision.</li>
+                <li><strong>Codex</strong> reviewed the albums, selected and documented the originals, wrote the capture assessments, and prepares the edited versions.</li>
+                <li><strong>Claude</strong> (Claude Code) built this website: the review, ratings, comments, pose suggestions and second-shoot plan. Photos are stored privately in Azure Blob Storage, and the site deploys from GitHub.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="pr-walk-step">
+        <span class="pr-walk-n">7</span>
+        <div>
+            <h2>How you can help</h2>
+            <ol class="pr-walk-list">
+                <li><button type="button" class="pr-link-btn" @onclick="State.OpenNamePrompt">Enter your name</button>. No password or account.</li>
+                <li>Open any pose, compare the plan with the photos, and <strong>rate each photo 1–10</strong>. You can change your rating any time.</li>
+                <li>Comment or reply, and say if you think a status is wrong.</li>
+                <li><a href="photoshoot/suggestions">Suggest poses</a> for the next shoot. The <a href="photoshoot/second-shoot">second-shoot plan</a> already lists @(counts?.SecondShootItems ?? 0) poses to plan: the missing and partial ones, with their briefs, references and first attempts. It's printable.</li>
+            </ol>
+        </div>
+    </section>
+</article>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        await State.EnsureSummaryAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}

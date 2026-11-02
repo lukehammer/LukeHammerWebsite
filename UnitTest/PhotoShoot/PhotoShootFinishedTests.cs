@@ -56,14 +56,20 @@ public class PhotoShootFinishedTests
         PhotoShootAuthorization.CanHardDelete(PhotoShootAccess.Owner).Should().BeFalse();
         PhotoShootAuthorization.CanHardDelete(PhotoShootAccess.Admin).Should().BeTrue();
         PhotoShootAuthorization.CanUploadPhotos(PhotoShootAccess.Photographer).Should().BeTrue();
-        var admin = PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.AdminPassword, null);
-        admin.Access.Should().Be(PhotoShootAccess.Admin);
+        // The old public "LukeAdmin" password no longer grants anything; admin only comes from the bound Microsoft account.
+        PhotoShootAuthorization.Resolve(null, null, "site", null, null, "LukeAdmin", null).Access.Should().Be(PhotoShootAccess.None);
+        var principal = PhotoShootAuthorization.EncodePrincipal(new SwaClientPrincipal { IdentityProvider = "aad", UserId = "u1", UserDetails = "luke@lukehammermagic.com" });
+        PhotoShootAuthorization.Resolve(principal, null, "site", null, null, microsoftAdmin: true).Access.Should().Be(PhotoShootAccess.Admin);
+        PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null, microsoftAdmin: true, passwordAccess: PhotoShootAccess.Admin)
+            .Access.Should().Be(PhotoShootAccess.Owner, "the password can never reach admin, even if misconfigured");
     }
 
     [Fact]
     public void Owner_CanDoEverythingExceptHardDelete()
     {
-        var owner = PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null);
+        // Owner level from the password now needs the explicit PHOTOSHOOT_LEGACY_PASSWORD=owner setting.
+        PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null).Access.Should().Be(PhotoShootAccess.Photographer);
+        var owner = PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null, passwordAccess: PhotoShootAccess.Owner);
         owner.Access.Should().Be(PhotoShootAccess.Owner);
         PhotoShootAuthorization.CanEdit(owner.Access).Should().BeTrue();
         PhotoShootAuthorization.CanUploadPhotos(owner.Access).Should().BeTrue();

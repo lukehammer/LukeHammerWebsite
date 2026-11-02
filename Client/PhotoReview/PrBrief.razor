@@ -1,0 +1,52 @@
+@* The intended photograph from the plan: brief, expression and pose, then framing and crop. *@
+<div class="pr-brief">
+    @if (PrUi.Has(Brief.Summary))
+    {
+        <p class="pr-brief-summary">@Brief.Summary</p>
+    }
+    <dl class="pr-dl">
+        @Row("Objective", Brief.Objective)
+        @Row("Used for", Brief.MarketingPurpose)
+    </dl>
+    <h3 class="pr-sub">Expression and pose</h3>
+    <dl class="pr-dl">
+        @Row("Face", Brief.FacialExpression)
+        @Row("Body", Brief.BodyPosition)
+        @Row("Hands", Brief.HandPosition)
+        @Row("Eyes", Brief.EyeDirection)
+        @Row("Performer", Brief.PerformerInstructions)
+    </dl>
+    @if (!Compact)
+    {
+        <h3 class="pr-sub">Framing and crop</h3>
+        <dl class="pr-dl">
+            @Row("Framing", Brief.Framing)
+            @Row("Orientation", Brief.Orientation)
+            @Row("Crop", Brief.RecommendedCrop)
+            @Row("Negative space", Brief.NegativeSpace == "None" ? "" : Brief.NegativeSpace)
+            @Row("Photographer", Brief.PhotographerInstructions)
+        </dl>
+        <h3 class="pr-sub">Setup</h3>
+        <dl class="pr-dl">
+            @Row("Setup", Brief.SetupName)
+            @Row("Background", Brief.Background)
+            @Row("Outfit", Brief.Outfit)
+            @Row("Props", string.Join(", ", Brief.Props))
+            @Row("Inspiration", Brief.Inspiration)
+        </dl>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ShotBrief Brief { get; set; } = new();
+    [Parameter] public bool Compact { get; set; }
+
+    private static RenderFragment Row(string label, string? value) => __builder =>
+    {
+        if (PrUi.Has(value))
+        {
+            <dt>@label</dt>
+            <dd>@value</dd>
+        }
+    };
+}

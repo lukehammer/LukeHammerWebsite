@@ -1,0 +1,199 @@
+@page "/photoshoot/second-shoot"
+@implements IDisposable
+@inject PhotoReviewState State
+@inject BlazorApp.Client.PhotoShoot.PhotoShootBrowser Browser
+
+<PageTitle>Lucky Luke Magic · Second photo shoot plan</PageTitle>
+
+@if (plan == null)
+{
+    <div class="ps-panel ps-center" role="status"><div class="spinner-border ps-spinner" aria-hidden="true"></div><p>Building the plan…</p></div>
+}
+else
+{
+    var included = plan.Items.Where(i => !i.Excluded).ToList();
+    <div class="pr-print-page">
+        <header class="pr-hero pr-hero-small">
+            <h1>Second photo shoot plan</h1>
+            <p class="pr-lead">
+                @included.Count shots to plan: missing, partial or unsuccessful shots from the first shoot, plus pose ideas Luke approved.
+                Items marked <em>provisional</em> come from Codex's capture assessment and are waiting for Luke's decision.
+            </p>
+            <div class="pr-print-controls">
+                <button type="button" class="ps-btn ps-btn-primary" @onclick="Browser.PrintAsync"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+                <button type="button" class="ps-btn ps-btn-outline" @onclick="ExportMarkdownAsync"><i class="bi bi-file-text" aria-hidden="true"></i> Export text</button>
+                <button type="button" class="ps-btn ps-btn-outline" @onclick="ExportJsonAsync"><i class="bi bi-filetype-json" aria-hidden="true"></i> Export JSON</button>
+                <label class="ps-toggle"><input type="checkbox" @bind="details" /> Directions and references</label>
+            </div>
+            <p class="pr-small pr-muted pr-print-only">Lucky Luke Magic · generated @PrUi.When(plan.GeneratedUtc) · lukehammer.com/photoshoot/second-shoot</p>
+        </header>
+
+        @foreach (var group in plan.Items.GroupBy(i => i.Excluded ? (QueuePriority)99 : i.Priority).OrderBy(g => g.Key))
+        {
+            <section class="pr-section pr-queue-group">
+                <h2>@((int)group.Key == 99 ? "Left out of the plan (only Luke sees these)" : PhotoReviewLabels.Priority(group.Key) + " priority") <span class="pr-muted">@group.Count()</span></h2>
+                @foreach (var item in group)
+                {
+                    <article class="pr-queue-item @(item.Excluded ? "pr-hidden" : "") @(item.ReasonConfirmed ? "" : "pr-queue-provisional")">
+                        <header class="pr-queue-head">
+                            <h3>
+                                @if (item.ShotNumber > 0)
+                                {
+                                    <a href="@PrUi.ShotLink(item.ShotId)"><span class="pr-num">@PrUi.Number(item.ShotNumber)</span> @item.Title</a>
+                                }
+                                else
+                                {
+                                    <span>@item.Title</span>
+                                }
+                            </h3>
+                            <span class="pr-badge @(item.ReasonConfirmed ? "pr-badge-owner" : "pr-badge-provisional")">@item.Reason</span>
+                            @if (item.Category is ReviewCategory category)
+                            {
+                                <span class="pr-muted pr-small">@PhotoReviewLabels.Category(category)</span>
+                            }
+                        </header>
+                        @if (PrUi.Has(item.ReasonDetail))
+                        {
+                            <p class="pr-small">@item.ReasonDetail</p>
+                        }
+                        @if (PrUi.Has(item.Notes))
+                        {
+                            <p class="pr-note"><strong>Luke's note:</strong> @item.Notes</p>
+                        }
+                        @if (item.Suggestion != null)
+                        {
+                            <p class="pr-small">Suggested by <strong>@item.Suggestion.AuthorName</strong> @item.Suggestion.AuthorTag: @item.Suggestion.Description</p>
+                        }
+                        @if (details)
+                        {
+                            <PrBrief Brief="item.Brief" Compact="true" />
+                            @if (item.References.Count > 0 || item.Examples.Count > 0)
+                            {
+                                <div class="pr-queue-images">
+                                    @foreach (var reference in item.References.Where(r => r.HasImage).Take(3))
+                                    {
+                                        <figure><img src="@State.Api.ReferenceImageUrl(reference)" alt="Reference: @reference.Title" loading="lazy" /><figcaption>Reference</figcaption></figure>
+                                    }
+                                    @foreach (var example in item.Examples.Where(e => e.Thumb.Widths.Count > 0))
+                                    {
+                                        <figure><a href="@PrUi.PhotoLink(example.Id)"><img src="@State.Api.ThumbUrl(example, 480)" alt="@PrUi.Alt(item.Title, 0)" loading="lazy" /></a><figcaption>First-shoot attempt</figcaption></figure>
+                                    }
+                                </div>
+                            }
+                        }
+                        @if (State.IsAdmin)
+                        {
+                            <div class="pr-admin-row pr-no-print">
+                                <select class="form-select ps-input" value="@Edit(item).Priority" @onchange="e => Edit(item).Priority = Enum.Parse<QueuePriority>(e.Value!.ToString()!)" aria-label="Priority">
+                                    @foreach (QueuePriority p in Enum.GetValues(typeof(QueuePriority)))
+                                    {
+                                        <option value="@p">@PhotoReviewLabels.Priority(p)</option>
+                                    }
+                                </select>
+                                <input class="form-control ps-input" placeholder="Note for the shoot" @bind="Edit(item).Notes" aria-label="Note" />
+                                <label class="ps-toggle"><input type="checkbox" @bind="Edit(item).Excluded" /> Leave out</label>
+                                <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy" @onclick="() => SaveAsync(item)">Save</button>
+                            </div>
+                        }
+                    </article>
+                }
+            </section>
+        }
+
+        @if (plan.PendingSuggestions.Count > 0)
+        {
+            <section class="pr-section pr-no-print">
+                <h2>Pose ideas waiting for Luke <span class="pr-muted">@plan.PendingSuggestions.Count</span></h2>
+                <p class="pr-small pr-muted">These aren't in the plan until Luke approves them.</p>
+                <PrSuggestionList Items="plan.PendingSuggestions" ShowShot="true" Changed="ReloadAsync" />
+            </section>
+        }
+        <p class="pr-no-print"><a href="photoshoot/suggestions"><i class="bi bi-lightbulb" aria-hidden="true"></i> Suggest a new pose</a></p>
+    </div>
+}
+
+@code {
+    private SecondShootResponse? plan;
+    private bool details;
+    private bool busy;
+    private readonly Dictionary<string, QueueUpdateRequest> edits = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnChanged;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            plan = await State.Api.SecondShootAsync();
+            State.UseViewer(plan.Viewer);
+            edits.Clear();
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            State.ShowFlash(ex.Message, true);
+        }
+    }
+
+    private QueueUpdateRequest Edit(QueueItemView item)
+    {
+        if (!edits.TryGetValue(item.Key, out var edit))
+        {
+            edit = new QueueUpdateRequest { Priority = item.Priority, Notes = item.Notes, Excluded = item.Excluded };
+            edits[item.Key] = edit;
+        }
+
+        return edit;
+    }
+
+    private async Task SaveAsync(QueueItemView item)
+    {
+        busy = true;
+        var result = await State.RunAsync(() => State.Api.UpdateQueueAsync(item.Key, Edit(item)), "Saved.");
+        busy = false;
+        if (result != null) await ReloadAsync();
+    }
+
+    private async Task ExportMarkdownAsync()
+    {
+        if (plan == null) return;
+        var text = new System.Text.StringBuilder();
+        text.AppendLine("# Lucky Luke Magic: second photo shoot plan");
+        text.AppendLine($"Generated {PrUi.When(plan.GeneratedUtc)}. \"Provisional\" = Codex capture assessment awaiting Luke's decision.");
+        foreach (var group in plan.Items.Where(i => !i.Excluded).GroupBy(i => i.Priority).OrderBy(g => g.Key))
+        {
+            text.AppendLine().AppendLine($"## {PhotoReviewLabels.Priority(group.Key)} priority");
+            foreach (var item in group)
+            {
+                text.AppendLine().AppendLine($"### {(item.ShotNumber > 0 ? PrUi.Number(item.ShotNumber) + " " : "")}{item.Title}");
+                text.AppendLine($"- Why: {item.Reason}{(PrUi.Has(item.ReasonDetail) ? " | " + item.ReasonDetail : "")}");
+                if (PrUi.Has(item.Notes)) text.AppendLine($"- Luke's note: {item.Notes}");
+                void Line(string label, string value) { if (PrUi.Has(value)) text.AppendLine($"- {label}: {value}"); }
+                Line("Brief", item.Brief.Summary);
+                Line("Face", item.Brief.FacialExpression);
+                Line("Body", item.Brief.BodyPosition);
+                Line("Hands", item.Brief.HandPosition);
+                Line("Eyes", item.Brief.EyeDirection);
+                Line("Performer", item.Brief.PerformerInstructions);
+                Line("Props", string.Join(", ", item.Brief.Props));
+                if (item.ShotId.Length > 0) text.AppendLine($"- Page: https://lukehammer.com/{PrUi.ShotLink(item.ShotId)}");
+            }
+        }
+
+        await Browser.DownloadTextAsync("lucky-luke-magic-second-shoot-plan.md", text.ToString(), "text/markdown");
+    }
+
+    private async Task ExportJsonAsync()
+    {
+        if (plan == null) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(plan.Items.Where(i => !i.Excluded), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web) { WriteIndented = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } });
+        await Browser.DownloadTextAsync("lucky-luke-magic-second-shoot-plan.json", json, "application/json");
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => State.Changed -= OnChanged;
+}
