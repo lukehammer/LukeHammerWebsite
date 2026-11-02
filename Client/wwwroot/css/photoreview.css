@@ -258,3 +258,34 @@
     .pr-queue-images img { width: 80px; height: 100px; }
     a { color: inherit !important; text-decoration: none; }
 }
+
+/* photo viewer: version selector, caption, compact version list */
+.pr-photo-big { outline: none; scroll-margin-top: 0.75rem; }
+.pr-photo-big:focus-visible { box-shadow: 0 0 0 3px rgba(131, 27, 63, 0.35); border-radius: 12px; }
+.pr-photo-big img { max-height: 68vh; }
+.pr-version-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.pr-version-tab { border: 1px solid var(--ps-border); background: #fff; border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; min-height: 36px; }
+.pr-version-tab:hover { border-color: var(--ps-burgundy); }
+.pr-version-tab:focus-visible { outline: 3px solid rgba(131, 27, 63, 0.4); outline-offset: 1px; }
+.pr-version-tab-on { background: var(--ps-burgundy); border-color: var(--ps-burgundy); color: #fff; }
+.pr-viewer-caption { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; margin-top: 0.4rem; font-size: 0.88rem; }
+.pr-viewer-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.pr-version-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ps-border); }
+.pr-version-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(130px, 1fr) minmax(200px, 1.4fr) auto; gap: 0.35rem 0.9rem; align-items: center; padding: 0.55rem 0.25rem; border-bottom: 1px solid var(--ps-border); font-size: 0.9rem; }
+.pr-version-row-on { background: #fdf7f9; }
+.pr-version-name { font-weight: 700; }
+.pr-version-meta { color: var(--ps-muted); font-variant-numeric: tabular-nums; }
+.pr-version-actions { display: flex; gap: 0.35rem; justify-content: flex-end; flex-wrap: wrap; }
+.pr-version-details { grid-column: 1 / -1; font-size: 0.85rem; }
+.pr-version-details summary { cursor: pointer; color: var(--ps-burgundy); width: fit-content; }
+.pr-version-details[open] summary { margin-bottom: 0.35rem; }
+.pr-filename { word-break: break-all; font-size: 0.8rem; }
+
+@media (max-width: 860px) {
+    .pr-version-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .pr-version-name { grid-column: 1 / 2; }
+    .pr-version-meta { grid-column: 1 / -1; }
+    .pr-version-actions { grid-column: 2 / 3; grid-row: 1; }
+}
+/* Checkerboard behind transparent versions (needs to beat the viewer's own background shorthand). */
+.pr-photo-big img.pr-checker { background-color: #fff; background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; }
