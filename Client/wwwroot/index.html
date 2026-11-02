@@ -117,8 +117,11 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
             var refreshing = false;
+            // Reload only when a new version replaces a running one. On a first visit the worker takes
+            // control right after install, and reloading then would discard whatever the visitor just did.
+            var hadController = !!navigator.serviceWorker.controller;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
-                if (refreshing) {
+                if (refreshing || !hadController) {
                     return;
                 }
                 refreshing = true;
