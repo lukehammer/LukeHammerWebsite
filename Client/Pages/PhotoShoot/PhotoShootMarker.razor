@@ -12,49 +12,99 @@
     var progress = PhotoShootPlanner.Progress(doc);
     var current = PhotoShootPlanner.FindShot(doc, session.CurrentShotId);
     var setup = current == null ? null : PhotoShootPlanner.FindSetup(doc, current.SetupId);
+    var previous = PhotoShootPlanner.PreviousShot(doc, current?.Id);
+    var upcoming = PhotoShootPlanner.NextShot(doc, current?.Id, session.MustHaveOnly);
+    var upcomingSetup = PhotoShootPlanner.FirstShotOfNextSetup(doc, current?.Id, session.MustHaveOnly);
+    var access = Store.Me?.Access ?? PhotoShootAccess.None;
+    var canPrevious = PhotoShootSessionEngine.IsAllowed(access, SessionAction.Previous, session);
+    var canNext = PhotoShootSessionEngine.IsAllowed(access, SessionAction.Next, session);
+    var canComplete = PhotoShootSessionEngine.IsAllowed(access, SessionAction.CompleteCurrent, session);
+    var canSkip = PhotoShootSessionEngine.IsAllowed(access, SessionAction.SkipCurrent, session);
+    var canNextSetup = PhotoShootSessionEngine.IsAllowed(access, SessionAction.NextSetup, session);
 
-    <section class="ps-marker" aria-live="polite">
-        @if (!session.IsActive)
+    <section class="ps-marker-view">
+        @if (canPrevious)
         {
-            <div class="ps-waiting" role="status"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Waiting for the director to start the session.</div>
+            <button type="button" class="ps-marker-rail ps-marker-rail-prev" aria-label="Previous shot" title="Previous shot" disabled="@(busy || previous == null)" @onclick="() => Do(SessionAction.Previous)">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                <span>Prev</span>
+            </button>
         }
 
-        <div class="ps-marker-card">
-            @if (current == null)
-            {
-                <h1 class="ps-marker-title">@(progress.Total > 0 && progress.Completed == progress.Total ? "Every shot is complete" : "No shot selected")</h1>
-            }
-            else
-            {
-                <div @key="current.Id">
-                    <div class="ps-marker-kicker">
-                        <span>Shot marker</span>
-                        <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
-                        <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
-                    </div>
-                    <h1 class="ps-marker-title">@current.Title</h1>
-                    @if (setup != null)
-                    {
-                        <p class="ps-marker-setup">Setup @setup.Sequence · @setup.Name</p>
-                    }
-                    @if (PsUi.Has(current.Summary))
-                    {
-                        <p class="ps-marker-summary">@current.Summary</p>
-                    }
-                </div>
-            }
+        <div class="ps-marker-center">
+            <div class="ps-marker-top">
+                @if (!session.IsActive)
+                {
+                    <div class="ps-waiting" role="status"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Waiting for the director to start the session.</div>
+                }
 
-            <div class="ps-marker-clock">
-                <div class="ps-marker-date">@now.ToString("dddd, MMMM d, yyyy")</div>
-                <time class="ps-marker-time" datetime="@now.ToString("yyyy-MM-ddTHH:mm:ss")">@now.ToString("h:mm:ss tt")</time>
+                @if (canComplete || canSkip || canNextSetup)
+                {
+                    <div class="ps-marker-actions" role="group" aria-label="Shot actions">
+                        @if (canComplete)
+                        {
+                            <button type="button" class="ps-btn ps-btn-success" disabled="@(busy || current == null)" @onclick="() => Do(SessionAction.CompleteCurrent)"><i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next</button>
+                        }
+                        @if (canSkip)
+                        {
+                            <button type="button" class="ps-btn ps-btn-warning" disabled="@(busy || current == null)" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
+                        }
+                        @if (canNextSetup)
+                        {
+                            <button type="button" class="ps-btn ps-btn-outline" disabled="@(busy || upcomingSetup == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="ps-marker-stage" aria-live="polite">
+                <div class="ps-marker-card">
+                    @if (current == null)
+                    {
+                        <h1 class="ps-marker-title">@(progress.Total > 0 && progress.Completed == progress.Total ? "Every shot is complete" : "No shot selected")</h1>
+                    }
+                    else
+                    {
+                        <div @key="current.Id">
+                            <div class="ps-marker-kicker">
+                                <span>Shot marker</span>
+                                <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
+                                <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                            </div>
+                            <h1 class="ps-marker-title">@current.Title</h1>
+                            @if (setup != null)
+                            {
+                                <p class="ps-marker-setup">Setup @setup.Sequence · @setup.Name</p>
+                            }
+                            @if (PsUi.Has(current.Summary))
+                            {
+                                <p class="ps-marker-summary">@current.Summary</p>
+                            }
+                        </div>
+                    }
+
+                    <div class="ps-marker-clock">
+                        <div class="ps-marker-date">@now.ToString("dddd, MMMM d, yyyy")</div>
+                        <time class="ps-marker-time" datetime="@now.ToString("yyyy-MM-ddTHH:mm:ss")">@now.ToString("h:mm:ss tt")</time>
+                    </div>
+                </div>
             </div>
         </div>
+
+        @if (canNext)
+        {
+            <button type="button" class="ps-marker-rail ps-marker-rail-next" aria-label="Next shot" title="Next shot" disabled="@(busy || upcoming == null)" @onclick="() => Do(SessionAction.Next)">
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                <span>Next</span>
+            </button>
+        }
     </section>
 }
 
 @code {
     private DateTime now = DateTime.Now;
     private Timer? clock;
+    private bool busy;
 
     protected override void OnInitialized()
     {
@@ -70,6 +120,24 @@
         if (firstRender)
         {
             await Browser.KeepAwakeAsync(true);
+        }
+    }
+
+    private async Task Do(SessionAction action)
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await Store.SessionAsync(action);
+        }
+        finally
+        {
+            busy = false;
         }
     }
 
