@@ -1,0 +1,193 @@
+/* Shot marker (live view). The page never scrolls: edge rails run the full height, the
+   primary actions sit at the top of the centre column, and the shot card fills what is left. */
+
+html:has(.ps-marker-view),
+body:has(.ps-marker-view),
+body:has(.ps-marker-view) #app {
+    height: 100%;
+    overflow: hidden;
+}
+
+.ps-root.ps-live:has(.ps-marker-view) {
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+}
+
+.ps-root.ps-live:has(.ps-marker-view) > .ps-live-bar {
+    flex: none;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.ps-root.ps-live:has(.ps-marker-view) > .ps-flash {
+    flex: none;
+    margin: 0.4rem 0.75rem 0;
+}
+
+.ps-root.ps-live:has(.ps-marker-view) > .ps-live-main {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+}
+
+.ps-root .ps-marker-view {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+}
+
+/* ---------- edge rails: giant Previous / Next ---------- */
+
+.ps-root .ps-marker-rail {
+    grid-row: 1;
+    width: clamp(4.5rem, 9vw, 7.5rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0.5rem 0.25rem;
+    border: 0;
+    border-radius: 0;
+    background: #831b3f;
+    color: #fff;
+    font-size: clamp(0.95rem, 1.6vw, 1.25rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ps-root .ps-marker-rail i {
+    font-size: clamp(3.5rem, 11vh, 6.5rem);
+    line-height: 1;
+}
+
+.ps-root .ps-marker-rail:hover:not(:disabled) {
+    background: #9c2a50;
+}
+
+.ps-root .ps-marker-rail:active:not(:disabled) {
+    background: #6b1532;
+}
+
+.ps-root .ps-marker-rail:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.ps-root .ps-marker-rail:focus-visible {
+    outline: 4px solid #ffb703;
+    outline-offset: -8px;
+}
+
+.ps-root .ps-marker-rail-prev {
+    grid-column: 1;
+}
+
+.ps-root .ps-marker-rail-next {
+    grid-column: 3;
+}
+
+/* ---------- centre column ---------- */
+
+.ps-root .ps-marker-center {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.6rem clamp(0.6rem, 1.6vw, 1.25rem) 0.75rem;
+}
+
+.ps-root .ps-marker-top {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ps-root .ps-marker-top .ps-waiting {
+    margin: 0;
+}
+
+.ps-root .ps-marker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ps-root .ps-marker-actions .ps-btn {
+    min-height: 2.75rem;
+    font-size: 1rem;
+}
+
+.ps-root .ps-marker-stage {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ps-root .ps-marker-stage .ps-marker-card {
+    flex: 1 1 0;
+    min-height: 0;
+    gap: 0.9rem;
+    padding: clamp(0.75rem, 2.2vw, 1.75rem);
+    overflow: hidden;
+}
+
+/* Type scales with width and also with height so the whole card fits the viewport, even for the longest shot text. */
+.ps-root .ps-marker-stage .ps-marker-kicker {
+    font-size: min(clamp(1rem, 2.2vw, 1.4rem), 3.2vh);
+}
+
+.ps-root .ps-marker-stage .ps-marker-title {
+    font-size: min(clamp(2.5rem, 6.4vw, 4.6rem), 9vh);
+    line-height: 1.05;
+}
+
+.ps-root .ps-marker-stage .ps-marker-setup {
+    font-size: min(clamp(1.2rem, 2.6vw, 1.75rem), 3.6vh);
+    margin-top: 0.4rem;
+}
+
+.ps-root .ps-marker-stage .ps-marker-summary {
+    font-size: min(clamp(1.25rem, 2.8vw, 1.9rem), 3.6vh);
+    line-height: 1.25;
+    margin-top: 0.5rem;
+}
+
+.ps-root .ps-marker-stage .ps-marker-clock {
+    padding-top: 0.6rem;
+}
+
+.ps-root .ps-marker-stage .ps-marker-date {
+    font-size: min(clamp(1.15rem, 2.5vw, 1.7rem), 3.2vh);
+}
+
+.ps-root .ps-marker-stage .ps-marker-time {
+    font-size: min(clamp(3rem, 9vw, 5.6rem), 10vh);
+    line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ps-root .ps-marker-rail {
+        transition: none;
+    }
+}
