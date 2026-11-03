@@ -1,8 +1,10 @@
 @page "/photoshoot/review/shot/{ShotId}"
 @using BlazorApp.Client.PhotoShoot
 @implements IDisposable
+@implements IAsyncDisposable
 @inject PhotoReviewState State
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>@(detail == null ? "Lucky Luke Magic · Photo review" : $"{PrUi.Number(detail.Shot.Number)} {detail.Shot.Title} · Lucky Luke Magic photo review")</PageTitle>
 
@@ -27,7 +29,7 @@ else
     var shotBack = PrUi.ReviewReturnPath(Back);
     var backHref = shotBack ?? PrUi.ReviewCategoryPath(shot.Category);
 
-    <div class="pr-shot-workspace">
+    <div class="pr-shot-workspace" @ref="workspace">
         @* Right panel (first in the markup, so phones show the photo before the words). Starts high on laptops and tablets. *@
         <section class="pr-shot-stage" aria-labelledby="pr-captured-title">
             <div class="pr-stage-bar">
@@ -150,6 +152,48 @@ else
                     </a>
                 }
             </nav>
+            @if (State.IsAdmin)
+            {
+                @* Top of the left column so the verdict buttons stay in the same place from shot to shot. One click
+                   saves and moves on; the note and the reset are tucked away so nothing extra is needed. *@
+                <section class="pr-quick-status" aria-labelledby="pr-quick-status-title">
+                    <h2 id="pr-quick-status-title" class="pr-quick-title">Your verdict <span class="pr-small pr-muted">(only you can set this)</span></h2>
+                    <div class="pr-quick-grid">
+                        <button type="button" class="ps-btn ps-btn-primary pr-quick-btn pr-quick-wide" disabled="@busy" @onclick="() => QuickStatusAsync(ShotReviewStatus.Successful)">Successful &amp; next</button>
+                        <button type="button" class="ps-btn ps-btn-outline pr-quick-btn" disabled="@busy" @onclick="() => QuickStatusAsync(ShotReviewStatus.PartiallySuccessful)">Partially successful &amp; next</button>
+                        <button type="button" class="ps-btn ps-btn-outline pr-quick-btn" disabled="@busy" @onclick="() => QuickStatusAsync(ShotReviewStatus.Unsuccessful)">Unsuccessful &amp; next</button>
+                        <button type="button" class="ps-btn ps-btn-outline pr-quick-btn" disabled="@busy" @onclick="() => QuickStatusAsync(ShotReviewStatus.NotCaptured)">Not captured &amp; next</button>
+                        @if (PrUi.Has(detail.NextShotId))
+                        {
+                            <button type="button" class="ps-btn ps-btn-ghost pr-quick-btn" disabled="@busy" @onclick="SkipAsync">Skip for now</button>
+                        }
+                        else
+                        {
+                            <a class="ps-btn ps-btn-ghost pr-quick-btn" href="photoshoot/review">Back to review</a>
+                        }
+                    </div>
+                    @if (busy)
+                    {
+                        <p class="pr-small pr-muted" role="status">Saving…</p>
+                    }
+                    @if (!PrUi.Has(detail.NextShotId))
+                    {
+                        <p class="pr-small pr-quick-end" role="status"><strong>Review finished.</strong> This is the last planned shot.</p>
+                    }
+                    @if (PrUi.Has(saveError))
+                    {
+                        <p class="pr-quick-error" role="alert">@saveError</p>
+                    }
+                    <details class="pr-quick-more pr-small">
+                        <summary>Add note</summary>
+                        <input class="form-control ps-input" placeholder="Note (optional)" @bind="ownerNote" aria-label="Status note" />
+                    </details>
+                    <details class="pr-quick-more pr-small">
+                        <summary>More options</summary>
+                        <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => QuickStatusAsync(ShotReviewStatus.NeedsReview, advance: false)">Mark as needs review (stay here)</button>
+                    </details>
+                </section>
+            }
             <header class="pr-shot-header">
                 <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
                 <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
@@ -168,22 +212,6 @@ else
                         @shot.SuggestionReason
                         @(shot.StatusConfirmed ? " Luke has since set the status above." : " Luke makes the final decision.")
                     </p>
-                }
-                @if (State.IsAdmin)
-                {
-                    <div class="pr-admin-box">
-                        <label class="pr-label" for="pr-status">Set the shot's status (only you can)</label>
-                        <div class="pr-admin-row">
-                            <select id="pr-status" class="form-select ps-input" @bind="ownerStatus">
-                                @foreach (var option in PhotoReviewLabels.Statuses)
-                                {
-                                    <option value="@option">@PhotoReviewLabels.Status(option)</option>
-                                }
-                            </select>
-                            <input class="form-control ps-input" placeholder="Note (optional)" @bind="ownerNote" aria-label="Status note" />
-                            <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy" @onclick="SaveStatusAsync">Save status</button>
-                        </div>
-                    </div>
                 }
             </header>
 
@@ -285,13 +313,16 @@ else
     private string error = "";
     private string loadedId = "";
     private bool busy;
-    private ShotReviewStatus ownerStatus;
     private string ownerNote = "";
+    private string saveError = "";
     private string selectedPhotoId = "";
     /// <summary>The version kind shown for the selected capture. Kept when the next capture has that kind too, otherwise the original.</summary>
     private ArtifactKind? selectedKind;
     private string? lightboxSrc;
     private string lightboxAlt = "";
+    private ElementReference workspace;
+    private IJSObjectReference? fitModule;
+    private bool fitted;
 
     protected override void OnInitialized() => State.Changed += OnChanged;
 
@@ -300,11 +331,22 @@ else
         if (loadedId != ShotId)
         {
             detail = null;
+            fitted = false;
             loadedId = ShotId;
             selectedPhotoId = "";
             selectedKind = null;
+            saveError = "";
             await ReloadAsync();
         }
+    }
+
+    /// <summary>Once the workspace is on screen, size it to the space under the page chrome and keep it sized.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (detail == null || fitted) return;
+        fitted = true;
+        fitModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/review-fit.js");
+        await fitModule.InvokeVoidAsync("watch", workspace);
     }
 
     private PhotoDetail? SelectedPhoto => detail == null || detail.Photos.Count == 0 ? null : detail.Photos[SelectedPhotoIndex()];
@@ -386,7 +428,6 @@ else
                 selectedPhotoId = detail.Photos.FirstOrDefault()?.Summary.Id ?? "";
             }
             State.UseViewer(detail.Viewer);
-            ownerStatus = detail.Shot.Status;
             ownerNote = detail.Shot.OwnerNote;
         }
         catch (PhotoReviewApiException ex)
@@ -395,19 +436,59 @@ else
         }
     }
 
-    private async Task SaveStatusAsync()
+    /// <summary>
+    /// Saves Luke's verdict once. Only a successful save on a normal status button moves to the next planned shot;
+    /// a failed save stays on this shot with a message, so nothing advances silently.
+    /// </summary>
+    private async Task QuickStatusAsync(ShotReviewStatus status, bool advance = true)
     {
+        if (busy || detail == null) return;
         busy = true;
-        var result = await State.RunAsync(() => State.Api.SetStatusAsync(ShotId, ownerStatus, ownerNote), "Status saved.");
+        saveError = "";
+        var result = await State.RunAsync(() => State.Api.SetStatusAsync(ShotId, status, ownerNote), "Status saved.");
         busy = false;
-        if (result != null)
+        if (result == null)
         {
+            // The server may have saved before the response was lost, so say the save is unconfirmed rather than undone.
+            saveError = "Could not confirm the save. You are still on this shot. Check the connection, then press the button again.";
             await ReloadAsync();
-            await State.EnsureSummaryAsync(force: true);
+            return;
         }
+
+        await State.EnsureSummaryAsync(force: true);
+        if (advance && PrUi.Has(detail.NextShotId))
+        {
+            Nav.NavigateTo(PrUi.ShotLink(detail.NextShotId));
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    private void SkipAsync()
+    {
+        if (busy || detail == null || !PrUi.Has(detail.NextShotId)) return;
+        Nav.NavigateTo(PrUi.ShotLink(detail.NextShotId));
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
     public void Dispose() => State.Changed -= OnChanged;
+
+    public async ValueTask DisposeAsync()
+    {
+        State.Changed -= OnChanged;
+        if (fitModule != null)
+        {
+            try
+            {
+                await fitModule.InvokeVoidAsync("unwatch");
+                await fitModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The page went away first; nothing left to clean up.
+            }
+        }
+    }
 }

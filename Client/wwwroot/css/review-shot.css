@@ -3,7 +3,6 @@
 
 /* Two panels: words and controls on the left, the captured photo on the right. */
 .pr-shot-workspace {
-    --pr-shot-chrome: 8rem; /* sub-nav + identity bar above the workspace, plus a little room (laptop/tablet) */
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -81,8 +80,8 @@
 /* The photo itself: the frame takes the leftover height, and the image is scaled to fit inside it whole. */
 .pr-stage-frame {
     position: relative;
-    flex: 1 1 auto;
-    min-height: 14rem;
+    flex: 1 1 0;
+    min-height: 0;
     margin: 0;
     border-radius: 10px;
     background: #f3f1f2;
@@ -176,22 +175,25 @@
     font-size: 2rem;
 }
 
-/* Row of every version of the selected capture, under the photo. Fixed height so the photo above keeps its room. */
+/* One compact row under the photo: a label column on the left, then all six versions side by side. */
 .pr-stage-versions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 0 0 auto;
-    margin-top: 0.45rem;
+    margin-top: 0.3rem;
 }
 
 .pr-stage-subhead {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.1rem 0.6rem;
+    flex: 0 0 5.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
 }
 
 .pr-stage-sub {
-    margin: 0 0 0.25rem !important;
+    margin: 0 !important;
     font-size: 0.75rem !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -206,19 +208,20 @@
 
 .pr-version-strip {
     display: flex;
-    gap: 0.35rem;
-    overflow-x: auto;
-    padding: 0.1rem 0.1rem 0.25rem;
+    flex: 1 1 auto;
+    gap: 0.3rem;
+    min-width: 0;
 }
 
 .pr-version-thumb {
     display: flex;
-    flex: 0 0 auto;
+    flex: 1 1 0;
     flex-direction: column;
     align-items: center;
-    gap: 0.15rem;
-    width: 5rem;
-    padding: 0.2rem;
+    gap: 0.1rem;
+    min-width: 0;
+    max-width: 6.5rem;
+    padding: 0.15rem;
     border: 1px solid var(--ps-border);
     border-radius: 8px;
     background: #fff;
@@ -248,7 +251,7 @@
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 2.7rem;
+    height: 2.3rem;
 }
 
 .pr-version-thumb-img img {
@@ -261,38 +264,48 @@
 
 .pr-version-thumb-label {
     max-width: 100%;
-    overflow-wrap: anywhere;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     text-align: center;
 }
 
-/* Pose references: its own smaller row, below the versions. */
+/* Pose references: its own tiny row under the versions. Every reference is shown, none scrolls away. */
 .pr-stage-poseref {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 0 0 auto;
-    margin-top: 0.45rem;
+    margin-top: 0.3rem;
 }
 
-/* Reference strip under the photo: small thumbnails, aspect ratio kept, click to enlarge. */
+.pr-stage-poseref .pr-stage-subhead {
+    flex: 0 0 5.5rem;
+}
+
 .pr-stage-refs {
     display: flex;
-    flex: 0 0 auto;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0;
+    flex: 1 1 auto;
+    gap: 0.3rem;
+    min-width: 0;
 }
 
 .pr-stage-ref {
     display: flex;
+    flex: 1 1 0;
     flex-direction: column;
     align-items: center;
     gap: 0.1rem;
-    max-width: 8rem;
+    max-width: 7rem;
     min-width: 0;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
 }
 
 .pr-stage-ref-button {
-    display: block;
-    height: 2.6rem;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 2.5rem;
     padding: 0;
     border: 1px solid var(--ps-border);
     border-radius: 6px;
@@ -305,7 +318,7 @@
     display: block;
     height: 100%;
     width: auto;
-    max-width: 5.5rem;
+    max-width: 100%;
     object-fit: contain;
 }
 
@@ -319,7 +332,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    height: 2.6rem;
+    height: 2.5rem;
     padding: 0 0.5rem;
     border-radius: 6px;
     background: #fff;
@@ -426,32 +439,30 @@
         max-width: none;
     }
 
+    /* --pr-workspace-h is the space left under the page chrome, measured by review-fit.js. The fallback only applies
+       before that script has run. */
     .pr-shot-workspace {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        grid-template-rows: minmax(0, 1fr);
         gap: 0 1.25rem;
-        align-items: start;
+        align-items: stretch;
+        height: var(--pr-workspace-h, calc(100dvh - 8rem));
     }
 
     .pr-shot-stage {
         grid-column: 2;
         grid-row: 1;
-        position: sticky;
-        top: 0.5rem;
         display: flex;
         flex-direction: column;
-        height: calc(100vh - var(--pr-shot-chrome));
-        height: calc(100dvh - var(--pr-shot-chrome));
-        min-height: 16rem;
+        min-height: 0;
+        min-width: 0;
     }
 
     .pr-shot-info {
         grid-column: 1;
         grid-row: 1;
-        position: sticky;
-        top: 0.5rem;
-        max-height: calc(100vh - var(--pr-shot-chrome));
-        max-height: calc(100dvh - var(--pr-shot-chrome));
+        min-height: 0;
         overflow-y: auto;
         overscroll-behavior: contain;
         padding-right: 0.25rem;
@@ -469,6 +480,28 @@
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+    }
+
+    .pr-stage-versions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.2rem;
+    }
+
+    .pr-stage-subhead {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .pr-stage-poseref {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.2rem;
+    }
+
+    .pr-stage-poseref .pr-stage-subhead {
+        flex: 0 0 auto;
     }
 
     .pr-stage-bar {
@@ -519,5 +552,89 @@
 
     .pr-stage-ref {
         max-width: 6.5rem;
+    }
+}
+
+/* Saved and error notices on this page float at the bottom of the words column, so they never push the photo or the
+   reference strip down. Dismiss still works. */
+body:has(.pr-shot-workspace) .pr-flash {
+    position: fixed;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    top: auto;
+    z-index: 30;
+    max-width: min(24rem, 42vw);
+    margin: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 860px) {
+    body:has(.pr-shot-workspace) .pr-flash {
+        max-width: calc(100vw - 1.5rem);
+    }
+}
+
+/* Admin verdict buttons at the top of the left column. Big targets, same place on every shot. */
+.pr-quick-status {
+    margin-bottom: 0.6rem;
+    padding: 0.5rem 0.6rem 0.6rem;
+    border: 1px solid #d9d2c3;
+    border-radius: 0.5rem;
+    background: #fffdf8;
+}
+
+.pr-quick-title {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+}
+
+.pr-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.pr-quick-btn {
+    min-height: 2.75rem;
+    font-weight: 600;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+.pr-quick-wide {
+    grid-column: 1 / -1;
+    min-height: 3.25rem;
+    font-size: 1.05rem;
+}
+
+.pr-quick-error {
+    margin: 0.4rem 0 0;
+    color: #a12a1f;
+    font-weight: 600;
+}
+
+.pr-quick-end {
+    margin: 0.4rem 0 0;
+}
+
+.pr-quick-more {
+    margin-top: 0.4rem;
+}
+
+.pr-quick-more summary {
+    cursor: pointer;
+}
+
+.pr-quick-more[open] .ps-input {
+    margin-top: 0.3rem;
+}
+
+@media (max-width: 480px) {
+    .pr-quick-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pr-quick-wide {
+        grid-column: auto;
     }
 }
