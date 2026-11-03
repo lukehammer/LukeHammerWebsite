@@ -830,3 +830,37 @@ body:has(.pr-shot-workspace) .pr-flash {
     align-self: stretch;
     min-height: 0;
 }
+
+/* Comparison: photo and references sit side by side in one row, and wrap to a new row only when space runs out. */
+.pr-stage-compare {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    justify-content: flex-start;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+}
+
+/* Comparison fills the box: the photo and each reference share the width equally and grow to the full height. */
+.pr-stage-compare {
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.6rem;
+}
+.pr-stage-compare .pr-compare-item {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+}
+.pr-stage-compare .pr-compare-item img.pr-compare-img {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 0;
+    min-height: 0;
+    object-fit: contain;
+}
+.pr-stage-compare .pr-compare-item figcaption {
+    flex: 0 0 auto;
+}
