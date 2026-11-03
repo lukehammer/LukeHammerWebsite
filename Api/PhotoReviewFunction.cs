@@ -52,6 +52,34 @@ namespace ApiIsolated
                 return read == null ? await NoShoot(req) : await Json(req, HttpStatusCode.OK, read.Projection.Summary());
             });
 
+        /// <summary>Public photo library page: server-rendered HTML with every accepted photo and its download links.</summary>
+        [Function("PhotoLibraryPage")]
+        public Task<HttpResponseData> LibraryPage([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/library")] HttpRequestData req) =>
+            Safe(req, async () =>
+            {
+                var read = await ReadAsync(req);
+                if (read == null) return await NoShoot(req);
+                var items = PhotoLibrary.Build(read.Projection, read.Projection.Summary(), ApiBase(req));
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                response.Headers.Add("Content-Type", "text/html; charset=utf-8");
+                response.Headers.Add("Cache-Control", "public, max-age=300");
+                response.Headers.Add("X-Content-Type-Options", "nosniff");
+                await response.WriteStringAsync(PhotoLibrary.Html(items, req.Url.GetLeftPart(UriPartial.Path)));
+                return response;
+            });
+
+        /// <summary>The same photo library as JSON, for moving the files into another system.</summary>
+        [Function("PhotoLibraryManifest")]
+        public Task<HttpResponseData> LibraryManifest([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/library/manifest")] HttpRequestData req) =>
+            Safe(req, async () =>
+            {
+                var read = await ReadAsync(req);
+                if (read == null) return await NoShoot(req);
+                return await Json(req, HttpStatusCode.OK, PhotoLibrary.Build(read.Projection, read.Projection.Summary(), ApiBase(req)));
+            });
+
+        private static string ApiBase(HttpRequestData req) => req.Url.GetLeftPart(UriPartial.Authority) + "/api/photoreview";
+
         [Function("PhotoReviewShot")]
         public Task<HttpResponseData> Shot([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/shots/{shotId}")] HttpRequestData req, string shotId) =>
             Safe(req, async () =>
