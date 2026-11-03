@@ -6,19 +6,19 @@
 {
     <div class="ps-browse">
         <div class="ps-browse-row" role="group" aria-label="Browse the shoot">
-            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="() => Go(0)">First</button>
+            <button type="button" class="ps-btn ps-browse-back ps-browse-end" disabled="@(index <= 0)" @onclick="() => Go(0)" aria-label="First shot" title="First shot"><i class="bi bi-chevron-double-left" aria-hidden="true"></i> First</button>
             @if (ShowStepButtons)
             {
-                <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="Previous">Previous</button>
+                <button type="button" class="ps-btn ps-browse-back" disabled="@(index <= 0)" @onclick="Previous"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous</button>
             }
             <button type="button" class="ps-browse-count" aria-expanded="@open" @onclick="() => open = !open">
                 Photo @(index + 1) of @ordered.Count <span aria-hidden="true">▼</span>
             </button>
             @if (ShowStepButtons)
             {
-                <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="Next">Next</button>
+                <button type="button" class="ps-btn ps-browse-forward" disabled="@(index >= ordered.Count - 1)" @onclick="Next">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
             }
-            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="() => Go(ordered.Count - 1)">Last</button>
+            <button type="button" class="ps-btn ps-browse-forward ps-browse-end" disabled="@(index >= ordered.Count - 1)" @onclick="() => Go(ordered.Count - 1)" aria-label="Last shot" title="Last shot">Last <i class="bi bi-chevron-double-right" aria-hidden="true"></i></button>
         </div>
         @if (open)
         {

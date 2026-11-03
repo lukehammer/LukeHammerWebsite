@@ -1,0 +1,27 @@
+@inject PhotoShootStore Store
+
+@* Always one of two buttons: Sign out when someone is signed in (shoot password or Microsoft), otherwise Log in. *@
+@if (Store.UsesPassword)
+{
+    <button type="button" class="ps-btn ps-btn-outline ps-btn-sm ps-session-btn" @onclick="() => Store.SignOutPasswordAsync()"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out</button>
+}
+else if (IsSignedIn)
+{
+    <a class="ps-btn ps-btn-outline ps-btn-sm ps-session-btn" href="/.auth/logout?post_logout_redirect_uri=/photoshoot"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out</a>
+}
+else
+{
+    <a class="ps-btn ps-btn-teal ps-btn-sm ps-session-btn" href="/.auth/login/aad?post_login_redirect_uri=/photoshoot"><i class="bi bi-microsoft" aria-hidden="true"></i> Log in</a>
+}
+
+@implements IDisposable
+
+@code {
+    private bool IsSignedIn => Store.Me is { Access: not PhotoShootAccess.None };
+
+    protected override void OnInitialized() => Store.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Store.Changed -= OnChanged;
+}

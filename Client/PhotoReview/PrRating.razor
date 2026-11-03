@@ -76,9 +76,18 @@
 
     private async Task ClearAsync()
     {
+        if (Photo.MyRating is not int mine) return;
         busy = true;
+        var previous = (Photo.MyRating, Photo.Average, Photo.RatingCount);
+        // Optimistic update: the dropdown goes back to "Please rate" at once; the server total replaces it after reload.
+        var count = Photo.RatingCount - 1;
+        var sum = Photo.Average * Photo.RatingCount - mine;
+        Photo.MyRating = null;
+        Photo.RatingCount = count;
+        Photo.Average = count == 0 ? 0 : Math.Round(sum / count, 2);
         var result = await State.RunAsync(() => State.Api.ClearRatingAsync(Photo.Id));
+        if (result == null) (Photo.MyRating, Photo.Average, Photo.RatingCount) = previous;
         busy = false;
-        if (result != null) await Changed.InvokeAsync();
+        await Changed.InvokeAsync();
     }
 }

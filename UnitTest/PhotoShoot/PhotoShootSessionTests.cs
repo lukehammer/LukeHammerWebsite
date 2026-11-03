@@ -176,7 +176,7 @@ public class PhotoShootSessionTests
     }
 
     [Fact]
-    public void Photographer_CanCompleteAndRequestNext_ButNotSkipOrSelect()
+    public void Photographer_CanCompleteAndRequestNext_ButNotSkip()
     {
         var doc = TwoSetups();
         Run(doc, SessionAction.Start);
@@ -186,8 +186,9 @@ public class PhotoShootSessionTests
         doc.Session.NextRequestedBy.Should().Be("Photographer");
 
         Run(doc, SessionAction.SkipCurrent, access: PhotoShootAccess.Photographer).ErrorStatus.Should().Be(403);
-        Run(doc, SessionAction.SetCurrent, Shot(doc, "b1").Id, PhotoShootAccess.Photographer).ErrorStatus.Should().Be(403);
-        Run(doc, SessionAction.Next, access: PhotoShootAccess.Photographer).ErrorStatus.Should().Be(403);
+        Run(doc, SessionAction.SetCurrent, Shot(doc, "a1").Id, PhotoShootAccess.Photographer).ErrorStatus.Should().NotBe(403, "the photographer can select any shot");
+        Run(doc, SessionAction.Next, access: PhotoShootAccess.Photographer).ErrorStatus.Should().NotBe(403, "the photographer can always move Next");
+        Run(doc, SessionAction.Previous, access: PhotoShootAccess.Photographer).ErrorStatus.Should().NotBe(403, "the photographer can always move Previous");
 
         Run(doc, SessionAction.CompleteCurrent, access: PhotoShootAccess.Photographer).Ok.Should().BeTrue();
         Shot(doc, "a1").Status.Should().Be(ShotStatus.Completed);
@@ -195,15 +196,14 @@ public class PhotoShootSessionTests
     }
 
     [Fact]
-    public void Photographer_CanAdvanceOnlyWhenDirectorAllows()
+    public void Photographer_CanAlwaysAdvance_ButCannotChangeTheDirectorSetting()
     {
         var doc = TwoSetups();
         Run(doc, SessionAction.Start);
-        Run(doc, SessionAction.Next, access: PhotoShootAccess.Photographer).Ok.Should().BeFalse();
-
-        Run(doc, SessionAction.SetPhotographerCanAdvance, flag: true);
         Run(doc, SessionAction.Next, access: PhotoShootAccess.Photographer).Ok.Should().BeTrue();
         Current(doc).Title.Should().Be("a2");
+        Run(doc, SessionAction.Previous, access: PhotoShootAccess.Photographer).Ok.Should().BeTrue();
+        Current(doc).Title.Should().Be("a1");
         Run(doc, SessionAction.SetPhotographerCanAdvance, flag: true, access: PhotoShootAccess.Photographer).ErrorStatus.Should().Be(403);
     }
 

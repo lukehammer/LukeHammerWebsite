@@ -8,7 +8,7 @@
 
 @if (Store.Shoot is { } doc)
 {
-    @if (!Store.IsOwner)
+    @if (!Store.CanRead)
     {
         <div class="ps-panel ps-gate">
             <p>The director view is for the shoot owner. Use the photographer view instead.</p>
@@ -26,6 +26,8 @@
         var upcoming = PhotoShootPlanner.Upcoming(doc, live?.Id, 5, session.MustHaveOnly);
         var skipped = PhotoShootPlanner.OrderedShots(doc).Where(s => s.Status == ShotStatus.Skipped).ToList();
         var nextSetupShot = PhotoShootPlanner.FirstShotOfNextSetup(doc, live?.Id, session.MustHaveOnly);
+        var previousShot = PhotoShootPlanner.PreviousShot(doc, live?.Id);
+        var nextShot = PhotoShootPlanner.NextShot(doc, live?.Id, session.MustHaveOnly);
         var referenceImages = current == null
             ? new List<PhotoReference>()
             : PhotoShootEditor.ReferencesForShot(doc, current.Id).Where(r => r.HasImage).ToList();
@@ -116,6 +118,8 @@
             }
             else
             {
+                <button type="button" class="ps-dir-rail ps-dir-rail-prev ps-browse-back" aria-label="Previous shot" title="Previous shot" disabled="@(busy || previousShot == null)" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i><span>Previous</span></button>
+                <button type="button" class="ps-dir-rail ps-dir-rail-next ps-browse-forward" aria-label="Next shot" title="Next shot" disabled="@(busy || nextShot == null)" @onclick="() => Do(SessionAction.Next)"><span>Next</span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
                 <PsBrowseBar Doc="doc" CurrentId="@live?.Id" Navigate="GoTo" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" />
                 <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
                     <div class="ps-dir-head">
