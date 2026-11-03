@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -57,14 +58,12 @@ namespace ApiIsolated
         public Task<HttpResponseData> LibraryPage([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/library")] HttpRequestData req) =>
             Safe(req, async () =>
             {
-                var read = await ReadAsync(req);
-                if (read == null) return await NoShoot(req);
-                var items = PhotoLibrary.Build(read.Projection, read.Projection.Summary(), ApiBase(req));
+                var items = PhotoLibrary.Build(await LibrarySourcesAsync(), PublicApi);
                 var response = req.CreateResponse(HttpStatusCode.OK);
                 response.Headers.Add("Content-Type", "text/html; charset=utf-8");
                 response.Headers.Add("Cache-Control", "public, max-age=300");
                 response.Headers.Add("X-Content-Type-Options", "nosniff");
-                await response.WriteStringAsync(PhotoLibrary.Html(items, req.Url.GetLeftPart(UriPartial.Path)));
+                await response.WriteStringAsync(PhotoLibrary.Html(items, PublicApi + "/library"));
                 return response;
             });
 
@@ -73,12 +72,35 @@ namespace ApiIsolated
         public Task<HttpResponseData> LibraryManifest([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/library/manifest")] HttpRequestData req) =>
             Safe(req, async () =>
             {
-                var read = await ReadAsync(req);
-                if (read == null) return await NoShoot(req);
-                return await Json(req, HttpStatusCode.OK, PhotoLibrary.Build(read.Projection, read.Projection.Summary(), ApiBase(req)));
+                return await Json(req, HttpStatusCode.OK, PhotoLibrary.Build(await LibrarySourcesAsync(), PublicApi));
             });
 
-        private static string ApiBase(HttpRequestData req) => req.Url.GetLeftPart(UriPartial.Authority) + "/api/photoreview";
+        /// <summary>
+        /// The public API base for library links and the canonical page. Built from the public site, not the request host:
+        /// behind the static web app the Functions host itself does not serve these files to visitors.
+        /// </summary>
+        private const string PublicApi = "https://lukehammer.com/api/photoreview";
+
+        /// <summary>Every shoot's review data for the public library. Read without a viewer, so only public photos come through.</summary>
+        private static async Task<List<PhotoLibrary.Source>> LibrarySourcesAsync()
+        {
+            var sources = new List<PhotoLibrary.Source>();
+            foreach (var shootId in await PhotoReviewData.AllShootIdsAsync())
+            {
+                var context = await PhotoReviewData.LoadContextAsync(shootId);
+                if (context == null) continue;
+                var (people, _) = await PhotoReviewData.LoadParticipationAsync(shootId);
+                sources.Add(new PhotoLibrary.Source
+                {
+                    ShootId = shootId,
+                    ShootDate = context.Planner.ShootDate,
+                    CreatedUtc = context.Planner.CreatedUtc,
+                    Projection = new PhotoReviewProjection(context.Planner, context.Catalog, people, new ReviewActor(), new ReviewViewer())
+                });
+            }
+
+            return sources;
+        }
 
         [Function("PhotoReviewShot")]
         public Task<HttpResponseData> Shot([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/shots/{shotId}")] HttpRequestData req, string shotId) =>

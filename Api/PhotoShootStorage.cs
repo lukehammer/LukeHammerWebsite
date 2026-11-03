@@ -115,6 +115,8 @@ namespace ApiIsolated
 
         public static Task<string?> GetETagAsync(string shootId) => Store.GetShootETagAsync(shootId);
 
+        public static Task<IReadOnlyList<string>> ListShootIdsAsync() => Store.ListShootIdsAsync();
+
         public static async Task<List<PhotoShootSummary>> ListAsync()
         {
             var settings = await LoadSettingsAsync();

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -64,6 +65,8 @@ namespace ApiIsolated
         }
 
         public static async Task<string> DefaultShootIdAsync() => (await PhotoShootStorage.LoadSettingsAsync()).DefaultShootId ?? "";
+
+        public static Task<IReadOnlyList<string>> AllShootIdsAsync() => PhotoShootStorage.ListShootIdsAsync();
 
         /// <summary>Planner + catalog, revalidated at most every few seconds per instance.</summary>
         public static async Task<ReviewContext?> LoadContextAsync(string shootId, bool fresh = false)
