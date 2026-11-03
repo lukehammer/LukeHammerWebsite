@@ -864,3 +864,9 @@ body:has(.pr-shot-workspace) .pr-flash {
 .pr-stage-compare .pr-compare-item figcaption {
     flex: 0 0 auto;
 }
+
+/* Acting note directly under the shot title. */
+.pr-acting-under-title {
+    margin: 0.2rem 0 0.5rem;
+    font-size: 0.95rem;
+}

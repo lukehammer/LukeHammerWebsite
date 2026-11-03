@@ -265,6 +265,10 @@ else
             }
             <header class="pr-shot-header">
                 <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
+                @if (PrUi.Has(detail.Brief.PerformerInstructions))
+                {
+                    <p class="pr-acting-under-title"><strong>Acting note:</strong> @detail.Brief.PerformerInstructions</p>
+                }
                 <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
                 <div class="pr-shot-meta">
                     <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" ShowPending="true" />
@@ -305,7 +309,7 @@ else
 
             <section class="pr-shot-block" aria-labelledby="pr-planned-title">
                 <h2 id="pr-planned-title" class="pr-col-title"><i class="bi bi-clipboard" aria-hidden="true"></i> Planned</h2>
-                <PrBrief Brief="detail.Brief" TopOnly="true" />
+                <PrBrief Brief="detail.Brief" TopOnly="true" HideActingNote="true" />
 
                 <section class="pr-section">
                     <h2 id="pr-suggest-title">Suggestions for this shot</h2>

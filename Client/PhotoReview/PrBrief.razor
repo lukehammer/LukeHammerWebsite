@@ -9,7 +9,10 @@
         <dl class="pr-dl">
             @Row("Objective", Brief.Objective)
             @Row("Used for", Brief.MarketingPurpose)
-            @Row("Acting note", Brief.PerformerInstructions)
+            @if (!HideActingNote)
+            {
+                @Row("Acting note", Brief.PerformerInstructions)
+            }
         </dl>
     }
     @if (!TopOnly)
@@ -48,6 +51,8 @@
     [Parameter] public bool Compact { get; set; }
     /// <summary>Only the headline, objective, use and acting note.</summary>
     [Parameter] public bool TopOnly { get; set; }
+    /// <summary>The shot page shows the acting note under the title instead.</summary>
+    [Parameter] public bool HideActingNote { get; set; }
     /// <summary>Only the expression and pose, framing and setup.</summary>
     [Parameter] public bool DetailsOnly { get; set; }
 
