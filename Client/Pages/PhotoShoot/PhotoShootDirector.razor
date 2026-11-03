@@ -31,7 +31,26 @@
             : PhotoShootEditor.ReferencesForShot(doc, current.Id).Where(r => r.HasImage).ToList();
         var hero = current == null ? null : GalleryHero(current.Id, referenceImages);
 
-        <div class="ps-director @(current != null ? "ps-has-action-bar ps-bar-2" : "")">
+        <div class="ps-director">
+            @if (current != null)
+            {
+                <div class="ps-action-bar @(session.IsActive ? "" : "is-waiting")" role="group" aria-label="Shot actions">
+                    @if (!session.IsActive)
+                    {
+                        <button type="button" class="ps-btn ps-btn-primary ps-action-main" disabled="@busy" @onclick="() => Do(SessionAction.Start)">
+                            <i class="bi bi-play-fill" aria-hidden="true"></i> @(session.StartedUtc == null ? "Start session" : "Resume session")
+                        </button>
+                    }
+                    <button type="button" class="ps-btn ps-btn-success ps-action-main" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
+                        <i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next
+                    </button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
+                    <button type="button" class="ps-btn ps-btn-warning ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@(busy || nextSetupShot == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
+                </div>
+            }
+
             <section class="ps-live-progress" aria-label="Progress">
                 <div><strong>@progress.Completed</strong>/@progress.Total done</div>
                 <div class="ps-live-progress-must"><i class="bi bi-star-fill" aria-hidden="true"></i> <strong>@progress.MustHaveCompleted</strong>/@progress.MustHaveTotal must-have</div>
@@ -39,7 +58,7 @@
                 <div class="ps-mini-track" aria-hidden="true"><div class="ps-mini-fill" style="width:@(progress.Percent)%"></div><div class="ps-mini-fill-must" style="width:@(progress.MustHavePercent)%"></div></div>
             </section>
 
-            @if (!session.IsActive)
+            @if (!session.IsActive && current == null)
             {
                 <button type="button" class="ps-btn ps-btn-primary ps-btn-xl ps-block" disabled="@busy" @onclick="() => Do(SessionAction.Start)">
                     <i class="bi bi-play-fill" aria-hidden="true"></i> @(session.StartedUtc == null ? "Start the session" : "Resume the session")
@@ -115,24 +134,26 @@
                         <div class="ps-dir-brief">
                             <PsDirectorBrief Shot="current" Setup="setup" />
                         </div>
-                        @if (hero != null)
-                        {
-                            <div class="ps-brief-gallery">
-                                <img class="ps-brief-hero" src="@Store.Api.ImageUrl(doc.Id, hero)" alt="@hero.Title" />
-                                <div class="ps-brief-thumbs" role="listbox" aria-label="Reference photos">
-                                    @foreach (var reference in referenceImages)
-                                    {
-                                        var referenceId = reference.Id;
-                                        var selected = referenceId == hero.Id;
-                                        <button type="button" role="option" class="ps-brief-thumb @(selected ? "is-selected" : "")" aria-selected="@selected" aria-label="Show @reference.Title" @onclick="() => SelectHero(current.Id, referenceId)">
-                                            <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="" />
-                                        </button>
-                                    }
+                        <div class="ps-dir-side">
+                            @if (hero != null)
+                            {
+                                <div class="ps-brief-gallery">
+                                    <img class="ps-brief-hero" src="@Store.Api.ImageUrl(doc.Id, hero)" alt="@hero.Title" />
+                                    <div class="ps-brief-thumbs" role="listbox" aria-label="Reference photos">
+                                        @foreach (var reference in referenceImages)
+                                        {
+                                            var referenceId = reference.Id;
+                                            var selected = referenceId == hero.Id;
+                                            <button type="button" role="option" class="ps-brief-thumb @(selected ? "is-selected" : "")" aria-selected="@selected" aria-label="Show @reference.Title" @onclick="() => SelectHero(current.Id, referenceId)">
+                                                <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="" />
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
-                            </div>
-                        }
+                            }
+                            <PsReferenceSlots Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
+                        </div>
                     </div>
-                    <PsReferenceSlots Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
                     <details class="ps-live-more">
                         <summary>Photographer side, references &amp; purpose</summary>
                         <dl class="ps-dl ps-dir-photographer">
@@ -154,20 +175,6 @@
                         <a class="ps-small" href="@PsUi.ShotUrl(current)">Open full shot page</a>
                     </details>
                 </section>
-
-                <div class="ps-action-bar" role="group" aria-label="Shot actions">
-                    <div class="ps-action-bar-row">
-                        <button type="button" class="ps-btn ps-btn-success ps-action-main" disabled="@busy" @onclick="() => Do(SessionAction.CompleteCurrent)">
-                            <i class="bi bi-check-lg" aria-hidden="true"></i> Complete &amp; next
-                        </button>
-                    </div>
-                    <div class="ps-action-bar-row ps-action-bar-tiles">
-                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Previous)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Prev</button>
-                        <button type="button" class="ps-btn ps-btn-warning ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.SkipCurrent)"><i class="bi bi-skip-forward" aria-hidden="true"></i> Skip</button>
-                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@busy" @onclick="() => Do(SessionAction.Next)">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-                        <button type="button" class="ps-btn ps-btn-outline ps-action-tile" disabled="@(busy || nextSetupShot == null)" @onclick="() => Do(SessionAction.NextSetup)"><i class="bi bi-lightbulb" aria-hidden="true"></i> Next setup</button>
-                    </div>
-                </div>
             }
 
             <nav class="ps-tabs" role="tablist" aria-label="Director tools">
