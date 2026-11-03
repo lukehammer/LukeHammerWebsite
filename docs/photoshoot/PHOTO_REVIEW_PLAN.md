@@ -35,7 +35,7 @@ private container "photoshoot"
 | --- | --- | --- |
 | Anyone | no credentials | read the review, walkthrough and second-shoot plan; view thumbnails, previews and downloads |
 | Visitor | `POST /visitor` with a display name → server mints an opaque id and a 256-bit secret; cookie stores `id.secret`, server stores SHA-256(secret) | rate 1–10 (one current vote per photo), comment, reply, suggest status or pose changes, edit or withdraw **own** items |
-| Admin | SWA `aad` principal, `userDetails` = luke@lukehammermagic.com, **and** `userId` equal to the bound subject (app setting `PHOTOREVIEW_ADMIN_USER_ID`, else first matching sign-in is recorded in `review/admin-binding.json`) | everything, including authoritative shot status, people removal and restore, queue, suggestion approval |
+| Admin | SWA `aad` principal, `userDetails` = lukeroberthammer@outlook.com (changed from luke@lukehammermagic.com on 2026-11-03), **and** `userId` equal to the bound subject (app setting `PHOTOREVIEW_ADMIN_USER_ID`, else first matching sign-in is recorded in `review/admin-binding.json`) | everything, including authoritative shot status, people removal and restore, queue, suggestion approval |
 
 - Display names are labels only. They are never used for authorization.
 - **CSRF:** every mutating endpoint requires header `X-Photo-Review: 1` and rejects `Sec-Fetch-Site: cross-site`. The cookie is SameSite=Lax. Custom headers force a CORS preflight, which the API does not answer.

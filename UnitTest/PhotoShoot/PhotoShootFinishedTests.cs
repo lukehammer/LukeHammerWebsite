@@ -58,7 +58,7 @@ public class PhotoShootFinishedTests
         PhotoShootAuthorization.CanUploadPhotos(PhotoShootAccess.Photographer).Should().BeTrue();
         // The old public "LukeAdmin" password no longer grants anything; admin only comes from the bound Microsoft account.
         PhotoShootAuthorization.Resolve(null, null, "site", null, null, "LukeAdmin", null).Access.Should().Be(PhotoShootAccess.None);
-        var principal = PhotoShootAuthorization.EncodePrincipal(new SwaClientPrincipal { IdentityProvider = "aad", UserId = "u1", UserDetails = "luke@lukehammermagic.com" });
+        var principal = PhotoShootAuthorization.EncodePrincipal(new SwaClientPrincipal { IdentityProvider = "aad", UserId = "u1", UserDetails = "lukeroberthammer@outlook.com" });
         PhotoShootAuthorization.Resolve(principal, null, "site", null, null, microsoftAdmin: true).Access.Should().Be(PhotoShootAccess.Admin);
         PhotoShootAuthorization.Resolve(null, null, "site", null, null, PhotoShootAuthorization.MasterPassword, null, microsoftAdmin: true, passwordAccess: PhotoShootAccess.Admin)
             .Access.Should().Be(PhotoShootAccess.Owner, "the password can never reach admin, even if misconfigured");

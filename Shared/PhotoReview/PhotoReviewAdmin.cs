@@ -32,7 +32,8 @@ namespace BlazorApp.Shared.PhotoReview
     /// </summary>
     public static class PhotoReviewAdmin
     {
-        public const string AdminEmail = "luke@lukehammermagic.com";
+        /// <summary>The one admin account (Luke's personal Microsoft account). Replaced the business address on 2026-11-03.</summary>
+        public const string AdminEmail = "lukeroberthammer@outlook.com";
         public const string MicrosoftProvider = "aad";
 
         public static AdminCheck Check(SwaClientPrincipal? principal, string? configuredUserId, AdminBinding? stored, string? adminEmail = null)
@@ -51,6 +52,14 @@ namespace BlazorApp.Shared.PhotoReview
             if (!string.Equals((principal.UserDetails ?? "").Trim(), email, StringComparison.OrdinalIgnoreCase))
             {
                 return AdminCheck.NotAdmin;
+            }
+
+            // A stored binding recorded for another account (e.g. the previous admin email) is stale. It never
+            // authorizes anyone and must be backed up and reset deliberately; it is not reused.
+            if (string.IsNullOrWhiteSpace(configuredUserId) && stored != null && !string.IsNullOrWhiteSpace(stored.UserDetails)
+                && !string.Equals(stored.UserDetails.Trim(), email, StringComparison.OrdinalIgnoreCase))
+            {
+                return AdminCheck.SubjectMismatch;
             }
 
             var bound = !string.IsNullOrWhiteSpace(configuredUserId)

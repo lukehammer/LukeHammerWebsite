@@ -26,7 +26,7 @@ Public review of the Lucky Luke Magic studio shoot: every planned shot next to w
 | --- | --- | --- |
 | Anyone | none | Read everything public, view and download photos |
 | Visitor | Display name → server-issued opaque id + 256-bit secret in an HttpOnly cookie (only its hash is stored) | One current 1–10 rating per photo, comments and replies, suggestions; edit or withdraw **own** items only |
-| Luke | Microsoft sign-in as luke@lukehammermagic.com **and** the provider subject bound on first sign-in (or app setting `PHOTOREVIEW_ADMIN_USER_ID`) | Statuses, hide photos, queue edits, approve suggestions, remove/restore people. Planner editing and hard delete |
+| Luke | Microsoft sign-in as lukeroberthammer@outlook.com (the only admin account; the business address luke@lukehammermagic.com is not admin) **and** the provider subject bound on first sign-in (or app setting `PHOTOREVIEW_ADMIN_USER_ID`) | Statuses, hide photos, queue edits, approve suggestions, remove/restore people. Planner editing and hard delete |
 | Planner password (public in the repo) | `X-PhotoShoot-Password` / cookie | **Photographer only**: read the plan, upload finished photos, limited session commands. Never edit, delete, export or moderate |
 
 Writes need header `X-Photo-Review: 1` and are refused when `Sec-Fetch-Site: cross-site`. The visitor cookie is `HttpOnly; Secure; SameSite=Lax; Path=/api/photoreview`. Display names are labels, never identities. Duplicate names show with a short tag (`#3f2a`).

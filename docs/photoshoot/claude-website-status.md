@@ -16,7 +16,13 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
 
 - Phone layout fix (Luke's request, 2026-11-02 ~18:22 PST): the two-column card grid is kept. Status pills ("Successful · provisional, Codex" etc.) were clipped at the card edge; they now wrap inside the card (label and attribution can take separate lines), with nothing hidden or truncated. Evidence tags, badges and hints can also wrap. Checked before merge against production data (GET-only proxy) at 320/360/390/412 px: 2 columns, 0 px horizontal overflow, 0 clipped chips on the review grid (446 chips), Photos view, a partial-status shot page, the second-shoot plan and pose ideas.
 
-## Admin sign-in (fact only; nothing changed by Claude)
+## Admin sign-in
+
+- **Admin account changed (Luke's explicit request, 2026-11-03):** the sole admin is now the Microsoft account **lukeroberthammer@outlook.com** (`PhotoReviewAdmin.AdminEmail`). It replaces the business address rather than adding to it. The business account luke@lukehammermagic.com is now NotAdmin. Still required: provider `aad` plus the bound provider subject.
+- **The existing production binding is stale and is not reused.** `review/admin-binding.json` still records the business account (bound 02:21:29 UTC). With the new code, a binding recorded for a different email never authorizes anyone. The Outlook sign-in gets "not the bound admin account", and the create-only binding can't be overwritten automatically. So nobody is admin until **Codex backs up and resets that blob**; the next matching Outlook sign-in then binds. `PHOTOREVIEW_ADMIN_USER_ID` is **not** configured (the only app settings are the storage connection and `NTFY_TOPIC`).
+- Production admin remains **unverified** until Luke signs in with the Outlook account after the reset.
+
+Earlier record (fact only):
 
 - `review/admin-binding.json` **now exists**, created 2026-11-03 02:21:29 UTC (18:21:29 PST) by the create-only first-sign-in path: provider `aad`, account email `luke@lukehammermagic.com`, 32-character subject starting `072da9…`. That path only runs for a Microsoft principal with exactly that email. No `PHOTOREVIEW_ADMIN_USER_ID` app setting is set. The allowlist was not broadened and nothing was bound by Claude.
 - **Not yet confirmed by Luke** that this was his sign-in, so production admin is still **unverified**. Luke's reported `/.auth/me` → `clientPrincipal: null` is unexplained. One possibility to check, not a conclusion: SWA sign-in cookies are per host, so signing in on `lukehammer.com` and checking `www.lukehammer.com/.auth/me` (or the reverse) shows null.
@@ -63,7 +69,7 @@ They contain real photos, so they are kept out of the repository. At 22:32 UTC t
 
 ## Remaining manual step
 
-- **Luke must sign in once with Microsoft** (https://lukehammer.com/photoshoot/review → "Luke: sign in", account luke@lukehammermagic.com). The first matching sign-in binds the admin subject. Until then **nobody** is admin. The site behaves correctly without it: everything read-only and visitor features work. Admin flows (status setting, People, remove/restore) are verified only locally with a simulated principal, not yet in production. Optional afterwards: pin the bound id as app setting `PHOTOREVIEW_ADMIN_USER_ID`. **As of 22:32 UTC no admin binding exists**, so Luke has not signed in yet, and production admin is **not** verified.
+- **Luke must sign in once with Microsoft** (https://lukehammer.com/photoshoot/review → "Luke: sign in", account **lukeroberthammer@outlook.com**) **after Codex resets the stale business-account binding**. The first matching sign-in binds the admin subject. Until then **nobody** is admin. The site behaves correctly without it: everything read-only and visitor features work. Admin flows (status setting, People, remove/restore) are verified only locally with a simulated principal, not yet in production. Optional afterwards: pin the bound id as app setting `PHOTOREVIEW_ADMIN_USER_ID`. **As of 22:32 UTC no admin binding exists**, so Luke has not signed in yet, and production admin is **not** verified.
 
 ## Next
 
