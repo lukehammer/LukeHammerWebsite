@@ -43,72 +43,74 @@
         {
             <PsBrowseBar Doc="doc" CurrentId="@live?.Id" Navigate="GoTo" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" />
             <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
-                <div class="ps-live-shot-meta">
-                    <span class="ps-seq-big">@PhotoShootPlanner.OrderNumber(doc, current.Id)<span class="ps-muted">/@progress.Total</span></span>
-                    <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
-                    <span class="ps-badge @PsUi.StatusClass(current.Status)"><i class="bi @PsUi.StatusIcon(current.Status)" aria-hidden="true"></i> @PhotoShootLabels.Status(current.Status)</span>
-                    <span class="ps-badge ps-badge-plain"><i class="bi bi-clock" aria-hidden="true"></i> ~@PsUi.Minutes(current.EstimatedMinutes)</span>
-                </div>
-                <h1 class="ps-live-title">@current.Title</h1>
-                @if (setup != null)
-                {
-                    <div class="ps-muted ps-small">Setup @setup.Sequence: @setup.Name</div>
-                }
-
-                <PsReferenceSlots Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
-
-                <div class="ps-photo-key">
-                    <div class="ps-key-card">
-                        <div class="ps-key-label"><i class="bi bi-aspect-ratio" aria-hidden="true"></i> Framing</div>
-                        <div class="ps-key-value">@(PsUi.Has(current.Framing) ? current.Framing : "—") · @PhotoShootLabels.Orientation(current.Orientation)</div>
-                        @if (current.NegativeSpace != NegativeSpaceDirection.None)
-                        {
-                            <div class="ps-key-sub">@PhotoShootLabels.NegativeSpace(current.NegativeSpace)</div>
-                        }
-                        @if (PsUi.Has(current.RecommendedCrop))
-                        {
-                            <div class="ps-key-sub">Crop: @current.RecommendedCrop</div>
-                        }
+                <div class="ps-shot-info">
+                    <div class="ps-live-shot-meta">
+                        <span class="ps-seq-big">@PhotoShootPlanner.OrderNumber(doc, current.Id)<span class="ps-muted">/@progress.Total</span></span>
+                        <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                        <span class="ps-badge @PsUi.StatusClass(current.Status)"><i class="bi @PsUi.StatusIcon(current.Status)" aria-hidden="true"></i> @PhotoShootLabels.Status(current.Status)</span>
+                        <span class="ps-badge ps-badge-plain"><i class="bi bi-clock" aria-hidden="true"></i> ~@PsUi.Minutes(current.EstimatedMinutes)</span>
                     </div>
-                    @if (PsUi.Has(current.PhotographerInstructions))
+                    <h1 class="ps-live-title">@current.Title</h1>
+                    @if (setup != null)
                     {
-                        <div class="ps-key-card ps-key-wide">
-                            <div class="ps-key-label"><i class="bi bi-camera" aria-hidden="true"></i> Direction</div>
-                            <div class="ps-key-value">@current.PhotographerInstructions</div>
-                        </div>
+                        <div class="ps-muted ps-small">Setup @setup.Sequence: @setup.Name</div>
                     }
-                    <div class="ps-key-card">
-                        <div class="ps-key-label"><i class="bi bi-lightbulb" aria-hidden="true"></i> Lighting</div>
-                        <div class="ps-key-value">@(PsUi.Has(current.LightingNotes) ? current.LightingNotes : PsUi.Has(setup?.Lighting) ? setup!.Lighting : "Setup lighting")</div>
-                    </div>
-                    <div class="ps-key-card">
-                        <div class="ps-key-label"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Pose</div>
-                        <div class="ps-key-value">@(PsUi.Has(current.BodyPosition) ? current.BodyPosition : "—")</div>
-                        @if (PsUi.Has(current.HandPosition))
+    
+                    <div class="ps-photo-key">
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-aspect-ratio" aria-hidden="true"></i> Framing</div>
+                            <div class="ps-key-value">@(PsUi.Has(current.Framing) ? current.Framing : "—") · @PhotoShootLabels.Orientation(current.Orientation)</div>
+                            @if (current.NegativeSpace != NegativeSpaceDirection.None)
+                            {
+                                <div class="ps-key-sub">@PhotoShootLabels.NegativeSpace(current.NegativeSpace)</div>
+                            }
+                            @if (PsUi.Has(current.RecommendedCrop))
+                            {
+                                <div class="ps-key-sub">Crop: @current.RecommendedCrop</div>
+                            }
+                        </div>
+                        @if (PsUi.Has(current.PhotographerInstructions))
                         {
-                            <div class="ps-key-sub">Hands: @current.HandPosition</div>
+                            <div class="ps-key-card ps-key-wide">
+                                <div class="ps-key-label"><i class="bi bi-camera" aria-hidden="true"></i> Direction</div>
+                                <div class="ps-key-value">@current.PhotographerInstructions</div>
+                            </div>
                         }
-                    </div>
-                    <div class="ps-key-card">
-                        <div class="ps-key-label"><i class="bi bi-emoji-surprise" aria-hidden="true"></i> Expression</div>
-                        <div class="ps-key-value">@(PsUi.Has(current.FacialExpression) ? current.FacialExpression : "—")</div>
-                        @if (PsUi.Has(current.EyeDirection))
-                        {
-                            <div class="ps-key-sub">Eyes: @current.EyeDirection</div>
-                        }
-                    </div>
-                    <div class="ps-key-card">
-                        <div class="ps-key-label"><i class="bi bi-magic" aria-hidden="true"></i> Equipment / props required</div>
-                        @if (current.Equipment.Count == 0)
-                        {
-                            <div class="ps-key-value">No special props required.</div>
-                        }
-                        else
-                        {
-                            <div class="ps-key-value">@string.Join(" · ", current.Equipment.Select(item => $"{item.Name} × {item.Quantity} · {PhotoShootLabels.Supplier(item.Supplier)}{(item.Optional ? " · optional" : "")}"))</div>
-                        }
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-lightbulb" aria-hidden="true"></i> Lighting</div>
+                            <div class="ps-key-value">@(PsUi.Has(current.LightingNotes) ? current.LightingNotes : PsUi.Has(setup?.Lighting) ? setup!.Lighting : "Setup lighting")</div>
+                        </div>
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Pose</div>
+                            <div class="ps-key-value">@(PsUi.Has(current.BodyPosition) ? current.BodyPosition : "—")</div>
+                            @if (PsUi.Has(current.HandPosition))
+                            {
+                                <div class="ps-key-sub">Hands: @current.HandPosition</div>
+                            }
+                        </div>
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-emoji-surprise" aria-hidden="true"></i> Expression</div>
+                            <div class="ps-key-value">@(PsUi.Has(current.FacialExpression) ? current.FacialExpression : "—")</div>
+                            @if (PsUi.Has(current.EyeDirection))
+                            {
+                                <div class="ps-key-sub">Eyes: @current.EyeDirection</div>
+                            }
+                        </div>
+                        <div class="ps-key-card">
+                            <div class="ps-key-label"><i class="bi bi-magic" aria-hidden="true"></i> Equipment / props required</div>
+                            @if (current.Equipment.Count == 0)
+                            {
+                                <div class="ps-key-value">No special props required.</div>
+                            }
+                            else
+                            {
+                                <div class="ps-key-value">@string.Join(" · ", current.Equipment.Select(item => $"{item.Name} × {item.Quantity} · {PhotoShootLabels.Supplier(item.Supplier)}{(item.Optional ? " · optional" : "")}"))</div>
+                            }
+                        </div>
                     </div>
                 </div>
+
+                <PsReferenceWall Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
             </section>
 
             <div class="ps-action-bar" role="group" aria-label="Shot actions">
@@ -140,12 +142,11 @@
                 }
 
                 <details class="ps-live-more">
-                    <summary>More detail (acting note, references, purpose)</summary>
+                    <summary>More detail (acting note, purpose, camera)</summary>
                     @if (PsUi.Has(current.PerformerInstructions))
                     {
                         <p><strong>Acting note:</strong> @current.PerformerInstructions</p>
                     }
-                    <PsShotReferences Shot="current" ShowSearchPhrases="false" />
                     @if (PsUi.Has(current.MarketingPurpose))
                     {
                         <p class="ps-small"><strong>Use:</strong> @current.MarketingPurpose</p>

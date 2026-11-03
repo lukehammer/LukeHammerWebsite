@@ -1,0 +1,91 @@
+@* Every reference for the shot at once, in a responsive grid. No disclosure to open, so a shot with only additional photos still shows them. *@
+@if (Doc != null && Shot != null)
+{
+    var items = Items();
+    var (cols, rows) = Grid(items.Count);
+    <section class="ps-ref-wall" aria-label="Reference photos (@items.Count)" style="--ps-wall-cols:@cols;--ps-wall-rows:@rows">
+        @if (items.Count == 0)
+        {
+            <div class="ps-ref-placeholder ps-wall-empty">
+                <i class="bi bi-image ps-ref-placeholder-icon" aria-hidden="true"></i>
+                <div class="ps-muted">No reference image yet.</div>
+            </div>
+        }
+        @foreach (var (reference, label) in items)
+        {
+            <figure class="ps-wall-item" title="@PsReferenceDetails.Tooltip(reference)">
+                <div class="ps-wall-media">
+                    @if (reference.HasImage && ImageUrl != null)
+                    {
+                        <button type="button" class="ps-ref-zoom" aria-label="Enlarge reference image: @reference.Title" @onclick="() => OnEnlarge.InvokeAsync(reference)">
+                            <img src="@ImageUrl(reference)" alt="@reference.Title" loading="lazy" />
+                        </button>
+                    }
+                    else if (PhotoShootPlanUpgrade.LooksLikeImageUrl(reference.SourceUrl))
+                    {
+                        <a class="ps-ref-zoom" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">
+                            <img src="@reference.SourceUrl" alt="@reference.Title" loading="lazy" />
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="ps-wall-noimg"><i class="bi bi-image" aria-hidden="true"></i> @reference.Title</div>
+                    }
+                </div>
+                <figcaption class="ps-wall-caption">
+                    <span class="ps-slot-label">@label</span>
+                    @if (PsUi.Has(reference.SourceUrl) && reference.HasImage)
+                    {
+                        <a href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source</a>
+                    }
+                    @if (PsUi.Has(reference.Title) && (reference.HasImage || !PhotoShootPlanUpgrade.LooksLikeImageUrl(reference.SourceUrl)))
+                    {
+                        <span class="ps-wall-title">@reference.Title</span>
+                    }
+                </figcaption>
+            </figure>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public PhotoShootDocument? Doc { get; set; }
+    [Parameter] public PhotoShot? Shot { get; set; }
+    [Parameter] public Func<PhotoReference, string>? ImageUrl { get; set; }
+    [Parameter] public EventCallback<PhotoReference> OnEnlarge { get; set; }
+
+    /// <summary>Required slots first (in slot order), then every additional reference. Nothing is dropped.</summary>
+    private List<(PhotoReference Reference, string Label)> Items()
+    {
+        var slots = PhotoShootReferenceSlots.ForShot(Doc!, Shot!.Id);
+        var items = new List<(PhotoReference, string)>();
+        void Add(PhotoReference? reference, ReferenceSlot slot)
+        {
+            if (reference != null)
+            {
+                items.Add((reference, PhotoShootLabels.Slot(slot)));
+            }
+        }
+
+        Add(slots.AiA, ReferenceSlot.AiA);
+        Add(slots.AiB, ReferenceSlot.AiB);
+        Add(slots.Celebrity, ReferenceSlot.Celebrity);
+        Add(slots.RealWorld, ReferenceSlot.RealWorld);
+        items.AddRange(slots.Additional.Select(reference => (reference, "Additional")));
+        return items;
+    }
+
+    /// <summary>Columns and rows that let every tile fit in the workspace without scrolling.</summary>
+    private static (int Cols, int Rows) Grid(int count) => count switch
+    {
+        <= 1 => (1, 1),
+        2 => (2, 1),
+        3 => (3, 1),
+        4 => (2, 2),
+        <= 6 => (3, 2),
+        <= 8 => (4, 2),
+        9 => (3, 3),
+        <= 12 => (4, 3),
+        _ => (4, (int)Math.Ceiling(count / 4.0))
+    };
+}
