@@ -262,6 +262,20 @@
     background: #fff;
 }
 
+/* Collapsible reference lists: closed by default, opened by the summary button. */
+.pr-refs > summary { cursor: pointer; font-weight: 600; padding: 0.35rem 0; list-style-position: inside; }
+.pr-refs[open] > summary { margin-bottom: 0.35rem; }
+.pr-stage-ref-on .pr-stage-ref-button { outline: 3px solid var(--ps-burgundy); outline-offset: 2px; }
+.pr-stage-ref-enlarge { font-size: 0.8rem; }
+
+/* Side-by-side comparison: every image shares one height so they compare directly. */
+.pr-compare { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.6rem; margin: 0.6rem 0; }
+.pr-compare-item { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; }
+.pr-compare-item img { height: 240px; width: auto; max-width: 100%; object-fit: contain; border: 1px solid var(--ps-border); border-radius: 8px; background: #fff; }
+.pr-compare-item figcaption { display: flex; justify-content: space-between; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--ps-muted); }
+.pr-compare-close { border: 0; background: transparent; padding: 0 0.2rem; color: inherit; cursor: pointer; }
+.pr-compare-clear { align-self: center; }
+
 .pr-version-thumb-label {
     max-width: 100%;
     overflow: hidden;

@@ -118,6 +118,13 @@ namespace BlazorApp.Shared.PhotoReview
         public bool Hidden { get; set; }
     }
 
+    /// <summary>The share link for one version: its path under the review API, or empty when no link is active.</summary>
+    public class ShareLinkResponse
+    {
+        public bool Shared { get; set; }
+        public string Path { get; set; } = "";
+    }
+
     public class VersionView
     {
         public string Id { get; set; } = "";
@@ -132,6 +139,8 @@ namespace BlazorApp.Shared.PhotoReview
         public string ContentType { get; set; } = "";
         public ArtifactProvenance Provenance { get; set; }
         public string ProcessingNotes { get; set; } = "";
+        /// <summary>True when a share link is active for this version. The link itself comes from the share endpoint.</summary>
+        public bool Shared { get; set; }
         public string Tool { get; set; } = "";
         public DateTime? CreatedUtc { get; set; }
         public DateTime ImportedUtc { get; set; }

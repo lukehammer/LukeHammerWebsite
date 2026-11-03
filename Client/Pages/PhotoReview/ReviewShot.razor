@@ -83,6 +83,28 @@ else
                     }
                 </figure>
 
+                @if (compareRefIds.Count > 0)
+                {
+                    <div class="pr-compare" role="group" aria-label="Side by side comparison">
+                        <figure class="pr-compare-item">
+                            <img src="@VersionThumb(selectedPhoto!, shownVersion, 640)" alt="@selectedAlt" class="@(IsTransparent(shownVersion.Kind) ? "pr-checker" : "")" />
+                            <figcaption>Photo · @ShortKind(shownVersion.Kind)</figcaption>
+                        </figure>
+                        @foreach (var reference in detail.References.Where(r => compareRefIds.Contains(r.Id)))
+                        {
+                            var compareLabel = PrUi.Has(reference.Slot) ? reference.Slot : "Reference";
+                            <figure class="pr-compare-item">
+                                <img src="@State.Api.ReferenceImageUrl(reference)" alt="@($"Reference: {reference.Title}")" />
+                                <figcaption>
+                                    <span>@compareLabel</span>
+                                    <button type="button" class="pr-compare-close" aria-label="Remove @compareLabel from comparison" title="Remove from comparison" @onclick="() => ToggleCompare(reference.Id)"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+                                </figcaption>
+                            </figure>
+                        }
+                        <button type="button" class="pr-link-btn pr-compare-clear" @onclick="ClearCompare">Clear all</button>
+                    </div>
+                }
+
                 @* Every version of this capture, as thumbnails. Clicking one shows it in the photo; it never changes the shot or the capture. *@
                 <section class="pr-stage-versions" aria-labelledby="pr-versions-row-title">
                     <div class="pr-stage-subhead">
@@ -102,24 +124,47 @@ else
                         }
                     </div>
                 </section>
+
+                <div class="pr-version-actions">
+                    <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(selectedPhoto!.Summary.Id, shownVersion.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download @ShortKind(shownVersion.Kind).ToLowerInvariant() (@PrUi.Bytes(shownVersion.Bytes))</a>
+                    @if (State.IsAdmin)
+                    {
+                        @if (shownVersion.Shared)
+                        {
+                            <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => ShareAsync(revoke: false, copy: true)"><i class="bi bi-link-45deg" aria-hidden="true"></i> Copy share link</button>
+                            <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" disabled="@busy" @onclick="() => ShareAsync(revoke: true)">Revoke link</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="ps-btn ps-btn-outline ps-btn-sm" disabled="@busy" @onclick="() => ShareAsync(revoke: false, copy: true)"><i class="bi bi-link-45deg" aria-hidden="true"></i> Create share link</button>
+                        }
+                    }
+                </div>
+                @if (shareLink.Length > 0 && shareLinkVersionId == shownVersion.Id)
+                {
+                    <p class="pr-small pr-muted">Share link for this version (view only, no sign-in needed): <input class="form-control ps-input" readonly value="@shareLink" aria-label="Share link" /></p>
+                }
             }
 
             @if (detail.References.Count > 0)
             {
-                <section class="pr-stage-poseref" aria-labelledby="pr-poseref-title">
-                    <h3 id="pr-poseref-title" class="pr-stage-sub">Pose references</h3>
+                <details class="pr-refs pr-stage-poseref">
+                    <summary>Pose references (@detail.References.Count)</summary>
+                    <p class="pr-small pr-muted">Select references to compare them side by side with the photo.</p>
                     <div class="pr-stage-refs" role="list" aria-label="Pose reference photos">
                         @foreach (var reference in detail.References)
                         {
                             var referenceLabel = PrUi.Has(reference.Slot) ? reference.Slot : "Reference";
-                            <div class="pr-stage-ref" role="listitem" title="@(PrUi.Has(reference.Credit) ? "Credit: " + reference.Credit : "")">
+                            var picked = compareRefIds.Contains(reference.Id);
+                            <div class="pr-stage-ref @(picked ? "pr-stage-ref-on" : "")" role="listitem" title="@(PrUi.Has(reference.Credit) ? "Credit: " + reference.Credit : "")">
                                 @if (reference.HasImage)
                                 {
                                     var referenceSrc = State.Api.ReferenceImageUrl(reference);
                                     var referenceAlt = $"Reference: {reference.Title}";
-                                    <button type="button" class="pr-stage-ref-button" aria-label="Enlarge @referenceLabel reference" @onclick="() => Enlarge(referenceSrc, referenceAlt)">
+                                    <button type="button" class="pr-stage-ref-button" aria-pressed="@(picked ? "true" : "false")" aria-label="Compare @referenceLabel reference" @onclick="() => ToggleCompare(reference.Id)">
                                         <img src="@referenceSrc" alt="@referenceAlt" loading="lazy" />
                                     </button>
+                                    <button type="button" class="pr-link-btn pr-stage-ref-enlarge" aria-label="Enlarge @referenceLabel reference" @onclick="() => Enlarge(referenceSrc, referenceAlt)">Enlarge</button>
                                 }
                                 else if (PrUi.Has(reference.SourceUrl))
                                 {
@@ -129,7 +174,7 @@ else
                             </div>
                         }
                     </div>
-                </section>
+                </details>
             }
         </section>
 
@@ -215,6 +260,11 @@ else
                 }
             </header>
 
+            @if (selectedPhoto != null)
+            {
+                <PrRating Photo="selectedPhoto.Summary" Changed="ReloadAsync" Wide="true" />
+            }
+
             <section class="pr-shot-block" aria-labelledby="pr-captured-details-title">
                 <h2 id="pr-captured-details-title" class="pr-col-title"><i class="bi bi-camera" aria-hidden="true"></i> Captured photo@(detail.Photos.Count > 1 ? $" {selectedIndex + 1} of {detail.Photos.Count}" : "")</h2>
                 @if (selectedPhoto == null)
@@ -244,46 +294,50 @@ else
 
             <section class="pr-shot-block" aria-labelledby="pr-planned-title">
                 <h2 id="pr-planned-title" class="pr-col-title"><i class="bi bi-clipboard" aria-hidden="true"></i> Planned</h2>
-                <PrBrief Brief="detail.Brief" />
+                <PrBrief Brief="detail.Brief" TopOnly="true" />
+
+                <section class="pr-section">
+                    <h2 id="pr-suggest-title">Suggestions for this shot</h2>
+                    <p class="pr-muted pr-small">Think the status is wrong, or the pose should change next time? Say so here. Luke decides.</p>
+                    <PrSuggestForm ShotId="@shot.ShotId" Changed="ReloadAsync" />
+                    <PrSuggestionList Items="detail.Suggestions" Changed="ReloadAsync" />
+                </section>
+
+                <section class="pr-section">
+                    <PrThread Comments="detail.Comments" Target="CommentTarget.Shot" TargetId="@shot.ShotId" Title="Discussion about this shot" Changed="ReloadAsync" />
+                </section>
+
+                <PrBrief Brief="detail.Brief" DetailsOnly="true" />
                 @if (detail.References.Count > 0)
                 {
-                    <h3 class="pr-sub">References</h3>
-                    <ul class="pr-reference-list">
-                        @foreach (var reference in detail.References)
-                        {
-                            <li>
-                                <strong>@(PrUi.Has(reference.Slot) ? reference.Slot : "Reference")</strong>@(PrUi.Has(reference.Title) ? ": " + reference.Title : "")
-                                @if (PrUi.Has(reference.Credit))
-                                {
-                                    <span class="pr-small pr-muted">Credit: @reference.Credit</span>
-                                }
-                                @if (PrUi.Has(reference.WhatToImitate))
-                                {
-                                    <span class="pr-small">Imitate: @reference.WhatToImitate</span>
-                                }
-                                @if (PrUi.Has(reference.WhatToChange))
-                                {
-                                    <span class="pr-small">Change: @reference.WhatToChange</span>
-                                }
-                                @if (PrUi.Has(reference.SourceUrl) && !reference.HasImage)
-                                {
-                                    <a class="pr-small" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source</a>
-                                }
-                            </li>
-                        }
-                    </ul>
+                    <details class="pr-refs">
+                        <summary>References (@detail.References.Count)</summary>
+                        <ul class="pr-reference-list">
+                            @foreach (var reference in detail.References)
+                            {
+                                <li>
+                                    <strong>@(PrUi.Has(reference.Slot) ? reference.Slot : "Reference")</strong>@(PrUi.Has(reference.Title) ? ": " + reference.Title : "")
+                                    @if (PrUi.Has(reference.Credit))
+                                    {
+                                        <span class="pr-small pr-muted">Credit: @reference.Credit</span>
+                                    }
+                                    @if (PrUi.Has(reference.WhatToImitate))
+                                    {
+                                        <span class="pr-small">Imitate: @reference.WhatToImitate</span>
+                                    }
+                                    @if (PrUi.Has(reference.WhatToChange))
+                                    {
+                                        <span class="pr-small">Change: @reference.WhatToChange</span>
+                                    }
+                                    @if (PrUi.Has(reference.SourceUrl) && !reference.HasImage)
+                                    {
+                                        <a class="pr-small" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source</a>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </details>
                 }
-            </section>
-
-            <section class="pr-section">
-                <h2 id="pr-suggest-title">Suggestions for this shot</h2>
-                <p class="pr-muted pr-small">Think the status is wrong, or the pose should change next time? Say so here. Luke decides.</p>
-                <PrSuggestForm ShotId="@shot.ShotId" Changed="ReloadAsync" />
-                <PrSuggestionList Items="detail.Suggestions" Changed="ReloadAsync" />
-            </section>
-
-            <section class="pr-section">
-                <PrThread Comments="detail.Comments" Target="CommentTarget.Shot" TargetId="@shot.ShotId" Title="Discussion about this shot" Changed="ReloadAsync" />
             </section>
 
             <nav class="pr-pager pr-pager-bottom" aria-label="Shot navigation">
@@ -315,6 +369,47 @@ else
     private bool busy;
     private string ownerNote = "";
     private string saveError = "";
+    // References picked for side-by-side comparison with the shown photo version, in the order picked.
+    private readonly List<string> compareRefIds = new();
+
+    private void ToggleCompare(string referenceId)
+    {
+        if (!compareRefIds.Remove(referenceId)) compareRefIds.Add(referenceId);
+    }
+
+    private void ClearCompare() => compareRefIds.Clear();
+
+    // The link shown under the photo, and the version it belongs to.
+    private string shareLink = "";
+    private string shareLinkVersionId = "";
+
+    /// <summary>Creates or revokes the share link for the shown version. Copy also puts the link on the clipboard.</summary>
+    private async Task ShareAsync(bool revoke, bool copy = false)
+    {
+        var photo = SelectedPhoto;
+        var version = photo == null ? null : ShownVersion(ViewableVersions(photo));
+        if (photo == null || version == null) return;
+        var photoId = photo.Summary.Id;
+        var versionId = version.Id;
+        busy = true;
+        ShareLinkResponse result;
+        try
+        {
+            result = revoke ? await State.Api.RevokeShareAsync(photoId, versionId) : await State.Api.CreateShareAsync(photoId, versionId);
+            saveError = "";
+        }
+        catch (PhotoReviewApiException ex)
+        {
+            saveError = ex.Message;
+            busy = false;
+            return;
+        }
+        busy = false;
+        shareLink = result.Shared ? State.Api.ShareUrl(result.Path) : "";
+        shareLinkVersionId = versionId;
+        if (copy && shareLink.Length > 0) await JS.InvokeVoidAsync("navigator.clipboard.writeText", shareLink);
+        await ReloadAsync();
+    }
     private string selectedPhotoId = "";
     /// <summary>The version kind shown for the selected capture. Kept when the next capture has that kind too, otherwise the original.</summary>
     private ArtifactKind? selectedKind;
@@ -332,6 +427,7 @@ else
         {
             detail = null;
             fitted = false;
+            compareRefIds.Clear();
             loadedId = ShotId;
             selectedPhotoId = "";
             selectedKind = null;

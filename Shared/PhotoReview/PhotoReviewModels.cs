@@ -79,6 +79,8 @@ namespace BlazorApp.Shared.PhotoReview
         /// <summary>Version this one was produced from (empty for the original).</summary>
         public string ParentVersionId { get; set; } = "";
         public string Sha256 { get; set; } = "";
+        /// <summary>Unguessable token for a read-only link to this version. Empty when no link is active.</summary>
+        public string ShareToken { get; set; } = "";
         public long Bytes { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }

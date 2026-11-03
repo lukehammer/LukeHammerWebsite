@@ -69,6 +69,12 @@ namespace BlazorApp.Client.PhotoReview
         public Task<MutationResult> RateAsync(string photoId, int value) => SendAsync<MutationResult>(HttpMethod.Put, $"photos/{photoId}/rating", new RateRequest { Value = value });
         public Task<MutationResult> ClearRatingAsync(string photoId) => SendAsync<MutationResult>(HttpMethod.Delete, $"photos/{photoId}/rating");
 
+        public Task<ShareLinkResponse> CreateShareAsync(string photoId, string versionId) => SendAsync<ShareLinkResponse>(HttpMethod.Post, $"admin/photos/{photoId}/versions/{versionId}/share");
+        public Task<ShareLinkResponse> RevokeShareAsync(string photoId, string versionId) => SendAsync<ShareLinkResponse>(HttpMethod.Delete, $"admin/photos/{photoId}/versions/{versionId}/share");
+
+        /// <summary>Absolute URL for a share path returned by CreateShareAsync.</summary>
+        public string ShareUrl(string path) => Url(path);
+
         public Task<MutationResult> AddCommentAsync(CommentRequest request) => SendAsync<MutationResult>(HttpMethod.Post, "comments", request);
         public Task<MutationResult> EditCommentAsync(string id, string text) => SendAsync<MutationResult>(HttpMethod.Put, "comments/" + id, new CommentRequest { Text = text });
         public Task<MutationResult> DeleteCommentAsync(string id) => SendAsync<MutationResult>(HttpMethod.Delete, "comments/" + id);
