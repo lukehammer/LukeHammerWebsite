@@ -130,7 +130,8 @@ else
                     @foreach (var shot in shotGroup.Shots)
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
-                        <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")" href="@PrUi.ShotLink(shot.ShotId, gridPath)">
+                        <div class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")">
+                            <a class="pr-shot-card-link" href="@PrUi.ShotLink(shot.ShotId, gridPath)" aria-label="Open @PrUi.Number(shot.Number) @shot.Title"></a>
                             <div class="pr-shot-thumb" style="aspect-ratio: @PrUi.Ratio(cover?.Thumb)">
                                 @if (cover != null && cover.Thumb.Widths.Count > 0)
                                 {
@@ -162,8 +163,14 @@ else
                                         <span class="pr-muted pr-small"><i class="bi bi-chat" aria-hidden="true"></i> @(shot.CommentCount + shot.OpenSuggestions)</span>
                                     }
                                 </div>
+                                @if (cover != null)
+                                {
+                                    <div class="pr-shot-rate">
+                                        <PrRating Photo="cover" Wide="true" />
+                                    </div>
+                                }
                             </div>
-                        </a>
+                        </div>
                     }
                 </div>
             </section>
