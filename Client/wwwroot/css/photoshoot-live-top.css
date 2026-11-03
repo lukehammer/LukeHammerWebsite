@@ -1,0 +1,296 @@
+/* Primary action bars at the TOP of the Director and Photographer live views (not pinned to the bottom).
+   Loaded by PhotoShootLiveLayout and listed in the Director's own head. Every rule is scoped to
+   .ps-root.ps-live with .ps-director, .ps-photographer or their action bar, so other live pages are unchanged. */
+
+/* ---------- shared top action bar ---------- */
+
+.ps-root.ps-live .ps-action-bar {
+    position: sticky;
+    top: 3.6rem;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 25;
+    flex: none;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.25rem 0 0.3rem;
+    background: var(--ps-bg);
+    border: 0;
+    box-shadow: none;
+}
+
+.ps-root.ps-live .ps-action-bar .ps-btn {
+    min-width: 0;
+    min-height: 2.6rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    flex-direction: row;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.ps-root.ps-live .ps-action-bar .ps-action-main {
+    min-height: 2.75rem;
+    font-size: 1.02rem;
+    border-radius: 12px;
+}
+
+/* Director: the primary action is wider than the four navigation buttons. */
+.ps-root.ps-live .ps-director > .ps-action-bar {
+    grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+}
+
+/* Photographer: the page itself does not scroll, so the bar is the first row in the flow.
+   One or two primary buttons share the row equally. */
+.ps-root.ps-live .ps-photographer > .ps-action-bar {
+    position: relative;
+    top: auto;
+    padding-top: 0.2rem;
+}
+
+/* ---------- Director: the primary shot card (title, summary, acting note, performer and gear, reference
+   photos) ends above the secondary tabs at 1280x720. Brief fields sit in two columns, the reference photo
+   is capped, and the two collapsed disclosures share one row. ---------- */
+
+.ps-root.ps-live .ps-director .ps-live-progress {
+    padding: 0.1rem 0;
+    font-size: 0.9rem;
+}
+
+.ps-root.ps-live .ps-director .ps-live-setup {
+    padding: 0.2rem 0.6rem;
+}
+
+.ps-root.ps-live .ps-director .ps-browse {
+    margin-top: 0.2rem;
+}
+
+.ps-root.ps-live .ps-director .ps-btn-xl.ps-block {
+    min-height: 2.6rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 1rem;
+}
+
+.ps-root.ps-live .ps-director .ps-live-shot {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.2rem 0.75rem;
+    align-items: start;
+    padding: 0.4rem 0.7rem 0.5rem;
+}
+
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-dir-head,
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-dir-body {
+    grid-column: 1 / -1;
+}
+
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-live-more {
+    min-width: 0;
+}
+
+.ps-root.ps-live .ps-director .ps-dir-head .ps-live-title {
+    font-size: 1.45rem;
+    margin: 0 0 0.1rem;
+}
+
+.ps-root.ps-live .ps-director .ps-dir-body {
+    margin-top: 0.3rem;
+    gap: 0.6rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief {
+    gap: 0.4rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-summary {
+    font-size: 1.02rem;
+    line-height: 1.25;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-grid {
+    gap: 0.4rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-card {
+    padding: 0.35rem 0.6rem 0.25rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.7rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-field {
+    padding: 0.15rem 0;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-field dt {
+    font-size: 0.72rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-field dd {
+    margin-top: 0;
+    font-size: 0.98rem;
+    line-height: 1.25;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-field.is-key dd {
+    font-size: 1.1rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-hero {
+    height: clamp(8.5rem, 26vh, 15rem);
+}
+
+.ps-root.ps-live .ps-director .ps-live-more summary {
+    padding: 0.2rem 0;
+}
+
+/* Tablet landscape: a narrower reference column leaves the acting note and performer cards more width. */
+@media (min-width: 768px) {
+    .ps-root.ps-live .ps-director .ps-dir-body.has-gallery {
+        grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 15rem);
+    }
+}
+
+@media (min-width: 1200px) {
+    .ps-root.ps-live .ps-director .ps-dir-body.has-gallery {
+        grid-template-columns: minmax(0, 1fr) minmax(14rem, 19rem);
+    }
+}
+
+/* Director reference slots: one row of compact thumbnails. The full reference cards, with their detail lines and
+   the gallery, stay on the Photographer view and the shot page. */
+.ps-root.ps-live .ps-director .ps-slots {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin: 0.1rem 0 0;
+}
+
+.ps-root.ps-live .ps-director .ps-slot {
+    padding: 0.2rem;
+    min-width: 0;
+}
+
+.ps-root.ps-live .ps-director .ps-slot img {
+    display: block;
+    width: 100%;
+    height: 4.5rem;
+    object-fit: contain;
+    background: #fff;
+}
+
+.ps-root.ps-live .ps-director .ps-slot-label {
+    font-size: 0.68rem;
+    line-height: 1.2;
+}
+
+.ps-root.ps-live .ps-director .ps-slot-meta {
+    display: none;
+}
+
+/* Director: reference photos and their slots form one right-hand column beside the brief. */
+.ps-root.ps-live .ps-director .ps-dir-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.ps-root.ps-live .ps-director .ps-dir-side .ps-brief-gallery {
+    gap: 0.3rem;
+}
+
+.ps-root.ps-live .ps-director .ps-dir-side .ps-slots {
+    margin: 0;
+}
+
+.ps-root.ps-live .ps-director .ps-dir-side .ps-live-more {
+    margin-top: 0;
+}
+
+/* Director: the collapsed "Photographer side" disclosure sits beside the title, and the reference photo is
+   sized to the viewport height, so the card ends above the tabs even for the most reference-heavy shot. */
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-dir-head {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-live-more {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+}
+
+.ps-root.ps-live .ps-director .ps-live-shot > .ps-dir-body {
+    grid-row: 2;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-hero {
+    height: clamp(7rem, 21vh, 12rem);
+}
+
+/* Director, session not running: "Start session" joins the top action bar as its first button, in place of a
+   separate full-width row, so the shot card keeps the same position as during a live session. */
+.ps-root.ps-live .ps-director > .ps-action-bar.is-waiting {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) repeat(4, minmax(0, 1fr));
+}
+
+/* Director at tablet width and up: the brief keeps the left column even when the shot has no reference photos,
+   so the performer and gear cards never stack below the shot's other content. */
+@media (min-width: 768px) {
+    .ps-root.ps-live .ps-director .ps-dir-body {
+        grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 15rem);
+    }
+}
+
+/* Director: a tighter progress line and browse row, so the longest shots still end above the tabs. */
+.ps-root.ps-live .ps-director .ps-live-progress {
+    padding: 0;
+    line-height: 1.25;
+}
+
+.ps-root.ps-live .ps-director .ps-browse {
+    margin-top: 0.1rem;
+}
+
+.ps-root.ps-live .ps-director .ps-browse .ps-btn {
+    min-height: 2.1rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.92rem;
+}
+
+/* Director: small trims that keep the longest shots above the tabs. The acting note never drops below 28px. */
+.ps-root.ps-live .ps-director .ps-live-shot {
+    padding: 0.4rem 0.7rem 0.35rem;
+}
+
+.ps-root.ps-live .ps-director .ps-brief-grid {
+    gap: 0.3rem;
+}
+
+@media (min-width: 1200px) {
+    .ps-root.ps-live .ps-director .ps-brief-acting-text {
+        font-size: min(2rem, 4.2vh);
+    }
+}
+
+/* Director: the app root scrolls nothing itself (its overflow would make it the sticky scroll box), so the
+   document scrolls and the top action bar stays docked under the header. */
+body:has(.ps-director) #app {
+    overflow: visible;
+}
+
+html:has(.ps-director),
+body:has(.ps-director) {
+    overflow: visible;
+}
