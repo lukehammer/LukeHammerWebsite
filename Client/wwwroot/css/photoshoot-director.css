@@ -1,0 +1,248 @@
+/* Director live view (/photoshoot/director). Loaded only by PhotoShootDirector.razor.
+   Uses the full width of tablet and laptop screens. Every rule is scoped to .ps-director or .ps-live:has(.ps-director),
+   so the photographer, shot detail and other live views keep the shared photoshoot.css layout. */
+
+.ps-live:has(.ps-director) {
+    max-width: 1280px;
+}
+
+.ps-director .ps-action-bar {
+    max-width: 1280px;
+}
+
+.ps-director .ps-live-shot {
+    padding: 0.7rem 0.9rem 0.85rem;
+}
+
+.ps-director .ps-dir-head .ps-live-title {
+    font-size: 2rem;
+    margin: 0.1rem 0 0.25rem;
+}
+
+.ps-director .ps-live-shot-meta {
+    font-size: 0.95rem;
+}
+
+.ps-director .ps-dir-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: start;
+    margin-top: 0.6rem;
+}
+
+.ps-director .ps-dir-body.has-gallery {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.ps-director .ps-dir-brief {
+    min-width: 0;
+}
+
+/* Summary, then the acting note right under it, then the performer and gear cards. */
+
+.ps-brief {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    min-width: 0;
+}
+
+.ps-brief-summary {
+    font-size: 1.2rem;
+    line-height: 1.4;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.ps-brief-acting {
+    border-left: 6px solid var(--ps-burgundy);
+    background: var(--ps-surface-2);
+    border-radius: 0 var(--ps-radius) var(--ps-radius) 0;
+    padding: 0.6rem 1rem 0.7rem;
+}
+
+.ps-brief-kicker {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ps-burgundy);
+    margin: 0 0 0.25rem;
+}
+
+.ps-brief-acting-text {
+    font-size: 1.75rem;
+    line-height: 1.25;
+    font-weight: 700;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.ps-brief-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+}
+
+.ps-brief-card {
+    min-width: 0;
+    border: 1px solid var(--ps-border);
+    border-radius: var(--ps-radius);
+    background: var(--ps-surface);
+    padding: 0.6rem 0.85rem 0.45rem;
+}
+
+.ps-brief-performer {
+    border-top: 5px solid var(--ps-burgundy);
+}
+
+.ps-brief-gear {
+    border-top: 5px solid var(--ps-teal);
+}
+
+.ps-brief-card-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.25rem;
+}
+
+.ps-brief-fields {
+    margin: 0;
+}
+
+.ps-brief-field {
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed var(--ps-border);
+}
+
+.ps-brief-field:last-child {
+    border-bottom: 0;
+}
+
+.ps-brief-field dt {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ps-muted);
+    font-weight: 700;
+}
+
+.ps-brief-field dd {
+    margin: 0.1rem 0 0;
+    font-size: 1.1rem;
+    overflow-wrap: anywhere;
+}
+
+.ps-brief-field.is-key dd {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.ps-brief-list {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.ps-director .ps-brief-gear .ps-chip-list {
+    margin: 0.2rem 0 0;
+}
+
+/* Reference photos stay whole (contain, never cover). */
+
+.ps-brief-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.ps-director .ps-brief-hero {
+    display: block;
+    width: 100%;
+    height: clamp(14rem, 46vh, 26rem);
+    object-fit: contain;
+    object-position: center center;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: inset 0 0 0 1px #e4e0e2;
+}
+
+.ps-brief-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.ps-director .ps-brief-thumb {
+    display: block;
+    width: var(--ps-tap);
+    height: var(--ps-tap);
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    line-height: 0;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px #e4e0e2;
+}
+
+.ps-director .ps-brief-thumb.is-selected {
+    border-color: var(--ps-burgundy);
+}
+
+.ps-director .ps-brief-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.ps-director .ps-slot img {
+    object-fit: contain;
+    background: #fff;
+}
+
+.ps-director .ps-dir-photographer .ps-dl-row {
+    padding: 0.35rem 0;
+}
+
+.ps-director .ps-dir-photographer dd {
+    font-size: 1.05rem;
+}
+
+/* Tablet landscape (1024 px) and up: brief on the left, reference photos on the right. */
+
+@media (min-width: 768px) {
+    .ps-director .ps-dir-body.has-gallery {
+        grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem);
+    }
+
+    .ps-brief-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1200px) {
+    .ps-director .ps-dir-body.has-gallery {
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+    }
+
+    .ps-brief-acting-text {
+        font-size: 2rem;
+    }
+}
+
+/* Phones keep a single column. Summary and acting note stay first. */
+
+@media (max-width: 767px) {
+    .ps-brief-acting-text {
+        font-size: 1.5rem;
+    }
+}

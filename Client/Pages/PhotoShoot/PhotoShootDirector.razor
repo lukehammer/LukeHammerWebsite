@@ -6,6 +6,10 @@
 
 <PageTitle>Director · Photo Shoot</PageTitle>
 
+<HeadContent>
+    <link rel="stylesheet" href="css/photoshoot-director.css" />
+</HeadContent>
+
 @if (Store.Shoot is { } doc)
 {
     @if (!Store.IsOwner)
@@ -99,33 +103,32 @@
             {
                 <PsBrowseBar Doc="doc" CurrentId="@live?.Id" Navigate="GoTo" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" />
                 <section class="ps-live-shot @PsUi.StatusClass(current.Status)" aria-live="polite">
-                    <div class="ps-dir-top @(hero == null ? "" : "has-gallery")">
-                        <div class="ps-dir-copy">
-                            <h1 class="ps-live-title">@current.Title</h1>
-                            <div class="ps-live-shot-meta">
-                                <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
-                                <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
-                                <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
-                                @if (current.Status == ShotStatus.InProgress && current.StartedUtc != null)
-                                {
-                                    <span class="ps-timer" title="Time on this shot"><i class="bi bi-stopwatch" aria-hidden="true"></i> @PsUi.Elapsed(current.StartedUtc) / @PsUi.Minutes(current.EstimatedMinutes)</span>
-                                }
-                            </div>
-                            @if (PsUi.Has(current.Summary))
+                    <div class="ps-dir-head">
+                        <h1 class="ps-live-title">@current.Title</h1>
+                        <div class="ps-live-shot-meta">
+                            <span>Shot @PhotoShootPlanner.OrderNumber(doc, current.Id) of @progress.Total</span>
+                            <span class="ps-badge @PsUi.PriorityClass(current.Priority)">@PhotoShootLabels.Priority(current.Priority)</span>
+                            <span class="ps-badge @PsUi.StatusClass(current.Status)">@PhotoShootLabels.Status(current.Status)</span>
+                            @if (current.Status == ShotStatus.InProgress && current.StartedUtc != null)
                             {
-                                <p class="ps-live-summary">@current.Summary</p>
+                                <span class="ps-timer" title="Time on this shot"><i class="bi bi-stopwatch" aria-hidden="true"></i> @PsUi.Elapsed(current.StartedUtc) / @PsUi.Minutes(current.EstimatedMinutes)</span>
                             }
+                        </div>
+                    </div>
+                    <div class="ps-dir-body @(hero == null ? "" : "has-gallery")">
+                        <div class="ps-dir-brief">
+                            <PsDirectorBrief Shot="current" Setup="setup" />
                         </div>
                         @if (hero != null)
                         {
-                            <div class="ps-dir-gallery">
-                                <img class="ps-dir-hero" src="@Store.Api.ImageUrl(doc.Id, hero)" alt="@hero.Title" />
-                                <div class="ps-dir-thumbs" role="listbox" aria-label="Reference photos">
+                            <div class="ps-brief-gallery">
+                                <img class="ps-brief-hero" src="@Store.Api.ImageUrl(doc.Id, hero)" alt="@hero.Title" />
+                                <div class="ps-brief-thumbs" role="listbox" aria-label="Reference photos">
                                     @foreach (var reference in referenceImages)
                                     {
                                         var referenceId = reference.Id;
                                         var selected = referenceId == hero.Id;
-                                        <button type="button" role="option" class="ps-dir-thumb @(selected ? "is-selected" : "")" aria-selected="@selected" aria-label="Show @reference.Title" @onclick="() => SelectHero(current.Id, referenceId)">
+                                        <button type="button" role="option" class="ps-brief-thumb @(selected ? "is-selected" : "")" aria-selected="@selected" aria-label="Show @reference.Title" @onclick="() => SelectHero(current.Id, referenceId)">
                                             <img src="@Store.Api.ImageUrl(doc.Id, reference)" alt="" />
                                         </button>
                                     }
@@ -134,24 +137,19 @@
                         }
                     </div>
                     <PsReferenceSlots Doc="doc" Shot="current" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" OnEnlarge="ShowReference" />
-                    @if (current.Equipment.Count == 0)
-                    {
-                        <p><strong>Equipment / props required:</strong> No special props required.</p>
-                    }
-                    else
-                    {
-                        <p><strong>Equipment / props required</strong></p>
-                        <ul>
-                            @foreach (var item in current.Equipment)
-                            {
-                                <li>@item.Name × @item.Quantity · @PhotoShootLabels.Supplier(item.Supplier)@(item.Optional ? " · optional" : "")</li>
-                            }
-                        </ul>
-                    }
-                    <PsShotDirections Shot="current" Setup="setup" ShowPhotographer="false" ActingNoteAfterExpression="true" />
                     <details class="ps-live-more">
                         <summary>Photographer side, references &amp; purpose</summary>
-                        <PsShotDirections Shot="current" Setup="setup" ShowPerformer="false" ShowProps="false" />
+                        <dl class="ps-dl ps-dir-photographer">
+                            @PhotographerRow("Framing", Combine(current.Framing, PhotoShootLabels.Orientation(current.Orientation)))
+                            @PhotographerRow("Direction", current.PhotographerInstructions)
+                            @PhotographerRow("Crop", current.RecommendedCrop)
+                            @if (current.NegativeSpace != NegativeSpaceDirection.None)
+                            {
+                                @PhotographerRow("Negative space", PhotoShootLabels.NegativeSpace(current.NegativeSpace))
+                            }
+                            @PhotographerRow("Lighting", Combine(setup?.Lighting, current.LightingNotes))
+                            @PhotographerRow("Background", PsUi.Has(current.Background) ? current.Background : setup?.Background)
+                        </dl>
                         <PsShotReferences Shot="current" ShowSearchPhrases="false" />
                         @if (PsUi.Has(current.MarketingPurpose))
                         {
@@ -430,6 +428,23 @@
         {
             Store.SetFlash("This browser can't keep the screen awake. Turn off auto-lock in your phone settings during the shoot.", isError: true);
         }
+    }
+
+    private RenderFragment PhotographerRow(string label, string? value) => __builder =>
+    {
+        if (PsUi.Has(value))
+        {
+            <div class="ps-dl-row">
+                <dt>@label</dt>
+                <dd>@value</dd>
+            </div>
+        }
+    };
+
+    private static string Combine(string? a, string? b)
+    {
+        var parts = new[] { a, b }.Where(PsUi.Has).Select(p => p!.Trim()).ToList();
+        return string.Join(" · ", parts);
     }
 
     private IEnumerable<PhotoShot> FindShots(PhotoShootDocument doc)
