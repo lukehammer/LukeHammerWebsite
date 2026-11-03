@@ -476,10 +476,13 @@
 /* Phones and small tablets: the photo comes first, text follows below, and the Previous/Next nav moves under the
    reference strip so the photo starts as high as possible. No horizontal scrolling. */
 @media (max-width: 860px) {
+    /* The photo, versions and references share the space left on screen, so all of them show without scrolling. */
     .pr-shot-stage {
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+        height: var(--pr-workspace-h, calc(100dvh - 8rem));
+        min-height: 0;
     }
 
     .pr-stage-versions {
@@ -519,14 +522,12 @@
     .pr-stage-frame,
     .pr-stage-empty {
         order: 3;
-        flex: 0 0 auto;
-        height: calc(100vh - 19rem);
-        height: calc(100svh - 19rem);
-        min-height: 14rem;
+        flex: 1 1 0;
+        min-height: 0;
     }
 
     .pr-stage-empty {
-        min-height: 8rem;
+        min-height: 6rem;
     }
 
     .pr-stage-versions {
