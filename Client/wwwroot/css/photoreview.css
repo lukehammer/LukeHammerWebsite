@@ -289,3 +289,12 @@
 }
 /* Checkerboard behind transparent versions (needs to beat the viewer's own background shorthand). */
 .pr-photo-big img.pr-checker { background-color: #fff; background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; }
+
+/* Status and evidence chips wrap inside narrow cards (two columns on phones) instead of being clipped.
+   The status label and its "· provisional, Codex" / "· Luke" attribution can sit on separate lines. */
+.pr-status { flex-wrap: wrap; white-space: normal; max-width: 100%; min-width: 0; border-radius: 0.9rem; row-gap: 0; line-height: 1.25; overflow-wrap: break-word; }
+.pr-status > .bi { flex: 0 0 auto; align-self: center; }
+.pr-status-label, .pr-status-by { min-width: 0; max-width: 100%; }
+.pr-ev, .pr-badge, .pr-hint { white-space: normal; max-width: 100%; overflow-wrap: break-word; }
+.pr-shot-card, .pr-shot-body, .pr-shot-title, .pr-shot-meta > * { min-width: 0; }
+.pr-shot-title { overflow-wrap: break-word; }

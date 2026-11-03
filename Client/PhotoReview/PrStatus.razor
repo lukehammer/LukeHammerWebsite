@@ -3,13 +3,13 @@
 @if (Confirmed)
 {
     <span class="pr-status @PrUi.StatusClass(Status)" title="Set by Luke">
-        <i class="bi @PrUi.StatusIcon(Status)" aria-hidden="true"></i> @PhotoReviewLabels.Status(Status) <span class="pr-status-by">· Luke</span>
+        <i class="bi @PrUi.StatusIcon(Status)" aria-hidden="true"></i><span class="pr-status-label">@PhotoReviewLabels.Status(Status)</span><span class="pr-status-by">· Luke</span>
     </span>
 }
 else if (Suggested is ShotReviewStatus suggested)
 {
     <span class="pr-status pr-status-provisional @PrUi.StatusClass(suggested)" title="Provisional @(PrUi.Has(SuggestedBy) ? SuggestedBy + " " : "")suggestion. Luke hasn't reviewed this shot yet.">
-        <i class="bi @PrUi.StatusIcon(suggested)" aria-hidden="true"></i> @PhotoReviewLabels.Status(suggested) <span class="pr-status-by">· provisional@(PrUi.Has(SuggestedBy) ? ", " + SuggestedBy : "")</span>
+        <i class="bi @PrUi.StatusIcon(suggested)" aria-hidden="true"></i><span class="pr-status-label">@PhotoReviewLabels.Status(suggested)</span><span class="pr-status-by">· provisional@(PrUi.Has(SuggestedBy) ? ", " + SuggestedBy : "")</span>
     </span>
     @if (ShowPending)
     {
@@ -18,7 +18,7 @@ else if (Suggested is ShotReviewStatus suggested)
 }
 else
 {
-    <span class="pr-status pr-status-review" title="No verdict yet"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Needs review</span>
+    <span class="pr-status pr-status-review" title="No verdict yet"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span class="pr-status-label">Needs review</span></span>
 }
 
 @code {
