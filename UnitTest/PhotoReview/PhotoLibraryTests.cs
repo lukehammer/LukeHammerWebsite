@@ -1,5 +1,7 @@
 using BlazorApp.Shared.PhotoReview;
+using BlazorApp.Shared.PhotoShoot;
 using FluentAssertions;
+using static UnitTest.PhotoReview.PhotoReviewTestData;
 
 namespace UnitTest.PhotoReview;
 
@@ -66,4 +68,86 @@ public class PhotoLibraryTests
         PhotoLibrary.Kinds.Should().Equal(ArtifactKind.CroppedWhiteBackground, ArtifactKind.Cropped, ArtifactKind.CroppedTransparent);
         PhotoLibrary.KindLabel(ArtifactKind.CroppedTransparent).Should().Be("cropped transparent");
     }
+
+    [Fact]
+    public void Newest_accepted_photo_is_current_and_older_accepted_photos_stay_listed()
+    {
+        var older = Planner();
+        older.ShootDate = "2026-06-14";
+        var newer = Planner();
+        newer.CreatedUtc = Now.AddDays(30);
+
+        var items = PhotoLibrary.Build(new[]
+        {
+            Shoot("older", older, ImportedCatalog(older, Photo(1, "shot-001", Cropped(1)))),
+            Shoot("newer", newer, ImportedCatalog(newer, Photo(2, "shot-001", Cropped(2))))
+        }, ApiBase);
+
+        items.Should().HaveCount(2);
+        items[0].ShootId.Should().Be("newer", "the current photo for a pose comes before its earlier photos");
+        items[0].IsCurrent.Should().BeTrue();
+        items[1].IsCurrent.Should().BeFalse();
+
+        var html = PhotoLibrary.Html(items, ApiBase + "/library");
+        html.Should().Contain("<article class=\"earlier\">");
+        html.Should().Contain("Earlier accepted photo from 2026-06-14");
+    }
+
+    [Fact]
+    public void A_pose_with_only_an_older_photo_is_still_current()
+    {
+        var older = Planner();
+        var newer = Planner();
+        newer.CreatedUtc = Now.AddDays(30);
+
+        var items = PhotoLibrary.Build(new[]
+        {
+            Shoot("older", older, ImportedCatalog(older, Photo(1, "shot-001", Cropped(1)))),
+            Shoot("newer", newer, ImportedCatalog(newer, Photo(2, "shot-002", Cropped(2))))
+        }, ApiBase);
+
+        items.Should().HaveCount(2);
+        items.Should().OnlyContain(item => item.IsCurrent);
+    }
+
+    [Fact]
+    public void Hidden_photos_from_older_shoots_stay_out_of_the_library()
+    {
+        var older = Planner();
+        var newer = Planner();
+        newer.CreatedUtc = Now.AddDays(30);
+        var olderCatalog = ImportedCatalog(older, Photo(1, "shot-001", Cropped(1)));
+        PhotoReviewAdminOps.SetPhotoHidden(olderCatalog, Admin, olderCatalog.Photos[0].Id, true, Now);
+
+        var items = PhotoLibrary.Build(new[]
+        {
+            Shoot("older", older, olderCatalog),
+            Shoot("newer", newer, ImportedCatalog(newer, Photo(2, "shot-001", Cropped(2))))
+        }, ApiBase);
+
+        items.Should().ContainSingle().Which.ShootId.Should().Be("newer");
+    }
+
+    private const string ApiBase = "https://lukehammer.com/api/photoreview";
+
+    private static PhotoLibrary.Source Shoot(string id, PhotoShootDocument planner, ReviewCatalog catalog) => new PhotoLibrary.Source
+    {
+        ShootId = id,
+        ShootDate = planner.ShootDate,
+        CreatedUtc = planner.CreatedUtc,
+        Projection = new PhotoReviewProjection(planner, catalog, new ParticipationDocument(), new ReviewActor(), new ReviewViewer())
+    };
+
+    private static ManifestVersion Cropped(int seed) => new ManifestVersion
+    {
+        Kind = "CroppedWhiteBackground",
+        File = $"Cropped/photo-{seed}.jpg",
+        Sha256 = Sha(seed, 'c'),
+        Bytes = 500 + seed,
+        Width = 2000,
+        Height = 3000,
+        ContentType = "image/jpeg",
+        Provenance = "NonGenerative",
+        ParentKind = "Original"
+    };
 }
