@@ -115,16 +115,16 @@ else
     else
     {
         <p class="pr-muted pr-small">@shots.Count of @summary.Shots.Count planned shots</p>
-        @foreach (var group in shots.GroupBy(s => s.Category).OrderBy(g => g.Key))
+        @foreach (var section in ShotSections(shots))
         {
             <section class="pr-group">
-                <h2 class="pr-group-title">@PhotoReviewLabels.Category(group.Key) <span class="pr-muted">@group.Count() shots</span></h2>
-                @if (group.Key == ReviewCategory.KidsAndVolunteers && group.All(s => s.PhotoIds.Count == 0))
+                <h2 class="pr-group-title">@section.Title <span class="pr-muted">@section.Shots.Count shots</span></h2>
+                @if (section.Category == ReviewCategory.KidsAndVolunteers && section.Shots.All(s => s.PhotoIds.Count == 0))
                 {
                     <p class="pr-note">No children appear in the supplied albums, so these shots are all waiting for a second shoot with volunteers.</p>
                 }
                 <div class="pr-shot-grid">
-                    @foreach (var shot in group)
+                    @foreach (var shot in section.Shots)
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
                         <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")" href="@PrUi.ShotLink(shot.ShotId, gridPath)">
@@ -270,6 +270,22 @@ else
 
         return shots.ToList();
     }
+
+    // Successful shots lead the list; everything else follows, grouped by category.
+    private List<ShotSection> ShotSections(List<ShotSummary> shots)
+    {
+        var sections = new List<ShotSection>();
+        var successful = shots.Where(s => s.ProvisionalStatus == ShotReviewStatus.Successful).ToList();
+        if (successful.Count > 0) sections.Add(new ShotSection("Successful", null, successful));
+        var rest = shots.Where(s => s.ProvisionalStatus != ShotReviewStatus.Successful);
+        foreach (var group in rest.GroupBy(s => s.Category).OrderBy(g => g.Key))
+        {
+            sections.Add(new ShotSection(PhotoReviewLabels.Category(group.Key), group.Key, group.ToList()));
+        }
+        return sections;
+    }
+
+    private sealed record ShotSection(string Title, ReviewCategory? Category, List<ShotSummary> Shots);
 
     private List<PhotoSummary> FilteredPhotos(ReviewSummaryResponse summary, List<ShotSummary> shots)
     {
