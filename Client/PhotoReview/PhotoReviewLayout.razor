@@ -37,7 +37,7 @@
         else if (State.Viewer.HasIdentity)
         {
             <span>Taking part as <strong>@State.Viewer.DisplayName</strong> <span class="pr-tag">@State.Viewer.Tag</span></span>
-            <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="OpenRename">Change name</button>
+            <button type="button" class="ps-btn ps-btn-ghost ps-btn-sm" @onclick="ForgetAsync"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign off</button>
         }
         else
         {
@@ -46,13 +46,10 @@
         }
 
         <span class="pr-identity-spacer"></span>
+        @* The "Luke: sign in" link is removed for now. Signed-in visitors still see sign out. *@
         @if (State.Viewer.IsAdmin || State.Viewer.SignedInWithMicrosoft)
         {
             <a class="pr-link-quiet" href="@State.Api.SignOutUrl("/" + Nav.ToBaseRelativePath(Nav.Uri))">Sign out of Microsoft</a>
-        }
-        else
-        {
-            <a class="pr-link-quiet" href="@State.Api.MicrosoftSignInUrl("/" + Nav.ToBaseRelativePath(Nav.Uri))">Luke: sign in</a>
         }
     </div>
 

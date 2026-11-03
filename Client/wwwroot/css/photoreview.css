@@ -165,6 +165,7 @@
 .pr-rating-wide { width: 100%; }
 .pr-rating-wide .pr-rating-summary strong { font-size: 1.5rem; }
 .pr-rating-wide .pr-rating-buttons { max-width: none; width: 100%; gap: 0.35rem; }
+.pr-rating-wide .pr-rating-select { width: 100%; min-height: 52px; font-size: 1.1rem; font-weight: 600; }
 .pr-rating-wide .pr-rate { min-height: 52px; font-size: 1.1rem; }
 
 /* photo page */
@@ -312,3 +313,6 @@
 .pr-ev, .pr-badge, .pr-hint { white-space: normal; max-width: 100%; overflow-wrap: break-word; }
 .pr-shot-card, .pr-shot-body, .pr-shot-title, .pr-shot-meta > * { min-width: 0; }
 .pr-shot-title { overflow-wrap: break-word; }
+
+/* Step 1 on the review grid: a button, not a link. */
+.pr-quick-login { margin: 0.1rem 0; vertical-align: baseline; }

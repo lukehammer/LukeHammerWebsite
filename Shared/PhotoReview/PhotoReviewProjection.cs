@@ -677,11 +677,11 @@ namespace BlazorApp.Shared.PhotoReview
         /// <summary>Creates a share token for one version (when newToken is set) or revokes it (when null). An active link is kept as it is.</summary>
         public static ReviewResult SetVersionShare(ReviewCatalog catalog, ReviewActor actor, string photoId, string versionId, string? newToken, DateTime nowUtc)
         {
-            if (actor == null || !actor.IsAdmin) return ReviewResult.Forbidden("Only Luke can share photos.");
+            // Anyone can share, but only what the public can already see: a visible, current version.
             var photo = catalog.Photos.FirstOrDefault(item => item.Id == photoId);
-            if (photo == null) return ReviewResult.NotFound("Photo");
+            if (photo == null || photo.HiddenUtc != null) return ReviewResult.NotFound("Photo");
             var version = photo.Versions.FirstOrDefault(item => item.Id == versionId);
-            if (version == null) return ReviewResult.NotFound("Version");
+            if (version == null || !version.IsCurrent) return ReviewResult.NotFound("Version");
             if (newToken == null)
             {
                 if (version.ShareToken == "") return ReviewResult.Done(changed: false);

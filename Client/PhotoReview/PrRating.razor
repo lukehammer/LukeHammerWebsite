@@ -17,14 +17,29 @@
             <button type="button" class="pr-link-btn" disabled="@busy" @onclick="ClearAsync">clear</button>
         }
     </div>
-    <div class="pr-rating-buttons" role="group" aria-label="Rate this photo from 1 to 10">
-        @for (var i = 1; i <= 10; i++)
-        {
-            var value = i;
-            <button type="button" class="pr-rate @(Photo.MyRating == value ? "pr-rate-on" : "")" aria-pressed="@(Photo.MyRating == value ? "true" : "false")"
-                    aria-label="@($"Rate {value} out of 10")" disabled="@busy" @onclick="() => RateAsync(value)">@value</button>
-        }
-    </div>
+    @if (Wide)
+    {
+        @* The shot page uses a dropdown: "Please rate" until someone picks a number. *@
+        <select class="form-select pr-rating-select" aria-label="Rate this photo from 1 to 10" disabled="@busy"
+                value="@(Photo.MyRating?.ToString() ?? "")" @onchange="OnSelectChangedAsync">
+            <option value="">Please rate</option>
+            @for (var i = 1; i <= 10; i++)
+            {
+                <option value="@i">@i</option>
+            }
+        </select>
+    }
+    else
+    {
+        <div class="pr-rating-buttons" role="group" aria-label="Rate this photo from 1 to 10">
+            @for (var i = 1; i <= 10; i++)
+            {
+                var value = i;
+                <button type="button" class="pr-rate @(Photo.MyRating == value ? "pr-rate-on" : "")" aria-pressed="@(Photo.MyRating == value ? "true" : "false")"
+                        aria-label="@($"Rate {value} out of 10")" disabled="@busy" @onclick="() => RateAsync(value)">@value</button>
+            }
+        </div>
+    }
 </div>
 
 @code {
@@ -51,6 +66,12 @@
         if (result == null) (Photo.MyRating, Photo.Average, Photo.RatingCount) = previous;
         busy = false;
         await Changed.InvokeAsync();
+    }
+
+    /// <summary>The dropdown's "Please rate" choice is blank and does nothing; "clear" in the summary removes a rating.</summary>
+    private async Task OnSelectChangedAsync(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var value) && value is >= 1 and <= 10) await RateAsync(value);
     }
 
     private async Task ClearAsync()
