@@ -1,45 +1,55 @@
-@* The intended photograph from the plan: brief, expression and pose, then framing and crop. *@
+@* The intended photograph from the plan. TopOnly shows the headline, objective, use and acting note; DetailsOnly shows the expression and pose, then framing and setup. Neither flag set shows everything. *@
 <div class="pr-brief">
-    @if (PrUi.Has(Brief.Summary))
+    @if (!DetailsOnly)
     {
-        <p class="pr-brief-summary">@Brief.Summary</p>
+        @if (PrUi.Has(Brief.Summary))
+        {
+            <p class="pr-brief-summary">@Brief.Summary</p>
+        }
+        <dl class="pr-dl">
+            @Row("Objective", Brief.Objective)
+            @Row("Used for", Brief.MarketingPurpose)
+            @Row("Acting note", Brief.PerformerInstructions)
+        </dl>
     }
-    <dl class="pr-dl">
-        @Row("Objective", Brief.Objective)
-        @Row("Used for", Brief.MarketingPurpose)
-    </dl>
-    <h3 class="pr-sub">Expression and pose</h3>
-    <dl class="pr-dl">
-        @Row("Face", Brief.FacialExpression)
-        @Row("Body", Brief.BodyPosition)
-        @Row("Hands", Brief.HandPosition)
-        @Row("Eyes", Brief.EyeDirection)
-        @Row("Performer", Brief.PerformerInstructions)
-    </dl>
-    @if (!Compact)
+    @if (!TopOnly)
     {
-        <h3 class="pr-sub">Framing and crop</h3>
+        <h3 class="pr-sub">Expression and pose</h3>
         <dl class="pr-dl">
-            @Row("Framing", Brief.Framing)
-            @Row("Orientation", Brief.Orientation)
-            @Row("Crop", Brief.RecommendedCrop)
-            @Row("Negative space", Brief.NegativeSpace == "None" ? "" : Brief.NegativeSpace)
-            @Row("Photographer", Brief.PhotographerInstructions)
+            @Row("Face", Brief.FacialExpression)
+            @Row("Body", Brief.BodyPosition)
+            @Row("Hands", Brief.HandPosition)
+            @Row("Eyes", Brief.EyeDirection)
         </dl>
-        <h3 class="pr-sub">Setup</h3>
-        <dl class="pr-dl">
-            @Row("Setup", Brief.SetupName)
-            @Row("Background", Brief.Background)
-            @Row("Outfit", Brief.Outfit)
-            @Row("Props", string.Join(", ", Brief.Props))
-            @Row("Inspiration", Brief.Inspiration)
-        </dl>
+        @if (!Compact)
+        {
+            <h3 class="pr-sub">Framing and crop</h3>
+            <dl class="pr-dl">
+                @Row("Framing", Brief.Framing)
+                @Row("Orientation", Brief.Orientation)
+                @Row("Crop", Brief.RecommendedCrop)
+                @Row("Negative space", Brief.NegativeSpace == "None" ? "" : Brief.NegativeSpace)
+                @Row("Photographer", Brief.PhotographerInstructions)
+            </dl>
+            <h3 class="pr-sub">Setup</h3>
+            <dl class="pr-dl">
+                @Row("Setup", Brief.SetupName)
+                @Row("Background", Brief.Background)
+                @Row("Outfit", Brief.Outfit)
+                @Row("Props", string.Join(", ", Brief.Props))
+                @Row("Inspiration", Brief.Inspiration)
+            </dl>
+        }
     }
 </div>
 
 @code {
     [Parameter, EditorRequired] public ShotBrief Brief { get; set; } = new();
     [Parameter] public bool Compact { get; set; }
+    /// <summary>Only the headline, objective, use and acting note.</summary>
+    [Parameter] public bool TopOnly { get; set; }
+    /// <summary>Only the expression and pose, framing and setup.</summary>
+    [Parameter] public bool DetailsOnly { get; set; }
 
     private static RenderFragment Row(string label, string? value) => __builder =>
     {

@@ -1,7 +1,7 @@
 @inject PhotoReviewState State
 
 @* 1–10 rating. One current vote per person; tapping another number replaces it. *@
-<div class="pr-rating @(Compact ? "pr-rating-compact" : "")">
+<div class="pr-rating @(Compact ? "pr-rating-compact" : "") @(Wide ? "pr-rating-wide" : "")">
     <div class="pr-rating-summary">
         @if (Photo.RatingCount > 0)
         {
@@ -30,6 +30,8 @@
 @code {
     [Parameter, EditorRequired] public PhotoSummary Photo { get; set; } = new();
     [Parameter] public bool Compact { get; set; }
+    /// <summary>Full width with large tap targets, for the rating directly under a shot's title.</summary>
+    [Parameter] public bool Wide { get; set; }
     [Parameter] public EventCallback Changed { get; set; }
 
     private bool busy;

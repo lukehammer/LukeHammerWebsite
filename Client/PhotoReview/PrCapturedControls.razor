@@ -28,7 +28,6 @@
     {
         <p class="pr-small pr-muted"><strong>Matching evidence:</strong> @Photo.EvidenceText</p>
     }
-    <PrRating Photo="summary" Changed="Changed" />
     <div class="pr-versions-mini">
         @foreach (var kind in PhotoReviewLabels.Kinds)
         {
@@ -42,10 +41,6 @@
     }
     <div class="pr-photo-actions">
         <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.PhotoLink(summary.Id)"><i class="bi bi-info-circle" aria-hidden="true"></i> Notes, versions and comments@(summary.CommentCount > 0 ? $" ({summary.CommentCount})" : "")</a>
-        @if (shown != null)
-        {
-            <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(summary.Id, shown.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download @PhotoReviewLabels.Kind(shown.Kind).ToLowerInvariant() (@PrUi.Bytes(shown.Bytes))</a>
-        }
     </div>
 </div>
 

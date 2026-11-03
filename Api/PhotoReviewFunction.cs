@@ -136,6 +136,67 @@ namespace ApiIsolated
                 return response;
             });
 
+        /// <summary>Creates (POST) or revokes (DELETE) the read-only share link for one version. Admin only. Returns the link path.</summary>
+        [Function("PhotoReviewShareLink")]
+        public Task<HttpResponseData> ShareLink(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", "delete", Route = "photoreview/admin/photos/{photoId}/versions/{versionId}/share")] HttpRequestData req,
+            string photoId, string versionId) =>
+            AdminWrite(req, async (shootId, context, actor) =>
+            {
+                if (!PhotoReviewData.IsPhotoId(photoId) || !PhotoReviewData.IsVersionId(versionId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid id.");
+                var revoke = req.Method.Equals("DELETE", StringComparison.OrdinalIgnoreCase);
+                var token = revoke ? null : NewShareToken();
+                var (result, saved) = await PhotoReviewData.UpdateCatalogAsync(shootId, catalog => PhotoReviewAdminOps.SetVersionShare(catalog, actor, photoId, versionId, token, DateTime.UtcNow));
+                if (!result.Ok) return await Done(req, result);
+                var current = saved.Photos.First(item => item.Id == photoId).Versions.First(item => item.Id == versionId).ShareToken;
+                return await Json(req, HttpStatusCode.OK, new ShareLinkResponse { Shared = current != "", Path = current == "" ? "" : $"share/{photoId}/{versionId}/{current}" });
+            });
+
+        /// <summary>Read-only share link for one version. Works only while that version is visible and the token matches. Redirects to a short-lived read URL.</summary>
+        [Function("PhotoReviewShare")]
+        public Task<HttpResponseData> Share(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/share/{photoId}/{versionId}/{token}")] HttpRequestData req,
+            string photoId, string versionId, string token) =>
+            Safe(req, async () =>
+            {
+                var found = await FindVersionAsync(req, photoId, versionId);
+                if (found.Error != null) return found.Error;
+                var version = found.Version!;
+                if (!found.Public || version.ShareToken.Length == 0 || !TokenMatches(version.ShareToken, token))
+                {
+                    return await Text(req, HttpStatusCode.NotFound, "Not found.");
+                }
+
+                var name = ReviewBlobNames.Asset(version.Sha256);
+                var url = PhotoReviewData.Store.ReadUrl(name, version.FileName, version.ContentType, false, TimeSpan.FromMinutes(15));
+                if (url != null)
+                {
+                    var redirect = req.CreateResponse(HttpStatusCode.Redirect);
+                    redirect.Headers.Add("Location", url);
+                    redirect.Headers.Add("Cache-Control", "no-store");
+                    redirect.Headers.Add("Referrer-Policy", "no-referrer");
+                    redirect.Headers.Add("X-Robots-Tag", "noindex");
+                    return redirect;
+                }
+
+                var stored = await PhotoReviewData.Store.ReadAsync(name);
+                if (stored == null) return await Text(req, HttpStatusCode.NotFound, "File not found.");
+                var response = req.CreateResponse(HttpStatusCode.OK);
+                response.Headers.Add("Content-Type", version.ContentType);
+                response.Headers.Add("Content-Disposition", "inline; filename=\"" + BlobReviewStore.SafeFileName(version.FileName) + "\"");
+                response.Headers.Add("Cache-Control", "no-store");
+                response.Headers.Add("X-Content-Type-Options", "nosniff");
+                response.Headers.Add("X-Robots-Tag", "noindex");
+                await response.Body.WriteAsync(stored.Bytes);
+                return response;
+            });
+
+        /// <summary>Unguessable 192-bit token for a share link.</summary>
+        private static string NewShareToken() => Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+
+        private static bool TokenMatches(string expected, string given) =>
+            System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(expected), System.Text.Encoding.UTF8.GetBytes(given));
+
         /// <summary>Planner reference images, for references linked to a planned shot only.</summary>
         [Function("PhotoReviewReferenceImage")]
         public Task<HttpResponseData> ReferenceImage(

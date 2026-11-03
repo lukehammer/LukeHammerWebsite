@@ -162,6 +162,10 @@
 .pr-rate { min-height: 40px; border: 1px solid var(--ps-border); border-radius: 8px; background: #fff; font-weight: 700; cursor: pointer; font-variant-numeric: tabular-nums; padding: 0; }
 .pr-rate:hover:not(:disabled) { border-color: var(--ps-burgundy); }
 .pr-rate-on { background: var(--ps-burgundy); color: #fff; border-color: var(--ps-burgundy); }
+.pr-rating-wide { width: 100%; }
+.pr-rating-wide .pr-rating-summary strong { font-size: 1.5rem; }
+.pr-rating-wide .pr-rating-buttons { max-width: none; width: 100%; gap: 0.35rem; }
+.pr-rating-wide .pr-rate { min-height: 52px; font-size: 1.1rem; }
 
 /* photo page */
 .pr-photo-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.25rem; align-items: start; }

@@ -229,7 +229,8 @@ namespace BlazorApp.Shared.PhotoReview
                     ImportedUtc = version.ImportedUtc,
                     Superseded = !version.IsCurrent,
                     ThumbWidths = version.ThumbWidths.ToList(),
-                    Sha256 = version.Sha256
+                    Sha256 = version.Sha256,
+                    Shared = version.ShareToken != ""
                 })
                 .ToList();
             return new PhotoDetail
@@ -669,6 +670,28 @@ namespace BlazorApp.Shared.PhotoReview
             if (photo == null) return ReviewResult.NotFound("Photo");
             if ((photo.HiddenUtc != null) == hidden) return ReviewResult.Done(changed: false);
             photo.HiddenUtc = hidden ? nowUtc : (DateTime?)null;
+            photo.UpdatedUtc = nowUtc;
+            return ReviewResult.Done();
+        }
+
+        /// <summary>Creates a share token for one version (when newToken is set) or revokes it (when null). An active link is kept as it is.</summary>
+        public static ReviewResult SetVersionShare(ReviewCatalog catalog, ReviewActor actor, string photoId, string versionId, string? newToken, DateTime nowUtc)
+        {
+            if (actor == null || !actor.IsAdmin) return ReviewResult.Forbidden("Only Luke can share photos.");
+            var photo = catalog.Photos.FirstOrDefault(item => item.Id == photoId);
+            if (photo == null) return ReviewResult.NotFound("Photo");
+            var version = photo.Versions.FirstOrDefault(item => item.Id == versionId);
+            if (version == null) return ReviewResult.NotFound("Version");
+            if (newToken == null)
+            {
+                if (version.ShareToken == "") return ReviewResult.Done(changed: false);
+                version.ShareToken = "";
+            }
+            else
+            {
+                if (version.ShareToken != "") return ReviewResult.Done(changed: false);
+                version.ShareToken = newToken;
+            }
             photo.UpdatedUtc = nowUtc;
             return ReviewResult.Done();
         }
