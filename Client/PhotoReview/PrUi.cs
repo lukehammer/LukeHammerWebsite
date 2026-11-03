@@ -71,6 +71,12 @@ namespace BlazorApp.Client.PhotoReview
 
         public static string PhotoLink(string photoId) => "photoshoot/review/photo/" + photoId;
 
+        /// <summary>Preview box shape from the displayed version's real pixel size, so the whole frame fits. Portrait fallback when unknown.</summary>
+        public static string Ratio(ThumbView? thumb) => thumb is { Width: > 0, Height: > 0 } ? $"{thumb.Width} / {thumb.Height}" : "4 / 5";
+
+        /// <summary>Landscape previews take two grid columns instead of being squeezed into a portrait card.</summary>
+        public static bool Wide(ThumbView? thumb) => thumb is { Width: > 0, Height: > 0 } && thumb.Width > thumb.Height;
+
         public static string Number(int number) => "#" + number.ToString("000");
 
         /// <summary>A safe, tiny subset of Markdown: "#"/"##" headings, "- " bullets, paragraphs. No HTML.</summary>

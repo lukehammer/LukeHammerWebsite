@@ -94,10 +94,10 @@ else
             @foreach (var photo in photos)
             {
                 var shot = State.Shot(photo.ShotId);
-                <a class="pr-photo-tile" href="@PrUi.PhotoLink(photo.Id)">
+                <a class="pr-photo-tile @(PrUi.Wide(photo.Thumb) ? "pr-photo-tile-wide" : "")" href="@PrUi.PhotoLink(photo.Id)">
                     @if (photo.Thumb.Widths.Count > 0)
                     {
-                        <img src="@State.Api.ThumbUrl(photo, 480)" alt="@PrUi.Alt(shot?.Title ?? "", 0)" loading="lazy" width="@photo.Thumb.Width" height="@photo.Thumb.Height" />
+                        <img src="@State.Api.ThumbUrl(photo, 480)" alt="@PrUi.Alt(shot?.Title ?? "", 0)" loading="lazy" width="@photo.Thumb.Width" height="@photo.Thumb.Height" style="aspect-ratio: @PrUi.Ratio(photo.Thumb)" />
                     }
                     <span class="pr-photo-tile-meta">
                         <span>@(shot == null ? "" : PrUi.Number(shot.Number)) @shot?.Title</span>
@@ -126,8 +126,8 @@ else
                     @foreach (var shot in group)
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
-                        <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "")" href="@PrUi.ShotLink(shot.ShotId)">
-                            <div class="pr-shot-thumb">
+                        <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")" href="@PrUi.ShotLink(shot.ShotId)">
+                            <div class="pr-shot-thumb" style="aspect-ratio: @PrUi.Ratio(cover?.Thumb)">
                                 @if (cover != null && cover.Thumb.Widths.Count > 0)
                                 {
                                     <img src="@State.Api.ThumbUrl(cover, 480)" alt="@PrUi.Alt(shot.Title, 0)" loading="lazy" />
