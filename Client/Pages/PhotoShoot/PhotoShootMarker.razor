@@ -80,6 +80,13 @@
                             {
                                 <p class="ps-marker-summary">@current.Summary</p>
                             }
+                            @if (PsUi.Has(current.PerformerInstructions))
+                            {
+                                <section class="ps-marker-note" aria-label="Acting note">
+                                    <h2 class="ps-marker-note-label">Acting note</h2>
+                                    <p class="ps-marker-note-text">@current.PerformerInstructions</p>
+                                </section>
+                            }
                         </div>
                     }
 
