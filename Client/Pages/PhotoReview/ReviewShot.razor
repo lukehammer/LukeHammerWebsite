@@ -1,4 +1,4 @@
-@page "/photoshoot/review/shot/{ShotId}"
+@page "/photoshoot/review/shot/{ShotRef}"
 @using BlazorApp.Client.PhotoShoot
 @implements IDisposable
 @implements IAsyncDisposable
@@ -26,8 +26,7 @@ else
     var selectedIndex = SelectedPhotoIndex();
     var versions = selectedPhoto == null ? new List<VersionView>() : ViewableVersions(selectedPhoto);
     var shownVersion = selectedPhoto == null ? null : ShownVersion(versions);
-    var shotBack = PrUi.ReviewReturnPath(Back);
-    var backHref = shotBack ?? PrUi.ReviewCategoryPath(shot.Category);
+    var backHref = PrUi.ReviewReturnPath(Back) ?? PrUi.ReviewCategoryPath(shot.Category);
 
     <div class="pr-shot-workspace" @ref="workspace">
         @* Right panel (first in the markup, so phones show the photo before the words). Starts high on laptops and tablets. *@
@@ -192,7 +191,7 @@ else
                 <div class="pr-shot-steps">
                     @if (PrUi.Has(detail.PreviousShotId))
                     {
-                        <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step pr-shot-prev" href="@PrUi.ShotLink(detail.PreviousShotId, shotBack)" accesskey="p" title="Previous shot: @StepContext(detail.PreviousShotId)" @onclick="() => GoToShot(PrUi.ShotLink(detail.PreviousShotId, shotBack))" @onclick:preventDefault>
+                        <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step pr-shot-prev" href="@ShotHref(detail.PreviousShotId)" accesskey="p" title="Previous shot: @StepContext(detail.PreviousShotId)" @onclick="() => GoToShot(ShotHref(detail.PreviousShotId))" @onclick:preventDefault>
                             <i class="bi bi-chevron-left" aria-hidden="true"></i>
                             <span class="pr-step-text"><span>Previous shot</span><small>@StepContext(detail.PreviousShotId)</small></span>
                         </a>
@@ -203,7 +202,7 @@ else
                     }
                     @if (PrUi.Has(detail.NextShotId))
                     {
-                        <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step pr-shot-next" href="@PrUi.ShotLink(detail.NextShotId, shotBack)" accesskey="n" title="Next shot: @StepContext(detail.NextShotId)" @onclick="() => GoToShot(PrUi.ShotLink(detail.NextShotId, shotBack))" @onclick:preventDefault>
+                        <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step pr-shot-next" href="@ShotHref(detail.NextShotId)" accesskey="n" title="Next shot: @StepContext(detail.NextShotId)" @onclick="() => GoToShot(ShotHref(detail.NextShotId))" @onclick:preventDefault>
                             <span class="pr-step-text"><span>Next shot</span><small>@StepContext(detail.NextShotId)</small></span>
                             <i class="bi bi-chevron-right" aria-hidden="true"></i>
                         </a>
@@ -366,12 +365,12 @@ else
             <nav class="pr-pager pr-pager-bottom" aria-label="Shot navigation">
                 @if (PrUi.Has(detail.PreviousShotId))
                 {
-                    <a class="ps-btn ps-btn-outline pr-shot-step" href="@PrUi.ShotLink(detail.PreviousShotId, shotBack)"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span class="pr-step-text"><span>Previous shot</span><small>@StepContext(detail.PreviousShotId)</small></span></a>
+                    <a class="ps-btn ps-btn-outline pr-shot-step" href="@ShotHref(detail.PreviousShotId)"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span class="pr-step-text"><span>Previous shot</span><small>@StepContext(detail.PreviousShotId)</small></span></a>
                 }
                 <span class="pr-identity-spacer"></span>
                 @if (PrUi.Has(detail.NextShotId))
                 {
-                    <a class="ps-btn ps-btn-primary pr-shot-step" href="@PrUi.ShotLink(detail.NextShotId, shotBack)"><span class="pr-step-text"><span>Next shot</span><small>@StepContext(detail.NextShotId)</small></span> <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                    <a class="ps-btn ps-btn-primary pr-shot-step" href="@ShotHref(detail.NextShotId)"><span class="pr-step-text"><span>Next shot</span><small>@StepContext(detail.NextShotId)</small></span> <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
                 }
             </nav>
         </div>
@@ -381,10 +380,17 @@ else
 }
 
 @code {
-    [Parameter] public string ShotId { get; set; } = "";
+    /// <summary>The address part: "001-warm-smile-headshot", or an older shot id.</summary>
+    [Parameter] public string ShotRef { get; set; } = "";
 
     /// <summary>The review grid's URL when the visitor came from it (filters and category included). Checked before use.</summary>
     [SupplyParameterFromQuery(Name = "back")] public string? Back { get; set; }
+
+    /// <summary>The shot's id, resolved from <see cref="ShotRef"/> once the shot list is loaded.</summary>
+    private string ShotId { get; set; } = "";
+
+    private string ShotHref(string shotId) =>
+        State.Shot(shotId) is { } target ? PrUi.ShotLink(target.Number, target.Title) : PrUi.ShotLink(shotId);
 
     private ShotDetailResponse? detail;
     private string error = "";
@@ -436,7 +442,7 @@ else
         await ReloadAsync();
     }
     private string selectedPhotoId = "";
-    /// <summary>The version kind shown for the selected capture. Kept when the next capture has that kind too, otherwise the original.</summary>
+    /// <summary>The version kind shown for the selected capture. Kept when the next capture has that kind too, otherwise the cropped one.</summary>
     private ArtifactKind? selectedKind;
     private string? lightboxSrc;
     private string lightboxAlt = "";
@@ -448,11 +454,11 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        if (loadedId != ShotId)
+        if (loadedId != ShotRef)
         {
             // Keep the current shot on screen until the next one has loaded, so moving between shots doesn't flash the whole page.
             compareRefIds.Clear();
-            loadedId = ShotId;
+            loadedId = ShotRef;
             selectedPhotoId = "";
             selectedKind = null;
             saveError = "";
@@ -486,6 +492,7 @@ else
 
     private VersionView? ShownVersion(List<VersionView> versions) =>
         versions.FirstOrDefault(version => version.Kind == selectedKind)
+        ?? versions.FirstOrDefault(version => version.Kind == ArtifactKind.Cropped)
         ?? versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original)
         ?? versions.FirstOrDefault();
 
@@ -539,9 +546,18 @@ else
     {
         try
         {
-            var task = State.Api.ShotAsync(ShotId);
-            _ = State.EnsureSummaryAsync();
-            detail = await task;
+            // The shot list turns the address into an id. It is usually loaded already, since the visitor came from the grid.
+            var summary = await State.EnsureSummaryAsync();
+            var shotId = ShotAddress.ResolveId(ShotRef, summary?.Shots ?? new List<ShotSummary>());
+            if (shotId == null)
+            {
+                detail = null;
+                error = "Shot not found.";
+                return;
+            }
+
+            ShotId = shotId;
+            detail = await State.Api.ShotAsync(ShotId);
             error = "";
             if (!detail.Photos.Any(photo => photo.Summary.Id == selectedPhotoId))
             {
@@ -578,7 +594,7 @@ else
         await State.EnsureSummaryAsync(force: true);
         if (advance && PrUi.Has(detail.NextShotId))
         {
-            Nav.NavigateTo(PrUi.ShotLink(detail.NextShotId));
+            Nav.NavigateTo(ShotHref(detail.NextShotId));
             return;
         }
 
@@ -588,7 +604,7 @@ else
     private void SkipAsync()
     {
         if (busy || detail == null || !PrUi.Has(detail.NextShotId)) return;
-        Nav.NavigateTo(PrUi.ShotLink(detail.NextShotId));
+        Nav.NavigateTo(ShotHref(detail.NextShotId));
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);

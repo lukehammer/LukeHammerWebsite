@@ -19,7 +19,6 @@
 else
 {
     var counts = summary.Counts;
-    var gridPath = Nav.ToBaseRelativePath(Nav.Uri);
     <header class="pr-hero">
         <h1>Lucky Luke Magic photo shoot review</h1>
         <p class="pr-lead">Every planned shot next to what the camera actually captured. Rate photos, comment, and suggest poses for the next shoot.</p>
@@ -131,7 +130,7 @@ else
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
                         <div class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")">
-                            <a class="pr-shot-card-link" href="@PrUi.ShotLink(shot.ShotId, gridPath)" aria-label="Open @PrUi.Number(shot.Number) @shot.Title"></a>
+                            <a class="pr-shot-card-link" href="@PrUi.ShotLink(shot.Number, shot.Title)" aria-label="Open @PrUi.Number(shot.Number) @shot.Title"></a>
                             <div class="pr-shot-thumb" style="aspect-ratio: @PrUi.Ratio(cover?.Thumb)">
                                 @if (cover != null && cover.Thumb.Widths.Count > 0)
                                 {

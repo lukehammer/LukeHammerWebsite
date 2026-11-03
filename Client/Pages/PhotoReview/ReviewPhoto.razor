@@ -23,7 +23,7 @@ else
     var at = siblings.IndexOf(summary.Id);
     var display = photo.Versions.FirstOrDefault(v => v.Id == shown) ?? photo.Versions.FirstOrDefault(v => v.Kind == ArtifactKind.Original && !v.Superseded);
     <nav class="pr-pager" aria-label="Photo navigation">
-        <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@PrUi.ShotLink(shot.ShotId)"><i class="bi bi-arrow-left" aria-hidden="true"></i> @PrUi.Number(shot.Number) @shot.Title</a>
+        <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@PrUi.ShotLink(shot.Number, shot.Title)"><i class="bi bi-arrow-left" aria-hidden="true"></i> @PrUi.Number(shot.Number) @shot.Title</a>
         <span class="pr-identity-spacer"></span>
         @if (at > 0)
         {
@@ -40,7 +40,7 @@ else
         <div class="pr-shot-meta">
             <span class="pr-badge">@PhotoReviewLabels.Selection(summary.Selection)</span>
             <PrEvidence Evidence="summary.Evidence" />
-            <span class="pr-muted">for <a href="@PrUi.ShotLink(shot.ShotId)">@PrUi.Number(shot.Number) @shot.Title</a></span>
+            <span class="pr-muted">for <a href="@PrUi.ShotLink(shot.Number, shot.Title)">@PrUi.Number(shot.Number) @shot.Title</a></span>
             <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" />
         </div>
     </header>

@@ -69,9 +69,11 @@ namespace BlazorApp.Client.PhotoReview
 
         public const string ReviewGridPath = "photoshoot/review";
 
-        /// <summary>Shot link. Passing the grid's own URL (from <see cref="ReviewReturnPath"/>) lets the shot page's Back link return to the same filtered grid.</summary>
-        public static string ShotLink(string shotId, string? back = null) =>
-            "photoshoot/review/shot/" + shotId + (ReviewReturnPath(back) is { } path ? "?back=" + Uri.EscapeDataString(path) : "");
+        /// <summary>Shot page address from the shot's number and title, for example "photoshoot/review/shot/001-warm-smile-headshot".</summary>
+        public static string ShotLink(int number, string title) => "photoshoot/review/shot/" + ShotAddress.Slug(number, title);
+
+        /// <summary>Shot page address from the shot id. The page still accepts ids, so older links keep working.</summary>
+        public static string ShotLink(string shotId) => "photoshoot/review/shot/" + shotId;
 
         public static string ReviewCategoryPath(ReviewCategory category) => ReviewGridPath + "?c=" + PhotoReviewLabels.CategorySlug(category);
 
