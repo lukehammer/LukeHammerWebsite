@@ -76,10 +76,24 @@ namespace ApiIsolated
             });
 
         /// <summary>
-        /// The public API base for library links and the canonical page. Built from the public site, not the request host:
+        /// The library as structured data for AI tools and scripts. Filters and sort come from the query string, for example
+        /// ?category=headshots&amp;minRating=8&amp;sort=rating. The response describes every field.
+        /// </summary>
+        [Function("PhotoLibraryData")]
+        public Task<HttpResponseData> LibraryData([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "photoreview/library/data")] HttpRequestData req) =>
+            Safe(req, async () =>
+            {
+                var query = PhotoLibraryData.Parse(req.Url.Query);
+                var items = PhotoLibrary.Build(await LibrarySourcesAsync(), PublicApi);
+                return await Json(req, HttpStatusCode.OK, PhotoLibraryData.Document(items, query, DateTime.UtcNow));
+            });
+
+        /// <summary>
+        /// The public site and API base for library links and the canonical page. Built from the public site, not the request host:
         /// behind the static web app the Functions host itself does not serve these files to visitors.
         /// </summary>
-        private const string PublicApi = "https://lukehammer.com/api/photoreview";
+        private const string PublicSite = "https://lukehammer.com";
+        private const string PublicApi = PublicSite + "/api/photoreview";
 
         /// <summary>Every shoot's review data for the public library. Read without a viewer, so only public photos come through.</summary>
         private static async Task<List<PhotoLibrary.Source>> LibrarySourcesAsync()
