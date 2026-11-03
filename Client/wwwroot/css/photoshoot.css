@@ -2714,7 +2714,8 @@ body:has(.ps-photographer) #app {
     flex-direction: column;
     margin: 0;
     padding: 0.4rem 0.5rem 0.45rem;
-    overflow: hidden;
+    /* Phones and portrait screens: the shot scrolls inside its own panel if it is taller than the screen. */
+    overflow-y: auto;
 }
 
 .ps-photographer .ps-live-shot-meta {
@@ -2940,6 +2941,207 @@ body:has(.ps-photographer) #app {
 .ps-photographer > .ps-panel {
     flex: 1 1 auto;
     min-height: 0;
+}
+
+/* Photographer workspace: every reference visible at once (no disclosure, no scrolling on desktop). */
+.ps-live:has(.ps-photographer) {
+    max-width: none;
+}
+
+.ps-photographer .ps-shot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.ps-ref-wall {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    min-width: 0;
+    min-height: 0;
+}
+
+.ps-wall-item {
+    margin: 0;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.3rem;
+    border: 1px solid var(--ps-line, #ddd);
+    border-radius: 0.6rem;
+    background: var(--ps-surface-2, #f7f4f5);
+    overflow: hidden;
+}
+
+.ps-wall-media {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 7rem;
+}
+
+.ps-wall-media img,
+.ps-wall-media .ps-ref-zoom,
+.ps-wall-media > a {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.ps-wall-media img {
+    object-fit: contain;
+    border-radius: 0.4rem;
+}
+
+.ps-wall-noimg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--ps-muted, #666);
+}
+
+.ps-wall-caption {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.1rem 0.4rem;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.ps-wall-title {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+@media (min-width: 900px) and (orientation: landscape) {
+    .ps-live:has(.ps-photographer) {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    .ps-photographer.ps-has-action-bar,
+    .ps-photographer.ps-has-action-bar.ps-bar-2 {
+        padding-bottom: 0;
+    }
+
+    .ps-photographer .ps-action-bar {
+        position: static;
+        width: auto;
+        max-width: none;
+        flex: none;
+        padding: 0.3rem 0;
+        border: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+
+    .ps-photographer .ps-live-shot {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        gap: 0.6rem;
+        padding: 0.45rem 0.6rem;
+        overflow: hidden;
+    }
+
+    .ps-photographer .ps-shot-info {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .ps-photographer .ps-live-title {
+        font-size: clamp(1.1rem, 3.3vh, 1.6rem);
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+    }
+
+    .ps-photographer .ps-photo-foot {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.2rem 0.5rem;
+    }
+
+    .ps-photographer .ps-up-next {
+        margin: 0;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .ps-photographer .ps-live-more[open] {
+        bottom: 3.1rem;
+    }
+
+    .ps-photographer .ps-note-form {
+        grid-column: 1 / -1;
+    }
+
+    .ps-photographer .ps-photo-key {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.3rem;
+        margin-top: 0.2rem;
+        min-height: 0;
+    }
+
+    .ps-photographer .ps-key-wide {
+        grid-column: span 2;
+    }
+
+    .ps-photographer .ps-key-card {
+        max-height: none;
+        overflow: visible;
+        padding: 0.3rem 0.45rem;
+    }
+
+    .ps-photographer .ps-key-value {
+        font-size: clamp(0.82rem, 1.95vh, 1rem);
+        line-height: 1.25;
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+    }
+
+    .ps-photographer .ps-key-sub {
+        font-size: clamp(0.72rem, 1.7vh, 0.88rem);
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .ps-ref-wall {
+        grid-template-columns: repeat(var(--ps-wall-cols, 2), minmax(0, 1fr));
+        grid-template-rows: repeat(var(--ps-wall-rows, 1), minmax(0, 1fr));
+        min-height: 0;
+        align-self: stretch;
+    }
+
+    .ps-wall-media {
+        min-height: 0;
+    }
+
+    .ps-wall-empty {
+        grid-column: 1 / -1;
+    }
 }
 
 .ps-count-badge {
