@@ -1,15 +1,74 @@
 using BlazorApp.Shared.PhotoReview;
+using Microsoft.JSInterop;
 
 namespace BlazorApp.Client.PhotoReview
 {
     /// <summary>Per-tab review state: the summary (all shots and photos), who I am, and a flash message.</summary>
     public class PhotoReviewState
     {
+        // This browser's copy of the name, so a visitor who already gave it isn't asked again on this device.
+        private const string RememberedNameKey = "photoreview.displayName";
+        private readonly IJSRuntime _js;
         private Task<ReviewSummaryResponse>? _loading;
+        private bool _nameRestored;
 
-        public PhotoReviewState(PhotoReviewApi api)
+        public PhotoReviewState(PhotoReviewApi api, IJSRuntime js)
         {
             Api = api;
+            _js = js;
+        }
+
+        /// <summary>Restores the remembered name once per session, quietly, when the server has no identity for this browser.</summary>
+        private async Task RestoreRememberedNameAsync()
+        {
+            if (_nameRestored || Viewer.HasIdentity) return;
+            _nameRestored = true;
+            var name = await GetRememberedNameAsync();
+            if (name.Length == 0) return;
+            try
+            {
+                UseViewer(await Api.SetNameAsync(name));
+            }
+            catch (PhotoReviewApiException)
+            {
+                // Not fatal: the visitor can still type their name when they act.
+            }
+        }
+
+        private async Task<string> GetRememberedNameAsync()
+        {
+            try
+            {
+                return await _js.InvokeAsync<string?>("localStorage.getItem", RememberedNameKey) ?? "";
+            }
+            catch (JSException)
+            {
+                return "";
+            }
+        }
+
+        private async Task RememberNameAsync(string name)
+        {
+            try
+            {
+                await _js.InvokeVoidAsync("localStorage.setItem", RememberedNameKey, name);
+            }
+            catch (JSException)
+            {
+                // Storage can be blocked; the cookie still remembers the name.
+            }
+        }
+
+        private async Task ForgetRememberedNameAsync()
+        {
+            try
+            {
+                await _js.InvokeVoidAsync("localStorage.removeItem", RememberedNameKey);
+            }
+            catch (JSException)
+            {
+                // Nothing to clear if storage is blocked.
+            }
         }
 
         public PhotoReviewApi Api { get; }
@@ -35,8 +94,12 @@ namespace BlazorApp.Client.PhotoReview
             {
                 _loading = force || _loading == null || _loading.IsFaulted ? Api.SummaryAsync() : _loading;
                 Summary = await _loading;
+                // A refresh must not drop an identity this page already has (e.g. just after naming yourself).
+                var known = Viewer;
                 Viewer = Summary.Viewer;
+                if (known.HasIdentity && !Viewer.HasIdentity) UseViewer(known);
                 Error = "";
+                await RestoreRememberedNameAsync();
             }
             catch (PhotoReviewApiException ex)
             {
@@ -74,6 +137,8 @@ namespace BlazorApp.Client.PhotoReview
             try
             {
                 UseViewer(await Api.SetNameAsync(name));
+                _nameRestored = true;
+                await RememberNameAsync(Viewer.DisplayName);
                 NamePromptOpen = false;
                 ShowFlash($"Thanks, {Viewer.DisplayName}! You can rate, comment and suggest poses now.", false);
                 return true;
@@ -90,6 +155,7 @@ namespace BlazorApp.Client.PhotoReview
             try
             {
                 UseViewer(await Api.ForgetAsync());
+                await ForgetRememberedNameAsync();
                 ShowFlash("This browser no longer remembers your name. Your earlier ratings and comments stay.", false);
             }
             catch (PhotoReviewApiException ex)

@@ -94,11 +94,16 @@ public class PhotoReviewAuthTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("photographer")]
     [InlineData("anything-else")]
-    public void LegacyPassword_IsPhotographerByDefault_BeforeAndAfterBinding(string? setting)
+    public void LegacyPassword_IsOwnerByDefault_BeforeAndAfterBinding(string? setting)
     {
-        PhotoReviewAdmin.LegacyPasswordAccess(setting).Should().Be(PhotoShootAccess.Photographer);
+        PhotoReviewAdmin.LegacyPasswordAccess(setting).Should().Be(PhotoShootAccess.Owner);
+    }
+
+    [Fact]
+    public void LegacyPassword_IsPhotographerOnlyWhenSetToPhotographer()
+    {
+        PhotoReviewAdmin.LegacyPasswordAccess("photographer").Should().Be(PhotoShootAccess.Photographer);
     }
 
     [Fact]
@@ -139,12 +144,12 @@ public class PhotoReviewAuthTests
             githubLuke.Access.Should().Be(PhotoShootAccess.None);
             foreach (var caller in new[] { passwordHolder, spoofedSubject, otherMicrosoft })
             {
-                caller.Access.Should().Be(PhotoShootAccess.Photographer, "the public password only reads and uploads (binding: {0})", binding == null ? "none" : "bound");
+                caller.Access.Should().Be(PhotoShootAccess.Owner, "the public password opens owner level (binding: {0})", binding == null ? "none" : "bound");
                 PhotoShootAuthorization.CanRead(caller.Access).Should().BeTrue();
-                PhotoShootAuthorization.CanEdit(caller.Access).Should().BeFalse("no plan edits without the Microsoft admin");
-                PhotoShootAuthorization.CanHardDelete(caller.Access).Should().BeFalse();
-                PhotoShootAuthorization.CanSeeRemoved(caller.Access).Should().BeFalse();
-                PhotoShootAuthorization.CanDownloadFinals(caller.Access).Should().BeFalse();
+                PhotoShootAuthorization.CanEdit(caller.Access).Should().BeTrue("temporary: the shared password opens the director view");
+                PhotoShootAuthorization.CanHardDelete(caller.Access).Should().BeFalse("hard delete stays with the Microsoft admin");
+                PhotoShootAuthorization.CanSeeRemoved(caller.Access).Should().BeTrue();
+                PhotoShootAuthorization.CanDownloadFinals(caller.Access).Should().BeTrue();
             }
         }
 

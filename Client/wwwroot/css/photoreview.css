@@ -165,6 +165,7 @@
 .pr-rating-wide { width: 100%; }
 .pr-rating-wide .pr-rating-summary strong { font-size: 1.5rem; }
 .pr-rating-wide .pr-rating-buttons { max-width: none; width: 100%; gap: 0.35rem; }
+.pr-rating-wide .pr-rating-select { width: 100%; min-height: 52px; font-size: 1.1rem; font-weight: 600; }
 .pr-rating-wide .pr-rate { min-height: 52px; font-size: 1.1rem; }
 
 /* photo page */
@@ -312,3 +313,13 @@
 .pr-ev, .pr-badge, .pr-hint { white-space: normal; max-width: 100%; overflow-wrap: break-word; }
 .pr-shot-card, .pr-shot-body, .pr-shot-title, .pr-shot-meta > * { min-width: 0; }
 .pr-shot-title { overflow-wrap: break-word; }
+
+/* Step 1 on the review grid: a button, not a link. */
+.pr-quick-login { margin: 0.1rem 0; vertical-align: baseline; }
+
+/* Grid cards: the whole card opens the shot through an overlay link; the rating dropdown sits above it. */
+.pr-shot-card { position: relative; }
+.pr-shot-card-link { position: absolute; inset: 0; z-index: 0; border-radius: 12px; }
+.pr-shot-card-link:focus-visible { outline: 3px solid rgba(131, 27, 63, 0.4); outline-offset: 2px; }
+.pr-shot-rate { position: relative; z-index: 1; margin-top: 0.5rem; }
+.pr-shot-rate .pr-rating-summary { font-size: 0.8rem; }

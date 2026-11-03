@@ -40,7 +40,14 @@ else
             Photo matches are marked slate-supported, inferred or approximate.
         </p>
         <ol class="pr-steps">
-            <li><button type="button" class="pr-link-btn" @onclick="OpenName">Enter your name</button>. No password.</li>
+            @if (State.Viewer.HasIdentity)
+            {
+                <li><button type="button" class="ps-btn ps-btn-outline ps-btn-sm pr-quick-login" @onclick="LogOutAsync"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button> Logged in as <strong>@State.Viewer.DisplayName</strong>.</li>
+            }
+            else
+            {
+                <li><button type="button" class="ps-btn ps-btn-primary ps-btn-sm pr-quick-login" @onclick="OpenName"><i class="bi bi-person-plus" aria-hidden="true"></i> Quick Login</button> No password.</li>
+            }
             <li>Open a shot, compare the plan with the photos, and <strong>rate each photo 1–10</strong>.</li>
             <li>Comment, reply, or <a href="photoshoot/suggestions">suggest a pose</a>. Missing and weak shots go into the <a href="photoshoot/second-shoot">second-shoot plan</a>.</li>
         </ol>
@@ -123,7 +130,8 @@ else
                     @foreach (var shot in shotGroup.Shots)
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
-                        <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")" href="@PrUi.ShotLink(shot.ShotId, gridPath)">
+                        <div class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "") @(PrUi.Wide(cover?.Thumb) ? "pr-shot-card-wide" : "")">
+                            <a class="pr-shot-card-link" href="@PrUi.ShotLink(shot.ShotId, gridPath)" aria-label="Open @PrUi.Number(shot.Number) @shot.Title"></a>
                             <div class="pr-shot-thumb" style="aspect-ratio: @PrUi.Ratio(cover?.Thumb)">
                                 @if (cover != null && cover.Thumb.Widths.Count > 0)
                                 {
@@ -155,8 +163,14 @@ else
                                         <span class="pr-muted pr-small"><i class="bi bi-chat" aria-hidden="true"></i> @(shot.CommentCount + shot.OpenSuggestions)</span>
                                     }
                                 </div>
+                                @if (cover != null)
+                                {
+                                    <div class="pr-shot-rate">
+                                        <PrRating Photo="cover" Wide="true" />
+                                    </div>
+                                }
                             </div>
-                        </a>
+                        </div>
                     }
                 </div>
             </section>
@@ -239,6 +253,11 @@ else
     private void OpenName()
     {
         State.OpenNamePrompt();
+    }
+
+    private async Task LogOutAsync()
+    {
+        await State.ForgetAsync();
     }
 
     private List<ShotSummary> FilteredShots(ReviewSummaryResponse summary)

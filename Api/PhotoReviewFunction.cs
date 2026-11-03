@@ -139,10 +139,11 @@ namespace ApiIsolated
         /// <summary>Creates (POST) or revokes (DELETE) the read-only share link for one version. Admin only. Returns the link path.</summary>
         [Function("PhotoReviewShareLink")]
         public Task<HttpResponseData> ShareLink(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", "delete", Route = "photoreview/admin/photos/{photoId}/versions/{versionId}/share")] HttpRequestData req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", "delete", Route = "photoreview/photos/{photoId}/versions/{versionId}/share")] HttpRequestData req,
             string photoId, string versionId) =>
-            AdminWrite(req, async (shootId, context, actor) =>
+            Write(req, async (shootId, context, admin) =>
             {
+                var actor = new ReviewActor { IsAdmin = admin.Check == AdminCheck.Admin, AdminName = admin.Check == AdminCheck.Admin ? "Luke" : "" };
                 if (!PhotoReviewData.IsPhotoId(photoId) || !PhotoReviewData.IsVersionId(versionId)) return await Text(req, HttpStatusCode.BadRequest, "Invalid id.");
                 var revoke = req.Method.Equals("DELETE", StringComparison.OrdinalIgnoreCase);
                 var token = revoke ? null : NewShareToken();

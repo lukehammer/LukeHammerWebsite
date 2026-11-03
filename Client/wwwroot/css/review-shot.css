@@ -33,6 +33,25 @@
     margin: 0 0 0.5rem;
 }
 
+/* Previous on the left, Next on the right, always in the same two columns. */
+.pr-shot-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 22rem;
+    max-width: 100%;
+}
+.pr-shot-step { min-width: 0; justify-content: center; }
+.pr-shot-rating { grid-column: 2; min-width: 0; }
+.pr-shot-rating .pr-rating { gap: 0.2rem; }
+.pr-shot-rating .pr-rating-summary { font-size: 0.8rem; }
+.pr-shot-rating .pr-rating-select { width: 100%; min-height: 2.25rem; font-size: 0.95rem; }
+.pr-shot-rating { grid-column: 2; min-width: 0; }
+.pr-shot-rating .pr-rating { gap: 0.2rem; }
+.pr-shot-rating .pr-rating-summary { font-size: 0.8rem; }
+.pr-shot-rating .pr-rating-select { width: 100%; min-height: 2.25rem; font-size: 0.95rem; }
+.pr-shot-slot { display: block; visibility: hidden; }
+
 .pr-stage-picker {
     display: flex;
     flex-wrap: wrap;
@@ -265,8 +284,34 @@
 /* Collapsible reference lists: closed by default, opened by the summary button. */
 .pr-refs > summary { cursor: pointer; font-weight: 600; padding: 0.35rem 0; list-style-position: inside; }
 .pr-refs[open] > summary { margin-bottom: 0.35rem; }
+/* References are clickable: hover lifts the thumbnail, a badge shows it can be compared, and selected ones stay outlined. */
+.pr-stage-ref-button { position: relative; cursor: pointer; border-radius: 8px; transition: box-shadow 0.15s, transform 0.15s; }
+.pr-stage-ref-button:hover { box-shadow: 0 2px 10px rgba(131, 27, 63, 0.25); transform: translateY(-1px); }
 .pr-stage-ref-on .pr-stage-ref-button { outline: 3px solid var(--ps-burgundy); outline-offset: 2px; }
-.pr-stage-ref-enlarge { font-size: 0.8rem; }
+
+/* Labelled compare toggle under each reference thumbnail. */
+.pr-stage-ref-toggle { margin-top: 0.25rem; padding: 0.15rem 0.5rem; border: 1px solid var(--ps-burgundy); border-radius: 999px; background: #fff; color: var(--ps-burgundy); font-size: 0.78rem; font-weight: 600; line-height: 1.3; white-space: nowrap; cursor: pointer; }
+.pr-stage-ref-toggle:hover { background: #fbeef3; }
+.pr-stage-ref-toggle-on { background: var(--ps-burgundy); color: #fff; }
+.pr-stage-ref-toggle-on:hover { background: #6f1434; }
+
+/* Photo versions and pose references share one grid: labels on the left, thumbnails and actions on the right. */
+.pr-stage-versions,
+.pr-stage-poseref {
+    display: grid;
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    row-gap: 0.3rem;
+    align-items: start;
+}
+.pr-stage-versions > .pr-stage-subhead { grid-column: 1; grid-row: 1; }
+.pr-stage-versions > .pr-version-strip { grid-column: 2; grid-row: 1; }
+.pr-stage-versions > .pr-version-actions { grid-column: 2; grid-row: 2; }
+.pr-stage-versions > .pr-small { grid-column: 2; grid-row: 3; }
+.pr-stage-poseref > .pr-stage-sub { grid-column: 1; grid-row: 1; }
+.pr-stage-poseref > .pr-stage-hint { grid-column: 1; grid-row: 2; }
+.pr-stage-poseref > .pr-stage-refs { grid-column: 2; grid-row: 1 / span 2; }
+.pr-version-actions { margin: 0; justify-content: flex-start; }
 
 /* Side-by-side comparison: every image shares one height so they compare directly. */
 .pr-compare { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.6rem; margin: 0.6rem 0; }
@@ -275,6 +320,13 @@
 .pr-compare-item figcaption { display: flex; justify-content: space-between; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: var(--ps-muted); }
 .pr-compare-close { border: 0; background: transparent; padding: 0 0.2rem; color: inherit; cursor: pointer; }
 .pr-compare-clear { align-self: center; }
+
+/* The comparison takes the place of the photo frame: each image is scaled to the same height, inside the same box. */
+/* A grid filled column by column, two rows deep: the photo sits in the top-left cell and the first reference directly under it. */
+.pr-stage-compare { position: relative; display: grid; grid-template-rows: auto auto; grid-auto-flow: column; grid-auto-columns: max-content; align-content: start; justify-content: start; gap: 0.6rem 0.75rem; padding: 0.75rem 3.25rem 0.75rem 0.75rem; overflow: auto; background: #f3f1f2; }
+.pr-stage-compare .pr-compare-item { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.pr-stage-compare .pr-compare-item img.pr-compare-img { height: 12.5rem; width: auto; max-width: 100%; object-fit: contain; border-radius: 6px; }
+.pr-stage-compare .pr-compare-clear { position: absolute; top: 0.5rem; right: 0.5rem; }
 
 .pr-version-thumb-label {
     max-width: 100%;
@@ -490,12 +542,12 @@
 /* Phones and small tablets: the photo comes first, text follows below, and the Previous/Next nav moves under the
    reference strip so the photo starts as high as possible. No horizontal scrolling. */
 @media (max-width: 860px) {
-    /* The photo, versions and references share the space left on screen, so all of them show without scrolling. */
+    /* The stage sizes to its content. A fixed height here made the versions and references spill over the words below. */
     .pr-shot-stage {
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
-        height: var(--pr-workspace-h, calc(100dvh - 8rem));
+        height: auto;
         min-height: 0;
     }
 
@@ -536,8 +588,9 @@
     .pr-stage-frame,
     .pr-stage-empty {
         order: 3;
-        flex: 1 1 0;
-        min-height: 0;
+        flex: 0 0 auto;
+        height: min(60vh, 28rem);
+        min-height: 14rem;
     }
 
     .pr-stage-empty {
@@ -652,4 +705,168 @@ body:has(.pr-shot-workspace) .pr-flash {
     .pr-quick-wide {
         grid-column: auto;
     }
+}
+
+/* Phones: the labels, thumbnails and actions stack in one column. */
+@media (max-width: 860px) {
+    .pr-stage-versions,
+    .pr-stage-poseref {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+/* Photo versions and pose references use one tile width and start on the same left edge, so each column lines up. */
+.pr-stage-versions,
+.pr-stage-poseref {
+    --pr-tile-w: 6.75rem;
+}
+.pr-version-strip {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.pr-version-thumb {
+    flex: 0 0 var(--pr-tile-w);
+    width: var(--pr-tile-w);
+}
+.pr-stage-refs {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+.pr-stage-ref {
+    flex: 0 0 var(--pr-tile-w);
+    width: var(--pr-tile-w);
+    max-width: var(--pr-tile-w);
+}
+.pr-stage-ref-toggle {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    text-align: center;
+}
+.pr-version-thumb {
+    max-width: var(--pr-tile-w);
+    margin: 0;
+}
+
+/* Desktop: versions and pose references keep their label and thumbnail grid. */
+@media (min-width: 861px) {
+    .pr-stage-versions,
+    .pr-stage-poseref {
+        display: grid;
+        grid-template-columns: 9.5rem minmax(0, 1fr);
+        column-gap: 0.75rem;
+        row-gap: 0.3rem;
+        align-items: start;
+    }
+}
+
+/* Each version tile carries its own download and share buttons. */
+.pr-version-cell {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--pr-tile-w);
+    width: var(--pr-tile-w);
+    min-width: 0;
+}
+/* Each version tile carries its own download and share buttons. */
+.pr-version-cell {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--pr-tile-w);
+    width: var(--pr-tile-w);
+    min-width: 0;
+}
+.pr-version-cell .pr-version-thumb {
+    width: 100%;
+    max-width: 100%;
+    flex: none;
+}
+.pr-version-tile-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-top: 0.2rem;
+}
+.pr-version-tile-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.6rem;
+    padding: 0;
+    border: 1px solid var(--ps-burgundy);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ps-burgundy);
+    font-size: 0.8rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+.pr-version-tile-btn:hover:not(:disabled) { background: #fbeef3; }
+.pr-version-tile-btn:disabled { opacity: 0.5; cursor: default; }
+.pr-version-tile-revoke { border-color: #8a8a8a; color: #555; }
+
+/* Inside a tile cell the thumbnail sizes to its content, so the download and share row sits right under it. */
+.pr-version-cell .pr-version-thumb {
+    flex: 0 0 auto;
+    height: auto;
+}
+.pr-version-tile-actions {
+    min-height: 1.6rem;
+}
+
+/* Version tiles keep their own height: no stretching to the tallest tile, so no empty space under the labels. */
+.pr-version-strip {
+    align-items: flex-start;
+}
+.pr-version-cell {
+    align-self: flex-start;
+}
+.pr-version-cell .pr-version-thumb {
+    align-self: stretch;
+    min-height: 0;
+}
+
+/* Comparison: photo and references sit side by side in one row, and wrap to a new row only when space runs out. */
+.pr-stage-compare {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    justify-content: flex-start;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+}
+
+/* Comparison fills the box: the photo and each reference share the width equally and grow to the full height. */
+.pr-stage-compare {
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.6rem;
+}
+.pr-stage-compare .pr-compare-item {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+}
+.pr-stage-compare .pr-compare-item img.pr-compare-img {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 0;
+    min-height: 0;
+    object-fit: contain;
+}
+.pr-stage-compare .pr-compare-item figcaption {
+    flex: 0 0 auto;
+}
+
+/* Acting note directly under the shot title. */
+.pr-acting-under-title {
+    margin: 0.2rem 0 0.5rem;
+    font-size: 0.95rem;
 }

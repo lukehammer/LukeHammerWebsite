@@ -86,10 +86,11 @@ namespace BlazorApp.Shared.PhotoReview
             {
                 case "off":
                     return PhotoShootAccess.None;
-                case "owner":
-                    return PhotoShootAccess.Owner;
-                default:
+                case "photographer":
                     return PhotoShootAccess.Photographer;
+                default:
+                    // Temporary: the shared password opens the director view (owner level) until this is changed back.
+                    return PhotoShootAccess.Owner;
             }
         }
     }
