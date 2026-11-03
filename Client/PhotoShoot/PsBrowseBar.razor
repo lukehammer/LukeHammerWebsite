@@ -7,11 +7,17 @@
     <div class="ps-browse">
         <div class="ps-browse-row" role="group" aria-label="Browse the shoot">
             <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="() => Go(0)">First</button>
-            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="Previous">Previous</button>
+            @if (ShowStepButtons)
+            {
+                <button type="button" class="ps-btn ps-btn-outline" disabled="@(index <= 0)" @onclick="Previous">Previous</button>
+            }
             <button type="button" class="ps-browse-count" aria-expanded="@open" @onclick="() => open = !open">
                 Photo @(index + 1) of @ordered.Count <span aria-hidden="true">▼</span>
             </button>
-            <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="Next">Next</button>
+            @if (ShowStepButtons)
+            {
+                <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="Next">Next</button>
+            }
             <button type="button" class="ps-btn ps-btn-outline" disabled="@(index >= ordered.Count - 1)" @onclick="() => Go(ordered.Count - 1)">Last</button>
         </div>
         @if (open)
@@ -74,6 +80,8 @@
     [Parameter] public string? CurrentId { get; set; }
     [Parameter] public EventCallback<string> Navigate { get; set; }
     [Parameter] public Func<PhotoReference, string>? ImageUrl { get; set; }
+    /// <summary>Previous and Next in the browse row. Views with their own edge rails turn these off.</summary>
+    [Parameter] public bool ShowStepButtons { get; set; } = true;
 
     private PhotoShot? shown => PhotoShootPlanner.FindShot(Doc!, CurrentId);
     private int index => shown == null ? -1 : ordered.FindIndex(shot => shot.Id == shown.Id);

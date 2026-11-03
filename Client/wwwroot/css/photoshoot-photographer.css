@@ -1,0 +1,260 @@
+/* Photographer live view: edge rails (Previous / Next) and the large acting-note cue.
+   Every rule is scoped to .ps-photographer, so the Director, Marker and other live pages are unchanged.
+   The rails reserve their own columns, so the centre column (action bar, shot, references, footer) never
+   sits under them. Loaded last by PhotoShootLiveLayout so these rules win over photoshoot.css. */
+
+.ps-root.ps-live .ps-photographer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ---------- edge rails: Previous (left) and Next (right), full height ---------- */
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail {
+    grid-row: 1;
+    width: clamp(3rem, 6vw, 5rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0.4rem 0.2rem;
+    border: 0;
+    border-radius: 0;
+    background: var(--ps-burgundy);
+    color: #fff;
+    font-size: clamp(0.8rem, 1.3vw, 1rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail i {
+    font-size: clamp(2rem, 5.2vw, 3.6rem);
+    line-height: 1;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail:hover:not(:disabled) {
+    background: #9c2a50;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail:active:not(:disabled) {
+    background: var(--ps-burgundy-dark);
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail:focus-visible {
+    outline: 4px solid var(--ps-gold);
+    outline-offset: -6px;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail-prev {
+    grid-column: 1;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-rail-next {
+    grid-column: 3;
+}
+
+/* ---------- centre column: keeps the existing top-down flow inside one column ---------- */
+
+.ps-root.ps-live .ps-photographer .ps-photo-center {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    min-height: 0;
+    padding: 0 clamp(0.3rem, 0.8vw, 0.6rem);
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-center > .ps-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* ---------- shot layout: compact header, then the full-width acting cue, then instructions | references ----------
+   The header keeps the number, badges, title and setup. The cue spans the whole centre workspace directly
+   above the instructions, so it wraps to fewer lines. Real notes are at most about 100 characters. The size
+   follows the width (32px on tablet, about 35px at 1280) and is capped by height. The text never truncates. */
+
+.ps-root.ps-live .ps-photographer .ps-live-shot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.ps-root.ps-live .ps-photographer .ps-shot-head {
+    flex: none;
+    min-width: 0;
+}
+
+.ps-root.ps-live .ps-photographer .ps-shot-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-cue {
+    flex: none;
+    margin: 0;
+    padding: 0 0 0 clamp(0.6rem, 1.2vw, 1rem);
+    border-left: 6px solid var(--ps-burgundy);
+    min-width: 0;
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-cue-label {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ps-burgundy);
+}
+
+.ps-dark .ps-root.ps-live .ps-photographer .ps-photo-cue-label {
+    color: var(--ps-pink);
+}
+
+.ps-root.ps-live .ps-photographer .ps-photo-cue-text {
+    margin: 0.1rem 0 0;
+    font-size: min(max(1.75rem, 2.7vw), 4.9vh, 2.75rem);
+    line-height: 1.15;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+/* Landscape tablets and desktops: instructions on the left, every reference on the right.
+   Each instruction is one row (label, then text) so the wide value column wraps less and the shot fits the height. */
+@media (min-width: 900px) and (orientation: landscape) {
+    .ps-root.ps-live .ps-photographer .ps-photo-rail {
+        width: clamp(3.25rem, 6vw, 5rem);
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-photo-center {
+        padding: 0 clamp(0.3rem, 0.6vw, 0.5rem);
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-shot-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-shot-info {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-photo-key {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.2rem;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-card {
+        display: grid;
+        grid-template-columns: clamp(7rem, 11vw, 9.5rem) minmax(0, 1fr);
+        column-gap: 0.5rem;
+        align-items: baseline;
+        padding: 0.15rem 0.4rem;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-card > .ps-key-label {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-card > .ps-key-value {
+        grid-column: 2;
+        grid-row: 1;
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-card > .ps-key-sub {
+        grid-column: 2;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-wide {
+        grid-column: auto;
+    }
+
+    /* Footer on one row: Up next | More detail | note input. Keeps the instructions and references tall enough. */
+    .ps-root.ps-live .ps-photographer .ps-photo-foot {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
+        align-items: center;
+        gap: 0.3rem 0.6rem;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-up-next {
+        grid-column: 1;
+        margin: 0;
+        padding: 0;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-live-more {
+        grid-column: 2;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-note-form {
+        grid-column: 3;
+    }
+}
+
+/* Phones and portrait screens: the rails stay narrow so the content keeps the width. */
+@media (max-width: 899px), (orientation: portrait) {
+    .ps-root.ps-live .ps-photographer .ps-photo-rail {
+        width: 2.75rem;
+        font-size: 0.6rem;
+        padding: 0.3rem 0;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-photo-rail i {
+        font-size: 1.75rem;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-photo-cue-text {
+        font-size: 1.35rem;
+    }
+
+    /* Portrait: the shot panel scrolls inside itself, so instruction text is never clamped or cut off. */
+    .ps-root.ps-live .ps-photographer .ps-key-card {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .ps-root.ps-live .ps-photographer .ps-key-value,
+    .ps-root.ps-live .ps-photographer .ps-key-sub {
+        display: block;
+        overflow: visible;
+        -webkit-line-clamp: unset;
+        white-space: normal;
+        text-overflow: clip;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ps-root.ps-live .ps-photographer .ps-photo-rail {
+        transition: none;
+    }
+}
