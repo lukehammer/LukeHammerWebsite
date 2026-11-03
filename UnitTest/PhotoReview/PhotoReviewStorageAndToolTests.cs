@@ -55,8 +55,8 @@ public sealed class PhotoReviewStorageAndToolTests : IDisposable
     [Fact]
     public async Task AdminBinding_IsCreateOnly()
     {
-        var first = new BlazorApp.Shared.PhotoShoot.SwaClientPrincipal { IdentityProvider = "aad", UserId = "real-luke", UserDetails = "luke@lukehammermagic.com" };
-        var second = new BlazorApp.Shared.PhotoShoot.SwaClientPrincipal { IdentityProvider = "aad", UserId = "someone-else", UserDetails = "luke@lukehammermagic.com" };
+        var first = new BlazorApp.Shared.PhotoShoot.SwaClientPrincipal { IdentityProvider = "aad", UserId = "real-luke", UserDetails = "lukeroberthammer@outlook.com" };
+        var second = new BlazorApp.Shared.PhotoShoot.SwaClientPrincipal { IdentityProvider = "aad", UserId = "someone-else", UserDetails = "lukeroberthammer@outlook.com" };
         (await PhotoReviewData.TryBindAsync(first)).Should().BeTrue();
         (await PhotoReviewData.TryBindAsync(second)).Should().BeFalse("an existing binding is never replaced");
         (await PhotoReviewData.LoadBindingAsync())!.UserId.Should().Be("real-luke");

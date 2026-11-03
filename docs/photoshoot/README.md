@@ -10,7 +10,7 @@ A private, mobile-first tool inside LukeHammer.com for planning and running the 
 
 Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [STATUS.md](STATUS.md) · [PHOTO_CATALOG.md](PHOTO_CATALOG.md) · **[PHOTO_REVIEW.md](PHOTO_REVIEW.md)** (public photo review, ratings, second shoot, walkthrough) · [ARTIFACT_MANIFEST.md](ARTIFACT_MANIFEST.md)
 
-> Sign-in changed: Luke edits with **Microsoft sign-in** (luke@lukehammermagic.com). The shared password now gives photographer access only.
+> Sign-in changed: Luke edits with **Microsoft sign-in** (lukeroberthammer@outlook.com). The shared password now gives photographer access only.
 
 ## Pages
 
