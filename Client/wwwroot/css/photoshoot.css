@@ -3291,3 +3291,36 @@ body:has(.ps-photographer) #app {
 @media print {
     .ps-review-banner { display: none; }
 }
+
+/* Browse bar: Previous goes back (burgundy), Next goes forward (teal). */
+.ps-browse-back { background: #fff; color: var(--ps-burgundy); border: 2px solid var(--ps-burgundy); font-weight: 700; }
+.ps-browse-back:hover:not(:disabled) { background: #fbeef3; }
+.ps-browse-forward { background: #0b7f8c; color: #fff; border: 2px solid #0b7f8c; font-weight: 700; }
+.ps-browse-forward:hover:not(:disabled) { background: #086a75; }
+.ps-browse-back:disabled, .ps-browse-forward:disabled { opacity: 0.45; }
+
+/* Director: big Previous and Next buttons on the left and right edges, always in reach. */
+.ps-dir-rail {
+  position: fixed;
+  top: 66%;
+  transform: translateY(-50%);
+  z-index: 40;
+  width: 4rem;
+  height: 36vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.ps-dir-rail i { font-size: 1.8rem; }
+.ps-dir-rail-prev { left: 0.5rem; }
+.ps-dir-rail-next { right: 0.5rem; }
+.ps-dir-rail:disabled { opacity: 0.35; }
+
+/* First and Last use double chevrons, in the same colours as Previous and Next. */
+.ps-browse-end { font-weight: 700; }

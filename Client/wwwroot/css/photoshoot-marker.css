@@ -217,3 +217,73 @@ body:has(.ps-marker-view) #app {
         transition: none;
     }
 }
+
+/* The browse row sits centred at the top of the marker; the card fills the rest of the centre. */
+.ps-root .ps-marker-browse {
+    flex: none;
+    display: flex;
+    justify-content: center;
+}
+.ps-root .ps-marker-browse .ps-browse {
+    width: auto;
+}
+.ps-root .ps-marker-stage {
+    flex: 1 1 0;
+    width: 100%;
+}
+.ps-root .ps-marker-stage .ps-marker-card {
+    width: 100%;
+    max-width: none;
+    align-self: stretch;
+}
+
+/* Bigger text so the shot reads from across the room and fills the card above the date. */
+.ps-root .ps-marker-stage .ps-marker-title {
+    font-size: min(clamp(3.2rem, 9.5vw, 7.5rem), 13vh);
+    line-height: 1.02;
+}
+.ps-root .ps-marker-stage .ps-marker-setup {
+    font-size: min(clamp(1.6rem, 3.8vw, 3rem), 5.2vh);
+}
+.ps-root .ps-marker-stage .ps-marker-summary {
+    font-size: min(clamp(1.6rem, 3.6vw, 2.8rem), 5.2vh);
+    line-height: 1.25;
+}
+.ps-root .ps-marker-stage .ps-marker-note {
+    padding-left: clamp(0.9rem, 1.6vw, 1.5rem);
+}
+.ps-root .ps-marker-stage .ps-marker-note-label {
+    font-size: min(clamp(1.1rem, 2vw, 1.6rem), 3vh);
+}
+.ps-root .ps-marker-stage .ps-marker-note-text {
+    font-size: min(clamp(2.4rem, 5.6vw, 4.6rem), 9vh);
+    line-height: 1.15;
+}
+
+/* Trimmed back so the whole shot, including the acting note, fits above the date. */
+.ps-root .ps-marker-stage .ps-marker-title {
+    font-size: min(clamp(2.8rem, 8vw, 6rem), 11vh);
+}
+.ps-root .ps-marker-stage .ps-marker-setup {
+    font-size: min(clamp(1.4rem, 3vw, 2.4rem), 4.2vh);
+}
+.ps-root .ps-marker-stage .ps-marker-summary {
+    font-size: min(clamp(1.4rem, 3vw, 2.2rem), 4.4vh);
+}
+.ps-root .ps-marker-stage .ps-marker-note-text {
+    font-size: min(clamp(2rem, 4.6vw, 3.6rem), 7vh);
+}
+
+/* Scaled to the window height as well, so the acting note and the date both stay on screen. */
+.ps-root .ps-marker-stage .ps-marker-title {
+    font-size: min(clamp(2.4rem, 7vw, 5rem), 9vh);
+}
+.ps-root .ps-marker-stage .ps-marker-setup {
+    font-size: min(clamp(1.3rem, 2.6vw, 2rem), 3.6vh);
+}
+.ps-root .ps-marker-stage .ps-marker-summary {
+    font-size: min(clamp(1.3rem, 2.6vw, 2rem), 3.6vh);
+}
+.ps-root .ps-marker-stage .ps-marker-note-text {
+    font-size: min(clamp(1.8rem, 3.8vw, 3rem), 5.6vh);
+}

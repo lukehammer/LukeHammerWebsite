@@ -32,6 +32,9 @@
         }
 
         <div class="ps-marker-center">
+            <div class="ps-marker-browse">
+                <PsBrowseBar Doc="doc" CurrentId="@current?.Id" Navigate="shotId => Do(SessionAction.SetCurrent, shotId)" ImageUrl="reference => Store.Api.ImageUrl(doc.Id, reference)" />
+            </div>
             <div class="ps-marker-top">
                 @if (!session.IsActive)
                 {
@@ -130,7 +133,7 @@
         }
     }
 
-    private async Task Do(SessionAction action)
+    private async Task Do(SessionAction action, string shotId = "")
     {
         if (busy)
         {
@@ -140,7 +143,7 @@
         busy = true;
         try
         {
-            await Store.SessionAsync(action);
+            await Store.SessionAsync(action, shotId);
         }
         finally
         {

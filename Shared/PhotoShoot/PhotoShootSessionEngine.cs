@@ -69,7 +69,10 @@ namespace BlazorApp.Shared.PhotoShoot
         {
             SessionAction.RequestNext,
             SessionAction.CompleteCurrent,
-            SessionAction.AddNote
+            SessionAction.AddNote,
+            SessionAction.Next,
+            SessionAction.Previous,
+            SessionAction.SetCurrent
         };
 
         private static readonly HashSet<SessionAction> PhotographerAdvanceActions = new HashSet<SessionAction>

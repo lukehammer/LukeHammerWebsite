@@ -64,6 +64,8 @@ namespace BlazorApp.Client.PhotoShoot
         public bool FlashIsError { get; private set; }
 
         public bool IsOwner => PhotoShootAuthorization.CanEdit(Me?.Access ?? PhotoShootAccess.None);
+        /// <summary>Anyone who can open the planner (photographer or owner level) can open the director view.</summary>
+        public bool CanRead => PhotoShootAuthorization.CanRead(Me?.Access ?? PhotoShootAccess.None);
         public bool IsPhotographer => Me?.Access == PhotoShootAccess.Photographer;
         public bool CanUploadPhotos => PhotoShootAuthorization.CanUploadPhotos(Me?.Access ?? PhotoShootAccess.None);
         public bool CanDownloadFinals => PhotoShootAuthorization.CanDownloadFinals(Me?.Access ?? PhotoShootAccess.None);
@@ -162,6 +164,19 @@ namespace BlazorApp.Client.PhotoShoot
             _api.Password = trimmed;
             await LocalSetAsync(PasswordKey, trimmed);
             await SetPasswordCookieAsync(trimmed);
+            _initialized = false;
+            await EnsureInitializedAsync();
+        }
+
+        /// <summary>True when this browser is signed in with the shoot password rather than Microsoft.</summary>
+        public bool UsesPassword => !string.IsNullOrEmpty(_api.Password);
+
+        /// <summary>Forgets the shoot password on this browser and drops back to the sign-in screen.</summary>
+        public async Task SignOutPasswordAsync()
+        {
+            _api.Password = "";
+            await LocalSetAsync(PasswordKey, "");
+            await SetPasswordCookieAsync("");
             _initialized = false;
             await EnsureInitializedAsync();
         }
