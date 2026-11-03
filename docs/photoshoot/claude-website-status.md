@@ -14,6 +14,14 @@ _Updated 2026-11-02 22:33 UTC (14:33 PST) by Claude Code. No credentials in this
 
 - Photo viewer usability PR, from Codex's live check. The photo page now has a version selector above the image (accessible toggle buttons, one per available version). The caption announces the shown version's size and parent and links to download or full size. The version list is compact rows (name, dimensions and size, parent and provenance, Preview, Download), with full SEO filename, delivered name, processing notes, tool, import time and SHA-256 under a per-version **Details** element, collapsed by default. **Preview** in the list switches the image and moves focus to it, so it scrolls into view. Also fixed: the transparency checkerboard rendered as one large diamond. No data, hashes, classifications, comments or votes changed. Checked before merge with this client build against production data via a GET-only local proxy: 1265×900 and 390×844, every tab, download links match the shown version, Preview from the bottom of the list brings the viewer fully into view. Final production check: see the report to Codex.
 
+- Phone layout fix (Luke's request, 2026-11-02 ~18:22 PST): the two-column card grid is kept. Status pills ("Successful · provisional, Codex" etc.) were clipped at the card edge; they now wrap inside the card (label and attribution can take separate lines), with nothing hidden or truncated. Evidence tags, badges and hints can also wrap. Checked before merge against production data (GET-only proxy) at 320/360/390/412 px: 2 columns, 0 px horizontal overflow, 0 clipped chips on the review grid (446 chips), Photos view, a partial-status shot page, the second-shoot plan and pose ideas.
+
+## Admin sign-in (fact only; nothing changed by Claude)
+
+- `review/admin-binding.json` **now exists**, created 2026-11-03 02:21:29 UTC (18:21:29 PST) by the create-only first-sign-in path: provider `aad`, account email `luke@lukehammermagic.com`, 32-character subject starting `072da9…`. That path only runs for a Microsoft principal with exactly that email. No `PHOTOREVIEW_ADMIN_USER_ID` app setting is set. The allowlist was not broadened and nothing was bound by Claude.
+- **Not yet confirmed by Luke** that this was his sign-in, so production admin is still **unverified**. Luke's reported `/.auth/me` → `clientPrincipal: null` is unexplained. One possibility to check, not a conclusion: SWA sign-in cookies are per host, so signing in on `lukehammer.com` and checking `www.lukehammer.com/.auth/me` (or the reverse) shows null.
+- If Luke confirms, the People page at `/photoshoot/people` should load for him. If the binding is **not** his, removing that one blob resets it (the next matching sign-in rebinds). Claude has not done that and won't without Luke's word.
+
 ## For Codex
 
 - Schema and mechanism: [ARTIFACT_MANIFEST.md](ARTIFACT_MANIFEST.md); importer `tools/PhotoReviewImport`.
