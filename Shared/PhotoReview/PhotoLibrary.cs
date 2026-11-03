@@ -77,6 +77,7 @@ namespace BlazorApp.Shared.PhotoReview
                             ShootDate = shoot.ShootDate,
                             ShootCreatedUtc = shoot.CreatedUtc,
                             PoseKey = PoseKey(shot),
+                            PoseSummary = shot.Summary,
                             ShotNumber = shot.Number,
                             Title = photos.Count > 1 ? $"{shot.Title} ({index + 1})" : shot.Title,
                             Category = PhotoReviewLabels.Category(shot.Category),
@@ -196,6 +197,8 @@ namespace BlazorApp.Shared.PhotoReview
         public DateTime ShootCreatedUtc { get; set; }
         /// <summary>Same key for the same pose across shoots, so the newest accepted photo can stand in for older ones.</summary>
         public string PoseKey { get; set; } = "";
+        /// <summary>The pose's summary from the shot plan. Empty when none was written.</summary>
+        public string PoseSummary { get; set; } = "";
         /// <summary>True for the newest accepted photo of its pose. False means an earlier accepted photo, still listed.</summary>
         public bool IsCurrent { get; set; } = true;
         public int ShotNumber { get; set; }
