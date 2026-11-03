@@ -6,10 +6,6 @@
 
 <PageTitle>@(detail == null ? "Lucky Luke Magic · Photo review" : $"{PrUi.Number(detail.Shot.Number)} {detail.Shot.Title} · Lucky Luke Magic photo review")</PageTitle>
 
-<HeadContent>
-    <link rel="stylesheet" href="css/review-shot.css" />
-</HeadContent>
-
 @if (detail == null)
 {
     @if (PrUi.Has(error))
