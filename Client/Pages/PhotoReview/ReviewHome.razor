@@ -114,16 +114,16 @@ else
     else
     {
         <p class="pr-muted pr-small">@shots.Count of @summary.Shots.Count planned shots</p>
-        @foreach (var section in ShotSections(shots))
+        @foreach (var shotGroup in ShotSections(shots))
         {
             <section class="pr-group">
-                <h2 class="pr-group-title">@section.Title <span class="pr-muted">@section.Shots.Count shots</span></h2>
-                @if (section.Category == ReviewCategory.KidsAndVolunteers && section.Shots.All(s => s.PhotoIds.Count == 0))
+                <h2 class="pr-group-title">@shotGroup.Title <span class="pr-muted">@shotGroup.Shots.Count shots</span></h2>
+                @if (shotGroup.Category == ReviewCategory.KidsAndVolunteers && shotGroup.Shots.All(s => s.PhotoIds.Count == 0))
                 {
                     <p class="pr-note">No children appear in the supplied albums, so these shots are all waiting for a second shoot with volunteers.</p>
                 }
                 <div class="pr-shot-grid">
-                    @foreach (var shot in section.Shots)
+                    @foreach (var shot in shotGroup.Shots)
                     {
                         var cover = State.Photo(shot.CoverPhotoId);
                         <a class="pr-shot-card @(shot.PhotoIds.Count == 0 ? "pr-shot-card-empty" : "")" href="@PrUi.ShotLink(shot.ShotId)">
