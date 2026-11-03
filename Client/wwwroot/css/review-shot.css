@@ -1,0 +1,359 @@
+/* Photo review shot page (/photoshoot/review/shot/…). Loaded after photoreview.css by ReviewShot.razor.
+   Every rule is scoped to the shot page: .pr-shot-*, .pr-stage-*, .pr-reference-list, .pr-captured-controls. */
+
+/* Two panels: words and controls on the left, the captured photo on the right. */
+.pr-shot-workspace {
+    --pr-shot-chrome: 8rem; /* sub-nav + identity bar above the workspace, plus a little room (laptop/tablet) */
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pr-shot-stage,
+.pr-shot-info {
+    min-width: 0;
+}
+
+.pr-stage-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.6rem;
+    margin-bottom: 0.35rem;
+}
+
+.pr-stage-title {
+    font-size: 1rem !important;
+    margin: 0 !important;
+    color: var(--ps-burgundy);
+}
+
+/* Compact navigation shares the photo's top bar: category, previous and next sit at the right end. */
+.pr-stage-bar .pr-pager {
+    margin: 0 0 0 auto;
+}
+
+.pr-stage-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.pr-stage-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 44px;
+    padding: 0.15rem 0.5rem 0.15rem 0.15rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ps-text);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.pr-stage-pick img {
+    height: 2.25rem;
+    width: auto;
+    max-width: 2.6rem;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #f3f1f2;
+}
+
+.pr-stage-pick:hover {
+    border-color: var(--ps-burgundy);
+}
+
+.pr-stage-pick:focus-visible {
+    outline: 3px solid rgba(131, 27, 63, 0.4);
+    outline-offset: 1px;
+}
+
+.pr-stage-pick-on {
+    border-color: var(--ps-burgundy);
+    box-shadow: 0 0 0 2px rgba(131, 27, 63, 0.25);
+    font-weight: 600;
+}
+
+/* The photo itself: the frame takes the leftover height, and the image is scaled to fit inside it whole. */
+.pr-stage-frame {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 14rem;
+    margin: 0;
+    border-radius: 10px;
+    background: #f3f1f2;
+    overflow: hidden;
+}
+
+.pr-stage-zoom {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+}
+
+.pr-stage-zoom:focus-visible {
+    outline: 3px solid rgba(131, 27, 63, 0.4);
+    outline-offset: -3px;
+}
+
+.pr-stage-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.pr-stage-empty {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 10rem;
+    border: 2px dashed var(--ps-border);
+    border-radius: var(--ps-radius);
+    color: var(--ps-muted);
+}
+
+.pr-stage-empty > .bi {
+    font-size: 2rem;
+}
+
+/* Reference strip under the photo: small thumbnails, aspect ratio kept, click to enlarge. */
+.pr-stage-refs {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.pr-stage-ref {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    max-width: 8rem;
+    min-width: 0;
+    font-size: 0.72rem;
+}
+
+.pr-stage-ref-button {
+    display: block;
+    height: 3.2rem;
+    padding: 0;
+    border: 1px solid var(--ps-border);
+    border-radius: 6px;
+    background: #fff;
+    cursor: zoom-in;
+    overflow: hidden;
+}
+
+.pr-stage-ref-button img {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 7rem;
+    object-fit: contain;
+}
+
+.pr-stage-ref-button:focus-visible {
+    outline: 3px solid rgba(131, 27, 63, 0.4);
+    outline-offset: 2px;
+}
+
+.pr-stage-ref-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    height: 3.2rem;
+    padding: 0 0.5rem;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid var(--ps-border);
+}
+
+.pr-stage-ref-caption {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ps-muted);
+}
+
+.pr-reference-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+}
+
+.pr-reference-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.pr-shot-block {
+    background: var(--ps-surface-2);
+    border-radius: var(--ps-radius);
+    padding: 0.8rem 0.9rem;
+    margin-top: 0.75rem;
+}
+
+.pr-shot-block > .pr-col-title:first-child {
+    margin-top: 0 !important;
+}
+
+.pr-captured-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+/* Laptops and tablets in landscape: the photo fills the right side, starts near the top, and stays in view.
+   The site's own sidebar and top bar step aside here, and the review bars get tighter, so the whole photo and the
+   reference strip fit a 1366×768 or 1024×768 screen. Only this page is affected. */
+@media (min-width: 641px) {
+    body:has(.pr-shot-workspace) .sidebar,
+    body:has(.pr-shot-workspace) .top-row {
+        display: none;
+    }
+
+    body:has(.pr-shot-workspace) .content {
+        padding-top: 0.6rem;
+    }
+
+    body:has(.pr-shot-workspace) .pr-subnav {
+        padding: 0 0 0.4rem;
+        margin-bottom: 0.4rem;
+    }
+
+    body:has(.pr-shot-workspace) .pr-subnav-link {
+        min-height: 34px;
+        padding: 0.25rem 0.7rem;
+    }
+
+    body:has(.pr-shot-workspace) .pr-identity {
+        margin-bottom: 0.4rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+}
+
+@media (min-width: 861px) {
+    .pr-root:has(.pr-shot-workspace) {
+        max-width: none;
+    }
+
+    .pr-shot-workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: 0 1.25rem;
+        align-items: start;
+    }
+
+    .pr-shot-stage {
+        grid-column: 2;
+        grid-row: 1;
+        position: sticky;
+        top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - var(--pr-shot-chrome));
+        height: calc(100dvh - var(--pr-shot-chrome));
+        min-height: 16rem;
+    }
+
+    .pr-shot-info {
+        grid-column: 1;
+        grid-row: 1;
+        position: sticky;
+        top: 0.5rem;
+        max-height: calc(100vh - var(--pr-shot-chrome));
+        max-height: calc(100dvh - var(--pr-shot-chrome));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 0.25rem;
+    }
+
+    .pr-shot-info .pr-shot-block:first-of-type {
+        margin-top: 0;
+    }
+}
+
+/* Phones and small tablets: the photo comes first, text follows below, and the Previous/Next nav moves under the
+   reference strip so the photo starts as high as possible. No horizontal scrolling. */
+@media (max-width: 860px) {
+    .pr-shot-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .pr-stage-bar {
+        display: contents;
+    }
+
+    .pr-stage-title {
+        order: 1;
+    }
+
+    .pr-stage-picker {
+        order: 2;
+    }
+
+    .pr-stage-frame,
+    .pr-stage-empty {
+        order: 3;
+        flex: 0 0 auto;
+        height: calc(100vh - 19rem);
+        height: calc(100svh - 19rem);
+        min-height: 14rem;
+    }
+
+    .pr-stage-empty {
+        min-height: 8rem;
+    }
+
+    .pr-stage-refs {
+        order: 4;
+        margin-top: 0;
+    }
+
+    .pr-stage-bar .pr-pager {
+        order: 5;
+        margin: 0.3rem 0 0;
+        justify-content: center;
+    }
+
+    .pr-reference-list {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pr-stage-pick {
+        min-height: 44px;
+        font-size: 0.75rem;
+    }
+
+    .pr-stage-ref {
+        max-width: 6.5rem;
+    }
+}

@@ -1,9 +1,14 @@
 @page "/photoshoot/review/shot/{ShotId}"
+@using BlazorApp.Client.PhotoShoot
 @implements IDisposable
 @inject PhotoReviewState State
 @inject NavigationManager Nav
 
 <PageTitle>@(detail == null ? "Lucky Luke Magic · Photo review" : $"{PrUi.Number(detail.Shot.Number)} {detail.Shot.Title} · Lucky Luke Magic photo review")</PageTitle>
+
+<HeadContent>
+    <link rel="stylesheet" href="css/review-shot.css" />
+</HeadContent>
 
 @if (detail == null)
 {
@@ -19,77 +24,174 @@
 else
 {
     var shot = detail.Shot;
-    <nav class="pr-pager" aria-label="Shot navigation">
-        <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@($"photoshoot/review?c={PhotoReviewLabels.CategorySlug(shot.Category)}")"><i class="bi bi-grid" aria-hidden="true"></i> @PhotoReviewLabels.Category(shot.Category)</a>
-        <span class="pr-identity-spacer"></span>
-        @if (PrUi.Has(detail.PreviousShotId))
-        {
-            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.PreviousShotId)" accesskey="p"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous</a>
-        }
-        @if (PrUi.Has(detail.NextShotId))
-        {
-            <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.NextShotId)" accesskey="n">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-        }
-    </nav>
+    var selectedPhoto = SelectedPhoto;
+    var selectedIndex = SelectedPhotoIndex();
 
-    <header class="pr-shot-header">
-        <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
-        <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
-        <div class="pr-shot-meta">
-            <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" ShowPending="true" />
-            <span class="pr-muted">@PhotoReviewLabels.Coverage(shot.Coverage)</span>
-        </div>
-        @if (PrUi.Has(shot.OwnerNote))
-        {
-            <p class="pr-note"><strong>Luke:</strong> @shot.OwnerNote</p>
-        }
-        @if (PrUi.Has(shot.SuggestionReason))
-        {
-            <p class="pr-note pr-note-provisional">
-                <strong>@(PrUi.Has(shot.SuggestedBy) ? shot.SuggestedBy : "Selection pass")'s provisional assessment@(shot.SuggestedStatus is ShotReviewStatus s ? $" ({PhotoReviewLabels.Status(s)})" : ""):</strong>
-                @shot.SuggestionReason
-                @(shot.StatusConfirmed ? " Luke has since set the status above." : " Luke makes the final decision.")
-            </p>
-        }
-        @if (State.IsAdmin)
-        {
-            <div class="pr-admin-box">
-                <label class="pr-label" for="pr-status">Set the shot's status (only you can)</label>
-                <div class="pr-admin-row">
-                    <select id="pr-status" class="form-select ps-input" @bind="ownerStatus">
-                        @foreach (var option in PhotoReviewLabels.Statuses)
+    <div class="pr-shot-workspace">
+        @* Right panel (first in the markup, so phones show the photo before the words). Starts high on laptops and tablets. *@
+        <section class="pr-shot-stage" aria-labelledby="pr-captured-title">
+            <div class="pr-stage-bar">
+                <h2 id="pr-captured-title" class="pr-stage-title"><i class="bi bi-camera" aria-hidden="true"></i> Captured <span class="pr-muted">(@detail.Photos.Count)</span></h2>
+                @if (detail.Photos.Count > 1)
+                {
+                    <div class="pr-stage-picker" role="group" aria-label="Choose a captured photo">
+                        @foreach (var (photo, index) in detail.Photos.Select((p, i) => (p, i + 1)))
                         {
-                            <option value="@option">@PhotoReviewLabels.Status(option)</option>
+                            var isSelected = photo.Summary.Id == selectedPhoto!.Summary.Id;
+                            <button type="button" class="pr-stage-pick @(isSelected ? "pr-stage-pick-on" : "")" aria-pressed="@(isSelected ? "true" : "false")" @onclick="() => SelectPhoto(photo.Summary.Id)">
+                                @if (photo.Summary.Thumb.Widths.Count > 0)
+                                {
+                                    <img src="@State.Api.ThumbUrl(photo.Summary, 480)" alt="" loading="lazy" />
+                                }
+                                <span>Photo @index</span>
+                            </button>
                         }
-                    </select>
-                    <input class="form-control ps-input" placeholder="Note (optional)" @bind="ownerNote" aria-label="Status note" />
-                    <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy" @onclick="SaveStatusAsync">Save status</button>
-                </div>
+                    </div>
+                }
+                <nav class="pr-pager" aria-label="Shot navigation">
+                    <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@($"photoshoot/review?c={PhotoReviewLabels.CategorySlug(shot.Category)}")"><i class="bi bi-grid" aria-hidden="true"></i> @PhotoReviewLabels.Category(shot.Category)</a>
+                    @if (PrUi.Has(detail.PreviousShotId))
+                    {
+                        <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.PreviousShotId)" accesskey="p"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous</a>
+                    }
+                    @if (PrUi.Has(detail.NextShotId))
+                    {
+                        <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.NextShotId)" accesskey="n">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                    }
+                </nav>
             </div>
-        }
-    </header>
 
-    <div class="pr-compare">
-        <section class="pr-planned" aria-labelledby="pr-planned-title">
-            <h2 id="pr-planned-title" class="pr-col-title"><i class="bi bi-clipboard" aria-hidden="true"></i> Planned</h2>
-            <PrBrief Brief="detail.Brief" />
+            @if (selectedPhoto == null)
+            {
+                <div class="pr-stage-empty">
+                    <i class="bi bi-camera-video-off" aria-hidden="true"></i>
+                    <span>No captured photo yet.</span>
+                </div>
+            }
+            else if (selectedPhoto.Summary.Thumb.Widths.Count == 0)
+            {
+                <div class="pr-stage-empty">
+                    <i class="bi bi-image" aria-hidden="true"></i>
+                    <span>Preview not available.</span>
+                </div>
+            }
+            else
+            {
+                var selectedAlt = PrUi.Alt(shot.Title, selectedIndex + 1);
+                <figure class="pr-stage-frame">
+                    <button type="button" class="pr-stage-zoom" aria-label="Enlarge captured photo" @onclick="() => Enlarge(LightboxSource(selectedPhoto), selectedAlt)">
+                        <img class="pr-stage-img" src="@State.Api.ThumbUrl(selectedPhoto.Summary, 1280)" alt="@selectedAlt" width="@selectedPhoto.Summary.Thumb.Width" height="@selectedPhoto.Summary.Thumb.Height" />
+                    </button>
+                </figure>
+            }
+
             @if (detail.References.Count > 0)
             {
-                <h3 class="pr-sub">References</h3>
-                <div class="pr-ref-grid">
+                <div class="pr-stage-refs" role="list" aria-label="Reference photos">
                     @foreach (var reference in detail.References)
                     {
-                        <figure class="pr-ref">
+                        var referenceLabel = PrUi.Has(reference.Slot) ? reference.Slot : "Reference";
+                        <div class="pr-stage-ref" role="listitem" title="@(PrUi.Has(reference.Credit) ? "Credit: " + reference.Credit : "")">
                             @if (reference.HasImage)
                             {
-                                <a href="@State.Api.ReferenceImageUrl(reference)" target="_blank" rel="noopener"><img src="@State.Api.ReferenceImageUrl(reference)" alt="Reference: @reference.Title" loading="lazy" /></a>
+                                var referenceSrc = State.Api.ReferenceImageUrl(reference);
+                                var referenceAlt = $"Reference: {reference.Title}";
+                                <button type="button" class="pr-stage-ref-button" aria-label="Enlarge @referenceLabel reference" @onclick="() => Enlarge(referenceSrc, referenceAlt)">
+                                    <img src="@referenceSrc" alt="@referenceAlt" loading="lazy" />
+                                </button>
                             }
                             else if (PrUi.Has(reference.SourceUrl))
                             {
-                                <a class="pr-ref-link" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Open reference</a>
+                                <a class="pr-stage-ref-link" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Open</a>
                             }
-                            <figcaption>
+                            <span class="pr-stage-ref-caption">@referenceLabel</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        @* Left panel: words, shot details, and every control. Scrolls on its own when it is taller than the screen. *@
+        <div class="pr-shot-info">
+            <header class="pr-shot-header">
+                <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
+                <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
+                <div class="pr-shot-meta">
+                    <PrStatus Status="shot.Status" Confirmed="shot.StatusConfirmed" Suggested="shot.SuggestedStatus" SuggestedBy="@shot.SuggestedBy" ShowPending="true" />
+                    <span class="pr-muted">@PhotoReviewLabels.Coverage(shot.Coverage)</span>
+                </div>
+                @if (PrUi.Has(shot.OwnerNote))
+                {
+                    <p class="pr-note"><strong>Luke:</strong> @shot.OwnerNote</p>
+                }
+                @if (PrUi.Has(shot.SuggestionReason))
+                {
+                    <p class="pr-note pr-note-provisional">
+                        <strong>@(PrUi.Has(shot.SuggestedBy) ? shot.SuggestedBy : "Selection pass")'s provisional assessment@(shot.SuggestedStatus is ShotReviewStatus s ? $" ({PhotoReviewLabels.Status(s)})" : ""):</strong>
+                        @shot.SuggestionReason
+                        @(shot.StatusConfirmed ? " Luke has since set the status above." : " Luke makes the final decision.")
+                    </p>
+                }
+                @if (State.IsAdmin)
+                {
+                    <div class="pr-admin-box">
+                        <label class="pr-label" for="pr-status">Set the shot's status (only you can)</label>
+                        <div class="pr-admin-row">
+                            <select id="pr-status" class="form-select ps-input" @bind="ownerStatus">
+                                @foreach (var option in PhotoReviewLabels.Statuses)
+                                {
+                                    <option value="@option">@PhotoReviewLabels.Status(option)</option>
+                                }
+                            </select>
+                            <input class="form-control ps-input" placeholder="Note (optional)" @bind="ownerNote" aria-label="Status note" />
+                            <button type="button" class="ps-btn ps-btn-primary ps-btn-sm" disabled="@busy" @onclick="SaveStatusAsync">Save status</button>
+                        </div>
+                    </div>
+                }
+            </header>
+
+            <section class="pr-shot-block" aria-labelledby="pr-captured-details-title">
+                <h2 id="pr-captured-details-title" class="pr-col-title"><i class="bi bi-camera" aria-hidden="true"></i> Captured photo@(detail.Photos.Count > 1 ? $" {selectedIndex + 1} of {detail.Photos.Count}" : "")</h2>
+                @if (selectedPhoto == null)
+                {
+                    <div class="pr-empty">
+                        <p><strong>No dedicated photo was found for this shot.</strong></p>
+                        @if (PrUi.Has(shot.CoverageNotes))
+                        {
+                            <p>@shot.CoverageNotes</p>
+                        }
+                        <p class="pr-small">It's in the <a href="photoshoot/second-shoot">second-shoot plan</a> unless Luke decides otherwise.</p>
+                    </div>
+                }
+                else
+                {
+                    <PrCapturedControls Photo="selectedPhoto" Changed="ReloadAsync" />
+                }
+                @if (detail.RelatedPhotos.Count > 0)
+                {
+                    <h3 class="pr-sub">Also relevant (filed under another shot)</h3>
+                    @foreach (var photo in detail.RelatedPhotos)
+                    {
+                        <PrPhotoCard Photo="photo" ShotTitle="@(State.Shot(photo.Summary.ShotId)?.Title ?? shot.Title)" Index="0" Changed="ReloadAsync" Compact="true" />
+                    }
+                }
+            </section>
+
+            <section class="pr-shot-block" aria-labelledby="pr-planned-title">
+                <h2 id="pr-planned-title" class="pr-col-title"><i class="bi bi-clipboard" aria-hidden="true"></i> Planned</h2>
+                <PrBrief Brief="detail.Brief" />
+                @if (detail.References.Count > 0)
+                {
+                    <h3 class="pr-sub">References</h3>
+                    <ul class="pr-reference-list">
+                        @foreach (var reference in detail.References)
+                        {
+                            <li>
                                 <strong>@(PrUi.Has(reference.Slot) ? reference.Slot : "Reference")</strong>@(PrUi.Has(reference.Title) ? ": " + reference.Title : "")
+                                @if (PrUi.Has(reference.Credit))
+                                {
+                                    <span class="pr-small pr-muted">Credit: @reference.Credit</span>
+                                }
                                 @if (PrUi.Has(reference.WhatToImitate))
                                 {
                                     <span class="pr-small">Imitate: @reference.WhatToImitate</span>
@@ -98,64 +200,42 @@ else
                                 {
                                     <span class="pr-small">Change: @reference.WhatToChange</span>
                                 }
-                            </figcaption>
-                        </figure>
-                    }
-                </div>
-            }
-        </section>
-
-        <section class="pr-captured" aria-labelledby="pr-captured-title">
-            <h2 id="pr-captured-title" class="pr-col-title"><i class="bi bi-camera" aria-hidden="true"></i> Captured <span class="pr-muted">(@detail.Photos.Count)</span></h2>
-            @if (detail.Photos.Count == 0)
-            {
-                <div class="pr-empty">
-                    <i class="bi bi-camera-video-off" aria-hidden="true"></i>
-                    <p><strong>No dedicated photo was found for this shot.</strong></p>
-                    @if (PrUi.Has(shot.CoverageNotes))
-                    {
-                        <p>@shot.CoverageNotes</p>
-                    }
-                    <p class="pr-small">It's in the <a href="photoshoot/second-shoot">second-shoot plan</a> unless Luke decides otherwise.</p>
-                </div>
-            }
-            @foreach (var (photo, index) in detail.Photos.Select((p, i) => (p, i + 1)))
-            {
-                <PrPhotoCard Photo="photo" ShotTitle="@shot.Title" Index="index" Changed="ReloadAsync" />
-            }
-            @if (detail.RelatedPhotos.Count > 0)
-            {
-                <h3 class="pr-sub">Also relevant (filed under another shot)</h3>
-                @foreach (var photo in detail.RelatedPhotos)
-                {
-                    <PrPhotoCard Photo="photo" ShotTitle="@(State.Shot(photo.Summary.ShotId)?.Title ?? shot.Title)" Index="0" Changed="ReloadAsync" Compact="true" />
+                                @if (PrUi.Has(reference.SourceUrl) && !reference.HasImage)
+                                {
+                                    <a class="pr-small" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow">Source</a>
+                                }
+                            </li>
+                        }
+                    </ul>
                 }
-            }
-        </section>
+            </section>
+
+            <section class="pr-section">
+                <h2 id="pr-suggest-title">Suggestions for this shot</h2>
+                <p class="pr-muted pr-small">Think the status is wrong, or the pose should change next time? Say so here. Luke decides.</p>
+                <PrSuggestForm ShotId="@shot.ShotId" Changed="ReloadAsync" />
+                <PrSuggestionList Items="detail.Suggestions" Changed="ReloadAsync" />
+            </section>
+
+            <section class="pr-section">
+                <PrThread Comments="detail.Comments" Target="CommentTarget.Shot" TargetId="@shot.ShotId" Title="Discussion about this shot" Changed="ReloadAsync" />
+            </section>
+
+            <nav class="pr-pager pr-pager-bottom" aria-label="Shot navigation">
+                @if (PrUi.Has(detail.PreviousShotId))
+                {
+                    <a class="ps-btn ps-btn-outline" href="@PrUi.ShotLink(detail.PreviousShotId)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous shot</a>
+                }
+                <span class="pr-identity-spacer"></span>
+                @if (PrUi.Has(detail.NextShotId))
+                {
+                    <a class="ps-btn ps-btn-primary" href="@PrUi.ShotLink(detail.NextShotId)">Next shot <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                }
+            </nav>
+        </div>
     </div>
 
-    <section class="pr-section" aria-labelledby="pr-suggest-title">
-        <h2 id="pr-suggest-title">Suggestions for this shot</h2>
-        <p class="pr-muted pr-small">Think the status is wrong, or the pose should change next time? Say so here. Luke decides.</p>
-        <PrSuggestForm ShotId="@shot.ShotId" Changed="ReloadAsync" />
-        <PrSuggestionList Items="detail.Suggestions" Changed="ReloadAsync" />
-    </section>
-
-    <section class="pr-section">
-        <PrThread Comments="detail.Comments" Target="CommentTarget.Shot" TargetId="@shot.ShotId" Title="Discussion about this shot" Changed="ReloadAsync" />
-    </section>
-
-    <nav class="pr-pager pr-pager-bottom" aria-label="Shot navigation">
-        @if (PrUi.Has(detail.PreviousShotId))
-        {
-            <a class="ps-btn ps-btn-outline" href="@PrUi.ShotLink(detail.PreviousShotId)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous shot</a>
-        }
-        <span class="pr-identity-spacer"></span>
-        @if (PrUi.Has(detail.NextShotId))
-        {
-            <a class="ps-btn ps-btn-primary" href="@PrUi.ShotLink(detail.NextShotId)">Next shot <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-        }
-    </nav>
+    <PsLightbox Src="@lightboxSrc" Alt="@lightboxAlt" OnClose="CloseLightbox" />
 }
 
 @code {
@@ -167,6 +247,9 @@ else
     private bool busy;
     private ShotReviewStatus ownerStatus;
     private string ownerNote = "";
+    private string selectedPhotoId = "";
+    private string? lightboxSrc;
+    private string lightboxAlt = "";
 
     protected override void OnInitialized() => State.Changed += OnChanged;
 
@@ -176,8 +259,38 @@ else
         {
             detail = null;
             loadedId = ShotId;
+            selectedPhotoId = "";
             await ReloadAsync();
         }
+    }
+
+    private PhotoDetail? SelectedPhoto => detail == null || detail.Photos.Count == 0 ? null : detail.Photos[SelectedPhotoIndex()];
+
+    private int SelectedPhotoIndex()
+    {
+        if (detail == null) return 0;
+        var index = detail.Photos.FindIndex(photo => photo.Summary.Id == selectedPhotoId);
+        return index < 0 ? 0 : index;
+    }
+
+    private void SelectPhoto(string photoId) => selectedPhotoId = photoId;
+
+    private void Enlarge(string? src, string alt)
+    {
+        if (string.IsNullOrEmpty(src)) return;
+        lightboxSrc = src;
+        lightboxAlt = alt;
+    }
+
+    private void CloseLightbox() => lightboxSrc = null;
+
+    /// <summary>The original file when one exists, so enlarging shows the full photo; otherwise the largest browsing preview.</summary>
+    private string LightboxSource(PhotoDetail photo)
+    {
+        var original = photo.Versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original && !version.Superseded);
+        return original != null
+            ? State.Api.FileUrl(photo.Summary.Id, original.Id, download: false)
+            : State.Api.ThumbUrl(photo.Summary, 1280);
     }
 
     private async Task ReloadAsync()
@@ -188,6 +301,10 @@ else
             _ = State.EnsureSummaryAsync();
             detail = await task;
             error = "";
+            if (!detail.Photos.Any(photo => photo.Summary.Id == selectedPhotoId))
+            {
+                selectedPhotoId = detail.Photos.FirstOrDefault()?.Summary.Id ?? "";
+            }
             State.UseViewer(detail.Viewer);
             ownerStatus = detail.Shot.Status;
             ownerNote = detail.Shot.OwnerNote;
