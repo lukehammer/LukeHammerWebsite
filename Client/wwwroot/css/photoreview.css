@@ -92,6 +92,7 @@
 .pr-cat span { font-weight: 400; font-size: 0.75rem; color: var(--ps-muted); }
 .pr-cat-on { background: var(--ps-burgundy); color: #fff; border-color: var(--ps-burgundy); }
 .pr-cat-on span { color: #f3dbe4; }
+.pr-group { margin-bottom: 2.5rem; }
 .pr-group-title { border-bottom: 1px solid var(--ps-border); padding-bottom: 0.3rem; }
 
 /* shot cards and photo tiles */
