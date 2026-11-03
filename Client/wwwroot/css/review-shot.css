@@ -28,9 +28,10 @@
     color: var(--ps-burgundy);
 }
 
-/* Compact navigation shares the photo's top bar: category, previous and next sit at the right end. */
-.pr-stage-bar .pr-pager {
-    margin: 0 0 0 auto;
+/* Back, Previous shot and Next shot sit at the top of the words column, one row, so the photo bar stays a single line. */
+.pr-shot-nav {
+    justify-content: space-between;
+    margin: 0 0 0.5rem;
 }
 
 .pr-stage-picker {
@@ -113,6 +114,51 @@
     display: block;
 }
 
+/* With more than one version, the photo keeps clear gutters on both sides for the Previous/Next version arrows,
+   so the arrows never sit on the subject. The photo is still scaled whole inside the narrower box. */
+.pr-stage-frame-cycle .pr-stage-zoom {
+    left: 3rem;
+    right: 3rem;
+    width: auto;
+}
+
+.pr-version-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-top: -1.375rem;
+    padding: 0;
+    border: 1px solid var(--ps-border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--ps-burgundy);
+    font-size: 1.1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+}
+
+.pr-version-prev {
+    left: 0.1rem;
+}
+
+.pr-version-next {
+    right: 0.1rem;
+}
+
+.pr-version-arrow:hover {
+    border-color: var(--ps-burgundy);
+}
+
+.pr-version-arrow:focus-visible {
+    outline: 3px solid rgba(131, 27, 63, 0.5);
+    outline-offset: 2px;
+}
+
 .pr-stage-empty {
     display: flex;
     flex: 1 1 auto;
@@ -130,13 +176,108 @@
     font-size: 2rem;
 }
 
+/* Row of every version of the selected capture, under the photo. Fixed height so the photo above keeps its room. */
+.pr-stage-versions {
+    flex: 0 0 auto;
+    margin-top: 0.45rem;
+}
+
+.pr-stage-subhead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.1rem 0.6rem;
+}
+
+.pr-stage-sub {
+    margin: 0 0 0.25rem !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ps-muted);
+}
+
+.pr-stage-count {
+    font-size: 0.78rem;
+    color: var(--ps-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.pr-version-strip {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding: 0.1rem 0.1rem 0.25rem;
+}
+
+.pr-version-thumb {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    width: 5rem;
+    padding: 0.2rem;
+    border: 1px solid var(--ps-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ps-text);
+    font-size: 0.68rem;
+    line-height: 1.15;
+    cursor: pointer;
+}
+
+.pr-version-thumb:hover {
+    border-color: var(--ps-burgundy);
+}
+
+.pr-version-thumb:focus-visible {
+    outline: 3px solid rgba(131, 27, 63, 0.4);
+    outline-offset: 1px;
+}
+
+.pr-version-thumb-on {
+    border-color: var(--ps-burgundy);
+    box-shadow: 0 0 0 2px rgba(131, 27, 63, 0.25);
+    font-weight: 600;
+}
+
+.pr-version-thumb-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 2.7rem;
+}
+
+.pr-version-thumb-img img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 3px;
+    background: #fff;
+}
+
+.pr-version-thumb-label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
+/* Pose references: its own smaller row, below the versions. */
+.pr-stage-poseref {
+    flex: 0 0 auto;
+    margin-top: 0.45rem;
+}
+
 /* Reference strip under the photo: small thumbnails, aspect ratio kept, click to enlarge. */
 .pr-stage-refs {
     display: flex;
     flex: 0 0 auto;
     flex-wrap: wrap;
     gap: 0.4rem;
-    margin-top: 0.5rem;
+    margin-top: 0;
 }
 
 .pr-stage-ref {
@@ -151,7 +292,7 @@
 
 .pr-stage-ref-button {
     display: block;
-    height: 3.2rem;
+    height: 2.6rem;
     padding: 0;
     border: 1px solid var(--ps-border);
     border-radius: 6px;
@@ -164,7 +305,7 @@
     display: block;
     height: 100%;
     width: auto;
-    max-width: 7rem;
+    max-width: 5.5rem;
     object-fit: contain;
 }
 
@@ -178,7 +319,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    height: 3.2rem;
+    height: 2.6rem;
     padding: 0 0.5rem;
     border-radius: 6px;
     background: #fff;
@@ -191,6 +332,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--ps-muted);
+}
+
+/* Previous/Next shot buttons: the shot's name on the first line, its number and category underneath. */
+.pr-step-text {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+    text-align: left;
+}
+
+.pr-step-text small {
+    font-size: 0.68rem;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.pr-shot-info .pr-shot-header h1 {
+    font-size: 1.35rem;
+    margin: 0 0 0.25rem;
+}
+
+.pr-version-info {
+    margin: 0;
 }
 
 .pr-reference-list {
@@ -331,15 +496,14 @@
         min-height: 8rem;
     }
 
-    .pr-stage-refs {
+    .pr-stage-versions {
         order: 4;
-        margin-top: 0;
+        margin-top: 0.25rem;
     }
 
-    .pr-stage-bar .pr-pager {
+    .pr-stage-poseref {
         order: 5;
-        margin: 0.3rem 0 0;
-        justify-content: center;
+        margin-top: 0.25rem;
     }
 
     .pr-reference-list {
