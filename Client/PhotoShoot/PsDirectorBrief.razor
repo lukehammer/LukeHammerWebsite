@@ -1,0 +1,85 @@
+@* Director view: summary, large acting note, then performer and camera/equipment details. Styled by css/photoshoot-director.css. *@
+
+<div class="ps-brief">
+    @if (PsUi.Has(Shot.Summary))
+    {
+        <p class="ps-brief-summary">@Shot.Summary</p>
+    }
+
+    @if (PsUi.Has(Shot.PerformerInstructions))
+    {
+        <section class="ps-brief-acting" aria-label="Acting note">
+            <h2 class="ps-brief-kicker">Acting note</h2>
+            <p class="ps-brief-acting-text">@Shot.PerformerInstructions</p>
+        </section>
+    }
+
+    <div class="ps-brief-grid">
+        <section class="ps-brief-card ps-brief-performer" aria-label="Performer directions">
+            <h3 class="ps-brief-card-title"><i class="bi bi-person-arms-up" aria-hidden="true"></i> Performer</h3>
+            <dl class="ps-brief-fields">
+                @Field("Expression", Shot.FacialExpression, true)
+                @Field("Body", Shot.BodyPosition, false)
+                @Field("Hands", Shot.HandPosition, false)
+                @Field("Eyes", Shot.EyeDirection, false)
+            </dl>
+        </section>
+
+        <section class="ps-brief-card ps-brief-gear" aria-label="Camera and equipment">
+            <h3 class="ps-brief-card-title"><i class="bi bi-camera" aria-hidden="true"></i> Camera &amp; equipment</h3>
+            <dl class="ps-brief-fields">
+                @Field("Camera", Setup?.CameraPosition, false)
+                <div class="ps-brief-field">
+                    <dt>Equipment / props required</dt>
+                    <dd>
+                        @if (Shot.Equipment.Count == 0)
+                        {
+                            <span>No special props required.</span>
+                        }
+                        else
+                        {
+                            <ul class="ps-brief-list">
+                                @foreach (var item in Shot.Equipment)
+                                {
+                                    <li>@item.Name × @item.Quantity · @PhotoShootLabels.Supplier(item.Supplier)@(item.Optional ? " · optional" : "")</li>
+                                }
+                            </ul>
+                        }
+                    </dd>
+                </div>
+                @if (Props.Count > 0)
+                {
+                    <div class="ps-brief-field">
+                        <dt>Props</dt>
+                        <dd>
+                            <ul class="ps-chip-list">
+                                @foreach (var prop in Props)
+                                {
+                                    <li class="ps-chip">@prop</li>
+                                }
+                            </ul>
+                        </dd>
+                    </div>
+                }
+            </dl>
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PhotoShot Shot { get; set; } = default!;
+    [Parameter] public PhotoSetup? Setup { get; set; }
+
+    private List<string> Props => (Shot.Props ?? new()).ToList();
+
+    private RenderFragment Field(string label, string? value, bool emphasize) => __builder =>
+    {
+        if (PsUi.Has(value))
+        {
+            <div class="ps-brief-field @(emphasize ? "is-key" : "")">
+                <dt>@label</dt>
+                <dd>@value</dd>
+            </div>
+        }
+    };
+}
