@@ -49,7 +49,7 @@
 
 /* Photographer: the page itself does not scroll, so the bar is the first row in the flow.
    One or two primary buttons share the row equally. */
-.ps-root.ps-live .ps-photographer > .ps-action-bar {
+.ps-root.ps-live .ps-photographer .ps-photo-center > .ps-action-bar {
     position: relative;
     top: auto;
     padding-top: 0.2rem;
