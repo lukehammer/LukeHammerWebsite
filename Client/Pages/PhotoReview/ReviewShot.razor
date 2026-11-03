@@ -22,6 +22,10 @@ else
     var shot = detail.Shot;
     var selectedPhoto = SelectedPhoto;
     var selectedIndex = SelectedPhotoIndex();
+    var versions = selectedPhoto == null ? new List<VersionView>() : ViewableVersions(selectedPhoto);
+    var shownVersion = selectedPhoto == null ? null : ShownVersion(versions);
+    var shotBack = PrUi.ReviewReturnPath(Back);
+    var backHref = shotBack ?? PrUi.ReviewCategoryPath(shot.Category);
 
     <div class="pr-shot-workspace">
         @* Right panel (first in the markup, so phones show the photo before the words). Starts high on laptops and tablets. *@
@@ -44,17 +48,6 @@ else
                         }
                     </div>
                 }
-                <nav class="pr-pager" aria-label="Shot navigation">
-                    <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@($"photoshoot/review?c={PhotoReviewLabels.CategorySlug(shot.Category)}")"><i class="bi bi-grid" aria-hidden="true"></i> @PhotoReviewLabels.Category(shot.Category)</a>
-                    @if (PrUi.Has(detail.PreviousShotId))
-                    {
-                        <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.PreviousShotId)" accesskey="p"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous</a>
-                    }
-                    @if (PrUi.Has(detail.NextShotId))
-                    {
-                        <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.ShotLink(detail.NextShotId)" accesskey="n">Next <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
-                    }
-                </nav>
             </div>
 
             @if (selectedPhoto == null)
@@ -64,7 +57,7 @@ else
                     <span>No captured photo yet.</span>
                 </div>
             }
-            else if (selectedPhoto.Summary.Thumb.Widths.Count == 0)
+            else if (shownVersion == null)
             {
                 <div class="pr-stage-empty">
                     <i class="bi bi-image" aria-hidden="true"></i>
@@ -73,42 +66,90 @@ else
             }
             else
             {
-                var selectedAlt = PrUi.Alt(shot.Title, selectedIndex + 1);
-                <figure class="pr-stage-frame">
-                    <button type="button" class="pr-stage-zoom" aria-label="Enlarge captured photo" @onclick="() => Enlarge(LightboxSource(selectedPhoto), selectedAlt)">
-                        <img class="pr-stage-img" src="@State.Api.ThumbUrl(selectedPhoto.Summary, 1280)" alt="@selectedAlt" width="@selectedPhoto.Summary.Thumb.Width" height="@selectedPhoto.Summary.Thumb.Height" />
+                var selectedAlt = PrUi.Alt(shot.Title, selectedIndex + 1) + (shownVersion.Kind == ArtifactKind.Original ? "" : $", {PhotoReviewLabels.Kind(shownVersion.Kind).ToLowerInvariant()} version");
+                <figure class="pr-stage-frame @(versions.Count > 1 ? "pr-stage-frame-cycle" : "")">
+                    @if (versions.Count > 1)
+                    {
+                        <button type="button" class="pr-version-arrow pr-version-prev" aria-label="Previous version" title="Previous version" @onclick="() => StepVersion(-1)"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                    }
+                    <button type="button" class="pr-stage-zoom" aria-label="Enlarge captured photo" @onclick="() => Enlarge(LightboxSource(selectedPhoto!, shownVersion), selectedAlt)">
+                        <img class="pr-stage-img @(IsTransparent(shownVersion.Kind) ? "pr-checker" : "")" src="@VersionThumb(selectedPhoto!, shownVersion, 1280)" alt="@selectedAlt" width="@shownVersion.Width" height="@shownVersion.Height" />
                     </button>
+                    @if (versions.Count > 1)
+                    {
+                        <button type="button" class="pr-version-arrow pr-version-next" aria-label="Next version" title="Next version" @onclick="() => StepVersion(1)"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                    }
                 </figure>
+
+                @* Every version of this capture, as thumbnails. Clicking one shows it in the photo; it never changes the shot or the capture. *@
+                <section class="pr-stage-versions" aria-labelledby="pr-versions-row-title">
+                    <div class="pr-stage-subhead">
+                        <h3 id="pr-versions-row-title" class="pr-stage-sub">Photo versions</h3>
+                        <span class="pr-stage-count" aria-live="polite">@ShortKind(shownVersion.Kind) · @(versions.IndexOf(shownVersion) + 1) of @versions.Count</span>
+                    </div>
+                    <div class="pr-version-strip" role="group" aria-label="Photo versions">
+                        @foreach (var version in versions)
+                        {
+                            var on = version.Id == shownVersion.Id;
+                            <button type="button" class="pr-version-thumb @(on ? "pr-version-thumb-on" : "")" aria-pressed="@(on ? "true" : "false")" title="@ShortKind(version.Kind)" @onclick="() => SelectVersion(version.Kind)">
+                                <span class="pr-version-thumb-img">
+                                    <img src="@VersionThumb(selectedPhoto!, version, 240)" alt="" loading="lazy" class="@(IsTransparent(version.Kind) ? "pr-checker" : "")" />
+                                </span>
+                                <span class="pr-version-thumb-label">@ShortKind(version.Kind)</span>
+                            </button>
+                        }
+                    </div>
+                </section>
             }
 
             @if (detail.References.Count > 0)
             {
-                <div class="pr-stage-refs" role="list" aria-label="Reference photos">
-                    @foreach (var reference in detail.References)
-                    {
-                        var referenceLabel = PrUi.Has(reference.Slot) ? reference.Slot : "Reference";
-                        <div class="pr-stage-ref" role="listitem" title="@(PrUi.Has(reference.Credit) ? "Credit: " + reference.Credit : "")">
-                            @if (reference.HasImage)
-                            {
-                                var referenceSrc = State.Api.ReferenceImageUrl(reference);
-                                var referenceAlt = $"Reference: {reference.Title}";
-                                <button type="button" class="pr-stage-ref-button" aria-label="Enlarge @referenceLabel reference" @onclick="() => Enlarge(referenceSrc, referenceAlt)">
-                                    <img src="@referenceSrc" alt="@referenceAlt" loading="lazy" />
-                                </button>
-                            }
-                            else if (PrUi.Has(reference.SourceUrl))
-                            {
-                                <a class="pr-stage-ref-link" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Open</a>
-                            }
-                            <span class="pr-stage-ref-caption">@referenceLabel</span>
-                        </div>
-                    }
-                </div>
+                <section class="pr-stage-poseref" aria-labelledby="pr-poseref-title">
+                    <h3 id="pr-poseref-title" class="pr-stage-sub">Pose references</h3>
+                    <div class="pr-stage-refs" role="list" aria-label="Pose reference photos">
+                        @foreach (var reference in detail.References)
+                        {
+                            var referenceLabel = PrUi.Has(reference.Slot) ? reference.Slot : "Reference";
+                            <div class="pr-stage-ref" role="listitem" title="@(PrUi.Has(reference.Credit) ? "Credit: " + reference.Credit : "")">
+                                @if (reference.HasImage)
+                                {
+                                    var referenceSrc = State.Api.ReferenceImageUrl(reference);
+                                    var referenceAlt = $"Reference: {reference.Title}";
+                                    <button type="button" class="pr-stage-ref-button" aria-label="Enlarge @referenceLabel reference" @onclick="() => Enlarge(referenceSrc, referenceAlt)">
+                                        <img src="@referenceSrc" alt="@referenceAlt" loading="lazy" />
+                                    </button>
+                                }
+                                else if (PrUi.Has(reference.SourceUrl))
+                                {
+                                    <a class="pr-stage-ref-link" href="@reference.SourceUrl" target="_blank" rel="noopener noreferrer nofollow"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Open</a>
+                                }
+                                <span class="pr-stage-ref-caption">@referenceLabel</span>
+                            </div>
+                        }
+                    </div>
+                </section>
             }
         </section>
 
         @* Left panel: words, shot details, and every control. Scrolls on its own when it is taller than the screen. *@
         <div class="pr-shot-info">
+            <nav class="pr-pager pr-shot-nav" aria-label="Shot navigation">
+                <a class="ps-btn ps-btn-ghost ps-btn-sm pr-back" href="@backHref"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to review</a>
+                @if (PrUi.Has(detail.PreviousShotId))
+                {
+                    <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step" href="@PrUi.ShotLink(detail.PreviousShotId, shotBack)" accesskey="p" title="Previous shot: @StepContext(detail.PreviousShotId)">
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                        <span class="pr-step-text"><span>Previous shot</span><small>@StepContext(detail.PreviousShotId)</small></span>
+                    </a>
+                }
+                @if (PrUi.Has(detail.NextShotId))
+                {
+                    <a class="ps-btn ps-btn-outline ps-btn-sm pr-shot-step" href="@PrUi.ShotLink(detail.NextShotId, shotBack)" accesskey="n" title="Next shot: @StepContext(detail.NextShotId)">
+                        <span class="pr-step-text"><span>Next shot</span><small>@StepContext(detail.NextShotId)</small></span>
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                }
+            </nav>
             <header class="pr-shot-header">
                 <h1><span class="pr-num">@PrUi.Number(shot.Number)</span> @shot.Title @(shot.MustHave ? "★" : "")</h1>
                 <p class="pr-muted">@PhotoReviewLabels.Category(shot.Category) · @shot.SetupName · @shot.Priority</p>
@@ -161,7 +202,7 @@ else
                 }
                 else
                 {
-                    <PrCapturedControls Photo="selectedPhoto" Changed="ReloadAsync" />
+                    <PrCapturedControls Photo="selectedPhoto" Version="shownVersion" Changed="ReloadAsync" />
                 }
                 @if (detail.RelatedPhotos.Count > 0)
                 {
@@ -220,12 +261,12 @@ else
             <nav class="pr-pager pr-pager-bottom" aria-label="Shot navigation">
                 @if (PrUi.Has(detail.PreviousShotId))
                 {
-                    <a class="ps-btn ps-btn-outline" href="@PrUi.ShotLink(detail.PreviousShotId)"><i class="bi bi-chevron-left" aria-hidden="true"></i> Previous shot</a>
+                    <a class="ps-btn ps-btn-outline pr-shot-step" href="@PrUi.ShotLink(detail.PreviousShotId, shotBack)"><i class="bi bi-chevron-left" aria-hidden="true"></i> <span class="pr-step-text"><span>Previous shot</span><small>@StepContext(detail.PreviousShotId)</small></span></a>
                 }
                 <span class="pr-identity-spacer"></span>
                 @if (PrUi.Has(detail.NextShotId))
                 {
-                    <a class="ps-btn ps-btn-primary" href="@PrUi.ShotLink(detail.NextShotId)">Next shot <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                    <a class="ps-btn ps-btn-primary pr-shot-step" href="@PrUi.ShotLink(detail.NextShotId, shotBack)"><span class="pr-step-text"><span>Next shot</span><small>@StepContext(detail.NextShotId)</small></span> <i class="bi bi-chevron-right" aria-hidden="true"></i></a>
                 }
             </nav>
         </div>
@@ -237,6 +278,9 @@ else
 @code {
     [Parameter] public string ShotId { get; set; } = "";
 
+    /// <summary>The review grid's URL when the visitor came from it (filters and category included). Checked before use.</summary>
+    [SupplyParameterFromQuery(Name = "back")] public string? Back { get; set; }
+
     private ShotDetailResponse? detail;
     private string error = "";
     private string loadedId = "";
@@ -244,6 +288,8 @@ else
     private ShotReviewStatus ownerStatus;
     private string ownerNote = "";
     private string selectedPhotoId = "";
+    /// <summary>The version kind shown for the selected capture. Kept when the next capture has that kind too, otherwise the original.</summary>
+    private ArtifactKind? selectedKind;
     private string? lightboxSrc;
     private string lightboxAlt = "";
 
@@ -256,6 +302,7 @@ else
             detail = null;
             loadedId = ShotId;
             selectedPhotoId = "";
+            selectedKind = null;
             await ReloadAsync();
         }
     }
@@ -271,6 +318,46 @@ else
 
     private void SelectPhoto(string photoId) => selectedPhotoId = photoId;
 
+    /// <summary>Versions that can be shown in the photo: current ones with a browsing preview, in the same order as the chips (Original first).</summary>
+    private static List<VersionView> ViewableVersions(PhotoDetail photo) =>
+        photo.Versions.Where(version => !version.Superseded && version.ThumbWidths.Count > 0).OrderBy(version => version.Kind).ToList();
+
+    private VersionView? ShownVersion(List<VersionView> versions) =>
+        versions.FirstOrDefault(version => version.Kind == selectedKind)
+        ?? versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original)
+        ?? versions.FirstOrDefault();
+
+    private void SelectVersion(ArtifactKind kind) => selectedKind = kind;
+
+    /// <summary>Moves to the previous or next version of the selected capture only. Wraps at both ends.</summary>
+    private void StepVersion(int step)
+    {
+        var photo = SelectedPhoto;
+        if (photo == null) return;
+        var versions = ViewableVersions(photo);
+        if (versions.Count < 2) return;
+        var current = versions.IndexOf(ShownVersion(versions)!);
+        selectedKind = versions[(current + step + versions.Count) % versions.Count].Kind;
+    }
+
+    private string VersionThumb(PhotoDetail photo, VersionView version, int preferred)
+    {
+        var width = version.ThumbWidths.Where(w => w >= preferred).DefaultIfEmpty(version.ThumbWidths.Max()).Min();
+        return State.Api.ThumbUrl(photo.Summary.Id, version.Id, width);
+    }
+
+    private static bool IsTransparent(ArtifactKind kind) => kind is ArtifactKind.Transparent or ArtifactKind.CroppedTransparent;
+
+    /// <summary>Short human label for a version: "Transparent", "White background", "Cropped white background".</summary>
+    private static string ShortKind(ArtifactKind kind) => PhotoReviewLabels.Kind(kind).Replace(" (cleaned)", "");
+
+    /// <summary>"#012 · Headshots" for a neighbouring shot, so the Previous/Next labels show where they lead.</summary>
+    private string StepContext(string shotId)
+    {
+        var neighbour = State.Shot(shotId);
+        return neighbour == null ? "" : $"{PrUi.Number(neighbour.Number)} · {PhotoReviewLabels.Category(neighbour.Category)}";
+    }
+
     private void Enlarge(string? src, string alt)
     {
         if (string.IsNullOrEmpty(src)) return;
@@ -280,14 +367,11 @@ else
 
     private void CloseLightbox() => lightboxSrc = null;
 
-    /// <summary>The original file when one exists, so enlarging shows the full photo; otherwise the largest browsing preview.</summary>
-    private string LightboxSource(PhotoDetail photo)
-    {
-        var original = photo.Versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original && !version.Superseded);
-        return original != null
-            ? State.Api.FileUrl(photo.Summary.Id, original.Id, download: false)
+    /// <summary>The full file of the version on screen, so enlarging shows that version (the camera original by default).</summary>
+    private string LightboxSource(PhotoDetail photo, VersionView? version) =>
+        version != null
+            ? State.Api.FileUrl(photo.Summary.Id, version.Id, download: false)
             : State.Api.ThumbUrl(photo.Summary, 1280);
-    }
 
     private async Task ReloadAsync()
     {

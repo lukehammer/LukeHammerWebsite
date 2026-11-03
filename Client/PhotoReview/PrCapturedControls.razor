@@ -4,6 +4,8 @@
 @{
     var summary = Photo.Summary;
     var original = Photo.Versions.FirstOrDefault(v => v.Kind == ArtifactKind.Original && !v.Superseded);
+    // The version shown in the photo on the right, so these download and detail lines follow the same choice.
+    var shown = Version ?? original;
 }
 <div class="pr-captured-controls @(summary.Hidden ? "pr-hidden" : "")">
     <div class="pr-shot-meta">
@@ -34,16 +36,22 @@
             <span class="pr-kind-chip @(has ? "pr-kind-on" : "")" title="@(has ? "Available" : "Not created yet")">@PhotoReviewLabels.Kind(kind)@(has ? "" : ": not yet")</span>
         }
     </div>
+    @if (shown != null)
+    {
+        <p class="pr-small pr-version-info" aria-live="polite"><strong>@PhotoReviewLabels.Kind(shown.Kind)</strong> · @shown.Width × @shown.Height · @PrUi.Bytes(shown.Bytes) · from @(shown.ParentKind is ArtifactKind parent ? PhotoReviewLabels.Kind(parent) : "camera") · @PhotoReviewLabels.Provenance(shown.Provenance)</p>
+    }
     <div class="pr-photo-actions">
         <a class="ps-btn ps-btn-outline ps-btn-sm" href="@PrUi.PhotoLink(summary.Id)"><i class="bi bi-info-circle" aria-hidden="true"></i> Notes, versions and comments@(summary.CommentCount > 0 ? $" ({summary.CommentCount})" : "")</a>
-        @if (original != null)
+        @if (shown != null)
         {
-            <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(summary.Id, original.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Original (@PrUi.Bytes(original.Bytes))</a>
+            <a class="ps-btn ps-btn-ghost ps-btn-sm" href="@State.Api.FileUrl(summary.Id, shown.Id, download: true)"><i class="bi bi-download" aria-hidden="true"></i> Download @PhotoReviewLabels.Kind(shown.Kind).ToLowerInvariant() (@PrUi.Bytes(shown.Bytes))</a>
         }
     </div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public PhotoDetail Photo { get; set; } = new();
+    /// <summary>The version currently shown on the shot page. Null means the camera original.</summary>
+    [Parameter] public VersionView? Version { get; set; }
     [Parameter] public EventCallback Changed { get; set; }
 }
