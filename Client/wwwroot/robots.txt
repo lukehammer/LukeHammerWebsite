@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/photoreview/share/
+
+Sitemap: https://lukehammer.com/sitemap.xml
