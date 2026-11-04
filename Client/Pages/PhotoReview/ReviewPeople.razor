@@ -159,7 +159,7 @@ else
     private string TargetLink(CommentView comment) => comment.Target switch
     {
         CommentTarget.Photo => PrUi.PhotoLink(comment.TargetId),
-        CommentTarget.Shot => PrUi.ShotLink(comment.TargetId),
+        CommentTarget.Shot => State.Shot(comment.TargetId) is { } target ? PrUi.ShotLink(target.Number, target.Title) : PrUi.ShotLink(comment.TargetId),
         _ => "photoshoot/suggestions"
     };
 

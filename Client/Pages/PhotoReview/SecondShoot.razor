@@ -39,7 +39,7 @@ else
                             <h3>
                                 @if (item.ShotNumber > 0)
                                 {
-                                    <a href="@PrUi.ShotLink(item.ShotId)"><span class="pr-num">@PrUi.Number(item.ShotNumber)</span> @item.Title</a>
+                                    <a href="@PrUi.ShotLink(item.ShotNumber, item.Title)"><span class="pr-num">@PrUi.Number(item.ShotNumber)</span> @item.Title</a>
                                 }
                                 else
                                 {
@@ -179,7 +179,7 @@ else
                 Line("Eyes", item.Brief.EyeDirection);
                 Line("Performer", item.Brief.PerformerInstructions);
                 Line("Props", string.Join(", ", item.Brief.Props));
-                if (item.ShotId.Length > 0) text.AppendLine($"- Page: https://lukehammer.com/{PrUi.ShotLink(item.ShotId)}");
+                if (item.ShotId.Length > 0) text.AppendLine($"- Page: https://lukehammer.com/{PrUi.ShotLink(item.ShotNumber, item.Title)}");
             }
         }
 

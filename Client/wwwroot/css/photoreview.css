@@ -319,7 +319,7 @@
 
 /* Grid cards: the whole card opens the shot through an overlay link; the rating dropdown sits above it. */
 .pr-shot-card { position: relative; }
-.pr-shot-card-link { position: absolute; inset: 0; z-index: 0; border-radius: 12px; }
+.pr-shot-card-link { position: absolute; inset: 0; z-index: 1; border-radius: 12px; }
 .pr-shot-card-link:focus-visible { outline: 3px solid rgba(131, 27, 63, 0.4); outline-offset: 2px; }
-.pr-shot-rate { position: relative; z-index: 1; margin-top: 0.5rem; }
+.pr-shot-rate { position: relative; z-index: 2; margin-top: 0.5rem; }
 .pr-shot-rate .pr-rating-summary { font-size: 0.8rem; }

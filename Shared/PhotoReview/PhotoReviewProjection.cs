@@ -198,9 +198,10 @@ namespace BlazorApp.Shared.PhotoReview
             };
         }
 
-        /// <summary>The version used for browsing: the original (so every photo looks the same in the grid).</summary>
+        /// <summary>The version used for browsing: the cropped one when it has a preview, otherwise the original, so every photo still shows in the grid.</summary>
         public static ArtifactVersion? DisplayVersion(ReviewPhoto photo) =>
-            photo.Versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original && version.IsCurrent)
+            photo.Versions.FirstOrDefault(version => version.Kind == ArtifactKind.Cropped && version.IsCurrent && version.ThumbWidths.Count > 0)
+            ?? photo.Versions.FirstOrDefault(version => version.Kind == ArtifactKind.Original && version.IsCurrent)
             ?? photo.Versions.FirstOrDefault(version => version.IsCurrent);
 
         public PhotoDetail PhotoDetailFor(ReviewPhoto photo)

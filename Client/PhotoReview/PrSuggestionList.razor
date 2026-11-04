@@ -24,7 +24,7 @@
             </header>
             @if (ShowShot && PrUi.Has(item.ShotId))
             {
-                <p class="pr-small"><a href="@PrUi.ShotLink(item.ShotId)">@PrUi.Number(item.ShotNumber) @item.ShotTitle</a></p>
+                <p class="pr-small"><a href="@PrUi.ShotLink(item.ShotNumber, item.ShotTitle)">@PrUi.Number(item.ShotNumber) @item.ShotTitle</a></p>
             }
             @if (PrUi.Has(item.Title))
             {
