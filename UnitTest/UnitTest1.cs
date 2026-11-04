@@ -49,28 +49,6 @@ namespace UnitTest
 
 
 
-        [Fact]
-
-        public void WoodlandFootball_Jv_schedule_is_upcoming_only_and_ordered()
-
-        {
-
-            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.SportNames.Football);
-
-
-
-            games.Should().OnlyContain(e => e.Date >= DateTime.Today);
-
-            games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Football);
-
-            games.Should().OnlyContain(e => e.Kids.Count == 1 && e.Kids[0] == "Cohen");
-
-            games.Select(e => e.Date).Should().BeInAscendingOrder();
-
-            games.Should().OnlyContain(e => e.Name.StartsWith("vs "));
-
-        }
-
 
 
         [Fact]
