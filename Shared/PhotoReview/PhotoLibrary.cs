@@ -139,7 +139,7 @@ namespace BlazorApp.Shared.PhotoReview
             html.Append("article img{width:100%;height:auto;border-radius:4px;display:block}h2{font-size:1.05rem;margin:10px 0 4px}");
             html.Append(".meta{font-size:.85rem;color:#555;margin:0 0 8px}ul{list-style:none;padding:0;margin:0}li{margin:4px 0}a{color:#1a56db}</style>\n");
             html.Append("</head>\n<body>\n<main>\n<h1>Lucky Luke Magic Photo Library</h1>\n");
-            html.Append("<p>Photos from our family magic shows in Vancouver, WA and Portland, OR. Download any version below.</p>\n");
+            html.Append("<p>Photos from our family magic shows in Vancouver, WA and Portland, OR. Download any version below. <a href=\"https://lukehammer.com/photos\">Filter and sort the library</a>.</p>\n");
             html.Append("<section class=\"grid\" aria-label=\"Photos\">\n");
             foreach (var item in items)
             {
