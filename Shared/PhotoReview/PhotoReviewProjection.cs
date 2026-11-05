@@ -144,7 +144,8 @@ namespace BlazorApp.Shared.PhotoReview
                 SuggestedBy = row.SuggestedBy,
                 Status = Effective(row),
                 StatusConfirmed = row.OwnerStatus != null,
-                ProvisionalStatus = Provisional(row),
+                // A shot with no photo and no suggestion is provisionally not captured, the same rule the retake list uses.
+                ProvisionalStatus = RetakeStatus(row, photos.Count) ?? Provisional(row),
                 ProvisionalSource = row.OwnerStatus != null ? "owner" : row.SuggestedStatus != null ? "suggestion" : "",
                 OwnerNote = row.OwnerNote,
                 PhotoIds = photos.Select(photo => photo.Id).ToList(),
@@ -446,6 +447,18 @@ namespace BlazorApp.Shared.PhotoReview
         };
 
         /// <summary>
+        /// The status that puts a shot on the retake list, or null when it does not need a retake. Shared by the queue
+        /// and the grid so both count the same shots: no photos (not captured), or Unsuccessful and Partially successful.
+        /// </summary>
+        public static ShotReviewStatus? RetakeStatus(ShotReview row, int photoCount)
+        {
+            // Luke's verdict always wins. Without one, the labeled suggestion decides provisionally;
+            // without either, a shot with no photo still needs a retake.
+            var status = row.OwnerStatus ?? row.SuggestedStatus ?? (photoCount == 0 ? ShotReviewStatus.NotCaptured : (ShotReviewStatus?)null);
+            return status is ShotReviewStatus.NotCaptured or ShotReviewStatus.Unsuccessful or ShotReviewStatus.PartiallySuccessful ? status : null;
+        }
+
+        /// <summary>
         /// Planned shots Luke marked Not captured, Unsuccessful or Partially successful; planned shots the
         /// selection pass found no match for (until Luke decides); and approved suggestions.
         /// </summary>
@@ -459,8 +472,8 @@ namespace BlazorApp.Shared.PhotoReview
                 // Luke's verdict always wins. Without one, the labeled suggestion decides provisionally;
                 // without either, a shot with no photo is still listed so nothing is forgotten.
                 var confirmed = row.OwnerStatus != null;
-                var status = confirmed ? row.OwnerStatus : row.SuggestedStatus ?? (photos.Count == 0 ? ShotReviewStatus.NotCaptured : (ShotReviewStatus?)null);
-                if (status != ShotReviewStatus.NotCaptured && status != ShotReviewStatus.Unsuccessful && status != ShotReviewStatus.PartiallySuccessful)
+                var status = RetakeStatus(row, photos.Count);
+                if (status == null)
                 {
                     continue;
                 }
