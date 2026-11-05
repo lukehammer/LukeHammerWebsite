@@ -1,0 +1,188 @@
+@page "/photos"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using BlazorApp.Shared.PhotoReview
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>Photo Library · Lucky Luke Magic</PageTitle>
+<HeadContent>
+    <meta name="description" content="Free family magic show photos from Lucky Luke Magic in Vancouver, WA and Portland, OR. Filter by category and rating, then download any version." />
+    <link rel="canonical" href="https://lukehammer.com/photos" />
+    <link rel="alternate" type="application/json" title="Photo library data" href="https://lukehammer.com/api/photoreview/library/data" />
+    <style>
+        .lib-filters { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin-bottom: 1rem; }
+        .lib-filters label { display: flex; flex-direction: column; font-size: .85rem; gap: .25rem; }
+        .lib-filters select { min-width: 10rem; padding: .35rem .5rem; border-radius: 6px; border: 1px solid #c7c7d1; }
+        .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .lib-card { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .lib-card.earlier { opacity: .85; }
+        .lib-card img { width: 100%; height: auto; border-radius: 4px; display: block; }
+        .lib-card h2 { font-size: 1.05rem; margin: 10px 0 4px; }
+        .lib-meta { font-size: .85rem; color: #555; margin: 0 0 8px; }
+        .lib-card ul { list-style: none; padding: 0; margin: 0; }
+        .lib-card li { margin: 4px 0; }
+        .lib-count { font-size: .9rem; color: #555; margin: .5rem 0 1rem; }
+    </style>
+</HeadContent>
+
+<section class="container py-3">
+    <h1 class="h3">Photo Library</h1>
+    <p>Photos from our family magic shows in Vancouver, WA and Portland, OR. Filter and sort below, then download any version.</p>
+
+    @if (loadError != null)
+    {
+        <div class="alert alert-danger" role="alert">@loadError</div>
+    }
+    else if (library == null)
+    {
+        <p class="text-muted" aria-live="polite">Loading the library…</p>
+    }
+    else
+    {
+        <div class="lib-filters" role="group" aria-label="Filter and sort the library">
+            <label>Category
+                <select @onchange="OnCategoryChanged" aria-label="Category">
+                    <option value="">All categories</option>
+                    @foreach (var category in Categories)
+                    {
+                        <option value="@category.Slug" selected="@(category.Slug == CategorySlug)">@category.Name</option>
+                    }
+                </select>
+            </label>
+            <label>Minimum rating
+                <select @onchange="OnMinRatingChanged" aria-label="Minimum rating">
+                    <option value="" selected="@(MinRating == null)">Any rating</option>
+                    @foreach (var rating in new[] { 5, 7, 8, 9 })
+                    {
+                        <option value="@rating" selected="@(MinRating == rating)">@rating or higher</option>
+                    }
+                </select>
+            </label>
+            <label>Show
+                <select @onchange="OnCurrentChanged" aria-label="Show">
+                    <option value="" selected="@(Current == null)">All accepted photos</option>
+                    <option value="true" selected="@(Current == true)">Current only</option>
+                    <option value="false" selected="@(Current == false)">Earlier only</option>
+                </select>
+            </label>
+            <label>Sort by
+                <select @onchange="OnSortChanged" aria-label="Sort by">
+                    <option value="category" selected="@(Sort == "category")">Category</option>
+                    <option value="rating" selected="@(Sort == "rating")">Highest rated</option>
+                    <option value="newest" selected="@(Sort == "newest")">Newest shoot</option>
+                    <option value="title" selected="@(Sort == "title")">Title</option>
+                </select>
+            </label>
+        </div>
+
+        <p class="lib-count" aria-live="polite">Showing @Filtered.Count of @library.TotalPhotos photos.</p>
+
+        @if (Filtered.Count == 0)
+        {
+            <p>No photos match these filters. <button type="button" class="btn btn-link p-0" @onclick="ClearFilters">Clear filters</button></p>
+        }
+
+        <div class="lib-grid">
+            @foreach (var photo in Filtered)
+            {
+                <article class="lib-card @(photo.IsCurrent ? "" : "earlier")">
+                    @if (photo.ThumbnailUrl != null)
+                    {
+                        <img src="@photo.ThumbnailUrl" alt="Lucky Luke Magic: @photo.Title, @photo.Category.ToLowerInvariant()" loading="lazy" />
+                    }
+                    <h2>@photo.Title</h2>
+                    <p class="lib-meta">@photo.Category · @(photo.Rating == null ? "Not yet rated" : $"Rated {photo.Rating:0.0} from {photo.RatingCount} vote{(photo.RatingCount == 1 ? "" : "s")}")</p>
+                    @if (!photo.IsCurrent)
+                    {
+                        <p class="lib-meta">@(photo.ShootDate != null ? $"Earlier accepted photo from {photo.ShootDate}" : "Earlier accepted photo")</p>
+                    }
+                    <ul>
+                        @foreach (var version in photo.Versions)
+                        {
+                            <li><a href="@version.DownloadUrl">Download @version.Label (@FileSize(version.Bytes))</a></li>
+                        }
+                    </ul>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    // Filters come from the URL, so a filtered view can be bookmarked and shared.
+    [SupplyParameterFromQuery(Name = "category")] public string? CategorySlug { get; set; }
+    [SupplyParameterFromQuery(Name = "minRating")] public int? MinRating { get; set; }
+    [SupplyParameterFromQuery(Name = "current")] public bool? Current { get; set; }
+    [SupplyParameterFromQuery(Name = "sort")] public string? Sort { get; set; }
+
+    private LibraryDocument? library;
+    private string? loadError;
+    private List<LibraryPhoto> Filtered = new();
+    private List<(string Slug, string Name)> Categories = new();
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            library = await Http.GetFromJsonAsync<LibraryDocument>("/api/photoreview/library/data", JsonOptions);
+            if (library != null)
+            {
+                Categories = library.Photos
+                    .GroupBy(photo => photo.CategorySlug)
+                    .Select(group => (group.Key, group.First().Category))
+                    .OrderBy(category => category.Key, StringComparer.Ordinal)
+                    .ToList();
+                ApplyFilters();
+            }
+        }
+        catch (Exception)
+        {
+            loadError = "The photo library could not be loaded. Try again in a moment.";
+        }
+    }
+
+    protected override void OnParametersSet() => ApplyFilters();
+
+    private void ApplyFilters()
+    {
+        if (library == null) return;
+        var sort = Sort is "rating" or "newest" or "title" ? Sort : "category";
+        var photos = library.Photos.AsEnumerable();
+        if (!string.IsNullOrEmpty(CategorySlug)) photos = photos.Where(photo => photo.CategorySlug == CategorySlug);
+        if (MinRating is int minimum) photos = photos.Where(photo => photo.Rating is double rating && rating >= minimum);
+        if (Current is bool current) photos = photos.Where(photo => photo.IsCurrent == current);
+        Filtered = sort switch
+        {
+            "rating" => photos.OrderByDescending(photo => photo.Rating ?? -1).ThenByDescending(photo => photo.RatingCount).ThenBy(photo => photo.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+            "newest" => photos.OrderByDescending(photo => photo.ShootDate, StringComparer.Ordinal).ThenBy(photo => photo.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+            "title" => photos.OrderBy(photo => photo.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+            _ => photos.ToList()
+        };
+    }
+
+    // Each change keeps the other filters as they are.
+    private void OnCategoryChanged(ChangeEventArgs e) => Go(NullIfEmpty(e.Value?.ToString()), MinRating, Current, Sort);
+    private void OnMinRatingChanged(ChangeEventArgs e) => Go(CategorySlug, int.TryParse(e.Value?.ToString(), out var value) ? value : null, Current, Sort);
+    private void OnCurrentChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, e.Value?.ToString() switch { "true" => true, "false" => false, _ => null }, Sort);
+    private void OnSortChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, Current, NullIfEmpty(e.Value?.ToString()));
+
+    private void ClearFilters() => Go(null, null, null, null);
+
+    // Changes the filters in the address bar without reloading the page.
+    private void Go(string? category, int? minRating, bool? current, string? sort)
+    {
+        var parts = new List<string>();
+        if (category != null) parts.Add("category=" + Uri.EscapeDataString(category));
+        if (minRating != null) parts.Add("minRating=" + minRating);
+        if (current != null) parts.Add("current=" + (current.Value ? "true" : "false"));
+        if (sort != null && sort != "category") parts.Add("sort=" + Uri.EscapeDataString(sort));
+        Nav.NavigateTo("photos" + (parts.Count > 0 ? "?" + string.Join("&", parts) : ""), new NavigationOptions { ReplaceHistoryEntry = true });
+    }
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private static string FileSize(long bytes) => bytes >= 1048576 ? $"{bytes / 1048576.0:F1} MB" : $"{Math.Max(1, bytes / 1024)} KB";
+}

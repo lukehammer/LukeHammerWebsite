@@ -6,6 +6,7 @@ The site is a Blazor WebAssembly app, so most pages need JavaScript. The photo l
 
 ## Photo library
 
+- [Photo library (interactive)](https://lukehammer.com/photos): filter by category and rating, and sort, in the browser.
 - [Photo library (HTML)](https://lukehammer.com/api/photoreview/library): every accepted photo, grouped by category, with ratings and download links.
 - [Photo library (JSON)](https://lukehammer.com/api/photoreview/library/data): the same photos as data for tools and scripts. Filters: `category` (slug), `minRating` (1-10), `current` (true/false), `sort` (category, rating, newest, title). Example: https://lukehammer.com/api/photoreview/library/data?category=headshots&sort=rating
 - [Photo library manifest (JSON)](https://lukehammer.com/api/photoreview/library/manifest): older flat format used by the sync tool.
