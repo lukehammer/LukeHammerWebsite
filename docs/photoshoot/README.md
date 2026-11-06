@@ -10,6 +10,8 @@ A private, mobile-first tool inside LukeHammer.com for planning and running the 
 
 Related docs: [ARCHITECTURE.md](ARCHITECTURE.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [STATUS.md](STATUS.md) · [PHOTO_CATALOG.md](PHOTO_CATALOG.md) · **[PHOTO_REVIEW.md](PHOTO_REVIEW.md)** (public photo review, ratings, second shoot, walkthrough) · [ARTIFACT_MANIFEST.md](ARTIFACT_MANIFEST.md)
 
+> **Proof of concept.** This deployment of the photo shoot application, inside lukehammer.com, is the POC. Luke plans to move it into a standalone service. Decisions made here, and what the standalone service must change, are recorded in [POC-DECISIONS.md](POC-DECISIONS.md).
+
 > Sign-in changed: Luke edits with **Microsoft sign-in** (lukeroberthammer@outlook.com). The shared password now gives photographer access only.
 
 ## Pages
@@ -43,6 +45,16 @@ Photographers see Dashboard, Shots, Brief, Photographer, and Marker in the sub-n
 6. **Keep screen awake** (Options) uses the browser Wake Lock API where supported.
 
 The connection pill in the top bar shows **Live / Syncing / Reconnecting / Offline**; tap the refresh icon to force a sync. Phones resync immediately when the tab becomes visible again or the network returns.
+
+## Sorting a completed shoot (POC)
+
+1. The marker shows a **shot code** (a QR code) for the current shot, in the bottom corner of the marker card. Its payload is `lhp:shoot/{shootId}/shot/{shotId}`. Shoots taken before this change have no codes.
+2. After the shoot, Luke or a photographer opens **Uploads** and taps **Add photos**, then selects the whole shoot folder.
+3. The browser measures every photo (sharpness, exposure, clipping), reads any shot code, and reads the capture time. It then sorts the photos into shots: a shot code starts a run that covers the photos after it, until the next code. Photos before the first code stay unsorted.
+4. Photos that fail the checks (blurry, blown highlights, crushed shadows) are reported and not recommended. Among the rest, the sharpest, best-exposed photo per shot is **recommended**.
+5. Each photo is uploaded to its shot, or to the inbox when unsorted. The **Last sort** table shows each result. Nothing is analysed on the server, and no AI is used.
+
+Thresholds and the score are in `Shared/PhotoShoot/PhotoShootUploadSort.cs`. Recommendations are only shown in the table for now, and Luke sets the final with **Make final**.
 
 ## Local development
 
