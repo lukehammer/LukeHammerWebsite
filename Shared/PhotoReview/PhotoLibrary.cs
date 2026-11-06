@@ -8,15 +8,23 @@ using System.Text.RegularExpressions;
 namespace BlazorApp.Shared.PhotoReview
 {
     /// <summary>
-    /// The public photo library: each accepted (Primary) photo with its cropped versions, across every shoot. A pose is one
+    /// The public photo library: each accepted (Primary) photo with its cropped and uncropped versions, across every shoot. A pose is one
     /// shot title and category. The newest shoot's accepted photos for a pose are current; older accepted photos stay listed
     /// as earlier. Built from public review data only, so hidden photos, superseded versions and viewer details never appear.
     /// Used for the HTML page and the JSON manifest.
     /// </summary>
     public static class PhotoLibrary
     {
-        /// <summary>The versions offered for download, in the order they are listed.</summary>
-        public static readonly ArtifactKind[] Kinds = { ArtifactKind.CroppedWhiteBackground, ArtifactKind.Cropped, ArtifactKind.CroppedTransparent };
+        /// <summary>The versions offered for download, in the order they are listed: cropped first, then uncropped.</summary>
+        public static readonly ArtifactKind[] Kinds =
+        {
+            ArtifactKind.CroppedWhiteBackground, ArtifactKind.Cropped, ArtifactKind.CroppedTransparent,
+            ArtifactKind.Original, ArtifactKind.WhiteBackground, ArtifactKind.Transparent
+        };
+
+        /// <summary>True for the versions cut down to the subject. Original, WhiteBackground and Transparent keep the full frame.</summary>
+        public static bool IsCropped(ArtifactKind kind) =>
+            kind is ArtifactKind.CroppedWhiteBackground or ArtifactKind.Cropped or ArtifactKind.CroppedTransparent;
 
         /// <summary>One shoot's review data, read without any viewer identity so hidden photos stay hidden.</summary>
         public class Source
@@ -51,10 +59,14 @@ namespace BlazorApp.Shared.PhotoReview
                             var version = photo.Versions.FirstOrDefault(item => item.Kind == kind && !item.Superseded);
                             if (version == null) continue;
                             var url = $"{apiBase}/photos/{photo.Summary.Id}/versions/{version.Id}/file";
+                            var thumbBase = $"{apiBase}/photos/{photo.Summary.Id}/versions/{version.Id}/thumb/";
                             files.Add(new PhotoLibraryFile
                             {
                                 Kind = kind.ToString(),
                                 Label = KindLabel(kind),
+                                IsCropped = IsCropped(kind),
+                                ThumbUrl = version.ThumbWidths.Count > 0 ? thumbBase + version.ThumbWidths.Min() : "",
+                                PreviewUrl = version.ThumbWidths.Count > 0 ? thumbBase + version.ThumbWidths.Max() : "",
                                 FileName = version.FileName,
                                 Bytes = version.Bytes,
                                 Width = version.Width,
@@ -177,6 +189,9 @@ namespace BlazorApp.Shared.PhotoReview
             ArtifactKind.CroppedWhiteBackground => "cropped on white",
             ArtifactKind.Cropped => "cropped",
             ArtifactKind.CroppedTransparent => "cropped transparent",
+            ArtifactKind.Original => "original (uncropped)",
+            ArtifactKind.WhiteBackground => "uncropped on white",
+            ArtifactKind.Transparent => "uncropped transparent",
             _ => kind.ToString()
         };
 
@@ -221,5 +236,10 @@ namespace BlazorApp.Shared.PhotoReview
         public int Height { get; set; }
         public string Url { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
+        public bool IsCropped { get; set; }
+        /// <summary>Small preview of this version (smallest thumbnail), or empty.</summary>
+        public string ThumbUrl { get; set; } = "";
+        /// <summary>Large preview of this version (largest thumbnail), for viewing on screen. Empty when none exists.</summary>
+        public string PreviewUrl { get; set; } = "";
     }
 }

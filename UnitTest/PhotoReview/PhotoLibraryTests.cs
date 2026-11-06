@@ -65,8 +65,13 @@ public class PhotoLibraryTests
     [Fact]
     public void Kind_labels_match_the_versions_offered_for_download()
     {
-        PhotoLibrary.Kinds.Should().Equal(ArtifactKind.CroppedWhiteBackground, ArtifactKind.Cropped, ArtifactKind.CroppedTransparent);
+        PhotoLibrary.Kinds.Should().Equal(
+            ArtifactKind.CroppedWhiteBackground, ArtifactKind.Cropped, ArtifactKind.CroppedTransparent,
+            ArtifactKind.Original, ArtifactKind.WhiteBackground, ArtifactKind.Transparent);
         PhotoLibrary.KindLabel(ArtifactKind.CroppedTransparent).Should().Be("cropped transparent");
+        PhotoLibrary.KindLabel(ArtifactKind.Original).Should().Be("original (uncropped)");
+        PhotoLibrary.IsCropped(ArtifactKind.Cropped).Should().BeTrue();
+        PhotoLibrary.IsCropped(ArtifactKind.WhiteBackground).Should().BeFalse();
     }
 
     [Fact]
@@ -108,6 +113,19 @@ public class PhotoLibraryTests
 
         items.Should().HaveCount(2);
         items.Should().OnlyContain(item => item.IsCurrent);
+    }
+
+    [Fact]
+    public void Uncropped_original_is_listed_after_the_cropped_versions()
+    {
+        var planner = Planner();
+
+        var item = PhotoLibrary.Build(new[] { Shoot("only", planner, ImportedCatalog(planner, Photo(1, "shot-001", Cropped(1)))) }, ApiBase).Single();
+
+        item.Files.Select(file => file.Kind).Should().Equal("CroppedWhiteBackground", "Original");
+        item.Files.Select(file => file.IsCropped).Should().Equal(true, false);
+        item.Files[1].Label.Should().Be("original (uncropped)");
+        item.Files[1].Width.Should().Be(3648);
     }
 
     [Fact]
