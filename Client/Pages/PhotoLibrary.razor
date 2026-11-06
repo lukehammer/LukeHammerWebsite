@@ -4,10 +4,12 @@
 @using BlazorApp.Shared.PhotoReview
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <PageTitle>Photo Library · Lucky Luke Magic</PageTitle>
 <HeadContent>
-    <meta name="description" content="Free family magic show photos from Lucky Luke Magic in Vancouver, WA and Portland, OR. Filter by category and rating, then download any version." />
+    <meta name="description" content="Free family magic show photos from Lucky Luke Magic in Vancouver, WA and Portland, OR. Filter by category and rating, then download any version, cropped or uncropped." />
     <link rel="canonical" href="https://lukehammer.com/photos" />
     <link rel="alternate" type="application/json" title="Photo library data" href="https://lukehammer.com/api/photoreview/library/data" />
     <style>
@@ -17,18 +19,49 @@
         .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
         .lib-card { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
         .lib-card.earlier { opacity: .85; }
-        .lib-card img { width: 100%; height: auto; border-radius: 4px; display: block; }
+        .lib-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; position: relative; }
+        .lib-open img { width: 100%; height: auto; border-radius: 4px; display: block; }
+        .lib-open:focus-visible { outline: 3px solid #1a56db; outline-offset: 2px; border-radius: 4px; }
+        .lib-badge { position: absolute; right: 6px; bottom: 6px; background: rgba(0,0,0,.65); color: #fff; font-size: .75rem; padding: 2px 8px; border-radius: 999px; }
         .lib-card h2 { font-size: 1.05rem; margin: 10px 0 4px; }
         .lib-meta { font-size: .85rem; color: #555; margin: 0 0 8px; }
-        .lib-card ul { list-style: none; padding: 0; margin: 0; }
-        .lib-card li { margin: 4px 0; }
+        .lib-dl { font-size: .85rem; margin: 2px 0; }
+        .lib-dl span { color: #555; }
         .lib-count { font-size: .9rem; color: #555; margin: .5rem 0 1rem; }
+
+        .lv { position: fixed; inset: 0; z-index: 2000; background: #0b0b0f; color: #f2f2f5; display: flex; flex-direction: column; outline: none; }
+        .lv-top { display: flex; align-items: center; gap: .75rem; padding: .5rem .75rem; }
+        .lv-title { flex: 1; min-width: 0; }
+        .lv-title h2 { font-size: 1rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lv-title p { font-size: .8rem; margin: 0; color: #b5b5c0; }
+        .lv-btn { background: rgba(255,255,255,.12); color: #fff; border: 0; border-radius: 999px; min-width: 40px; height: 40px; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; padding: 0 .9rem; }
+        .lv-btn:hover { background: rgba(255,255,255,.22); color: #fff; }
+        .lv-btn:focus-visible, .lv-chip:focus-visible { outline: 3px solid #8ab4ff; outline-offset: 2px; }
+        .lv-stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; padding: 0 56px; touch-action: pan-y; }
+        .lv-stage img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+        .lv-stage img.checker { background-color: #fff; background-image: linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%); background-size: 20px 20px; background-position: 0 0,0 10px,10px -10px,-10px 0; }
+        .lv-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border-radius: 8px; font-size: 1.6rem; }
+        .lv-prev { left: 6px; } .lv-next { right: 6px; }
+        .lv-bottom { padding: .5rem .75rem .75rem; }
+        .lv-strip { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scroll-snap-type: x proximity; }
+        .lv-group { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: #8f8f9c; align-self: center; writing-mode: vertical-rl; transform: rotate(180deg); }
+        .lv-chip { flex: 0 0 auto; width: 84px; background: none; border: 2px solid transparent; border-radius: 6px; padding: 2px; color: #ddd; font-size: .7rem; text-align: center; scroll-snap-align: start; }
+        .lv-chip img { width: 76px; height: 76px; object-fit: contain; display: block; background: #222; border-radius: 4px; }
+        .lv-chip.on { border-color: #8ab4ff; color: #fff; }
+        .lv-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .5rem; font-size: .85rem; }
+        .lv-hint { color: #8f8f9c; font-size: .75rem; margin-left: auto; }
+        .lv-preload { display: none; }
+        @@media (max-width: 600px) {
+            .lv-stage { padding: 0; }
+            .lv-nav { display: none; }
+            .lv-hint { display: none; }
+        }
     </style>
 </HeadContent>
 
 <section class="container py-3">
     <h1 class="h3">Photo Library</h1>
-    <p>Photos from our family magic shows in Vancouver, WA and Portland, OR. Filter and sort below, then download any version.</p>
+    <p>Photos from our family magic shows in Vancouver, WA and Portland, OR. Tap any photo to see every version, cropped and uncropped, then download the one you want.</p>
 
     @if (loadError != null)
     {
@@ -84,44 +117,132 @@
         }
 
         <div class="lib-grid">
-            @foreach (var photo in Filtered)
+            @for (var i = 0; i < Filtered.Count; i++)
             {
+                var index = i;
+                var photo = Filtered[index];
+                var cropped = photo.Versions.Where(version => version.IsCropped).ToList();
+                var uncropped = photo.Versions.Where(version => !version.IsCropped).ToList();
                 <article class="lib-card @(photo.IsCurrent ? "" : "earlier")">
-                    @if (photo.ThumbnailUrl != null)
-                    {
-                        <img src="@photo.ThumbnailUrl" alt="Lucky Luke Magic: @photo.Title, @photo.Category.ToLowerInvariant()" loading="lazy" />
-                    }
+                    <button type="button" class="lib-open" @onclick="() => Open(index)" aria-label="View every version of @photo.Title">
+                        @if (photo.ThumbnailUrl != null)
+                        {
+                            <img src="@photo.ThumbnailUrl" alt="Lucky Luke Magic: @photo.Title, @photo.Category.ToLowerInvariant()" loading="lazy" />
+                        }
+                        else
+                        {
+                            <span>@photo.Title</span>
+                        }
+                        <span class="lib-badge">@photo.Versions.Count version@(photo.Versions.Count == 1 ? "" : "s")</span>
+                    </button>
                     <h2>@photo.Title</h2>
                     <p class="lib-meta">@photo.Category · @(photo.Rating == null ? "Not yet rated" : $"Rated {photo.Rating:0.0} from {photo.RatingCount} vote{(photo.RatingCount == 1 ? "" : "s")}")</p>
                     @if (!photo.IsCurrent)
                     {
                         <p class="lib-meta">@(photo.ShootDate != null ? $"Earlier accepted photo from {photo.ShootDate}" : "Earlier accepted photo")</p>
                     }
-                    <ul>
-                        @foreach (var version in photo.Versions)
-                        {
-                            <li><a href="@version.DownloadUrl">Download @version.Label (@FileSize(version.Bytes))</a></li>
-                        }
-                    </ul>
+                    @if (cropped.Count > 0)
+                    {
+                        <p class="lib-dl"><span>Cropped:</span> @DownloadLinks(cropped)</p>
+                    }
+                    @if (uncropped.Count > 0)
+                    {
+                        <p class="lib-dl"><span>Uncropped:</span> @DownloadLinks(uncropped)</p>
+                    }
                 </article>
             }
         </div>
     }
 </section>
 
+@if (Viewing is LibraryPhoto shown && ShownVersion is LibraryVersion version)
+{
+    var previous = viewIndex > 0 ? Filtered[viewIndex - 1] : null;
+    var next = viewIndex < Filtered.Count - 1 ? Filtered[viewIndex + 1] : null;
+    <div class="lv" role="dialog" aria-modal="true" aria-label="@shown.Title" tabindex="-1" @ref="viewerRef" @onkeydown="OnViewerKey">
+        <div class="lv-top">
+            <div class="lv-title">
+                <h2>@shown.Title</h2>
+                <p>@(viewIndex + 1) of @Filtered.Count · @shown.Category · @VersionName(version) · @version.WidthPx × @version.HeightPx</p>
+            </div>
+            <button type="button" class="lv-btn" @onclick="Close" aria-label="Close viewer">✕</button>
+        </div>
+
+        <div class="lv-stage" @ontouchstart="OnTouchStart" @ontouchend="OnTouchEnd">
+            <img src="@(version.PreviewUrl ?? version.Url)" alt="Lucky Luke Magic: @shown.Title, @VersionName(version)" class="@(IsTransparent(version) ? "checker" : "")" />
+            @if (previous != null)
+            {
+                <button type="button" class="lv-btn lv-nav lv-prev" @onclick="() => Step(-1)" aria-label="Previous photo">‹</button>
+            }
+            @if (next != null)
+            {
+                <button type="button" class="lv-btn lv-nav lv-next" @onclick="() => Step(1)" aria-label="Next photo">›</button>
+            }
+        </div>
+
+        <div class="lv-bottom">
+            <div class="lv-strip" role="listbox" aria-label="Versions of this photo">
+                @foreach (var option in shown.Versions)
+                {
+                    var kind = option.Kind;
+                    if (option == shown.Versions.First(item => item.IsCropped == option.IsCropped))
+                    {
+                        <span class="lv-group" aria-hidden="true">@(option.IsCropped ? "Cropped" : "Uncropped")</span>
+                    }
+                    <button type="button" role="option" aria-selected="@(option == version ? "true" : "false")"
+                            class="lv-chip @(option == version ? "on" : "")" @onclick="() => Choose(kind)" title="@option.Label">
+                        <img src="@(option.ThumbnailUrl ?? option.PreviewUrl ?? option.Url)" alt="" loading="lazy" />
+                        @ShortName(option)
+                    </button>
+                }
+            </div>
+            <div class="lv-actions">
+                <a class="lv-btn" href="@version.DownloadUrl">Download @version.Label (@FileSize(version.Bytes))</a>
+                <a class="lv-btn" href="@version.Url" target="_blank" rel="noopener">Full size</a>
+                <span class="lv-hint">← → photos · ↑ ↓ versions · Esc closes</span>
+            </div>
+        </div>
+
+        @* The neighbours' previews load in the background so stepping through is instant. *@
+        @foreach (var neighbour in new[] { previous, next })
+        {
+            if (neighbour != null && VersionFor(neighbour) is LibraryVersion ahead)
+            {
+                <img class="lv-preload" src="@(ahead.PreviewUrl ?? ahead.Url)" alt="" />
+            }
+        }
+    </div>
+}
+
 @code {
-    // Filters come from the URL, so a filtered view can be bookmarked and shared.
+    // Filters and the open photo come from the URL, so any view can be bookmarked and shared.
     [SupplyParameterFromQuery(Name = "category")] public string? CategorySlug { get; set; }
     [SupplyParameterFromQuery(Name = "minRating")] public int? MinRating { get; set; }
     [SupplyParameterFromQuery(Name = "current")] public bool? Current { get; set; }
     [SupplyParameterFromQuery(Name = "sort")] public string? Sort { get; set; }
+    [SupplyParameterFromQuery(Name = "view")] public string? ViewId { get; set; }
+    [SupplyParameterFromQuery(Name = "version")] public string? ViewKind { get; set; }
 
     private LibraryDocument? library;
     private string? loadError;
     private List<LibraryPhoto> Filtered = new();
     private List<(string Slug, string Name)> Categories = new();
 
+    private ElementReference viewerRef;
+    private int viewIndex = -1;
+    // The version kind the visitor last picked. It carries over as they step between photos.
+    private string? chosenKind;
+    // True when this page opened the viewer, so closing it can go Back instead of adding history.
+    private bool openedHere;
+    private bool focusViewer;
+    private bool scrollLocked;
+    private double touchStartX;
+    private double touchStartY;
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    private LibraryPhoto? Viewing => viewIndex >= 0 && viewIndex < Filtered.Count ? Filtered[viewIndex] : null;
+    private LibraryVersion? ShownVersion => Viewing == null ? null : VersionFor(Viewing);
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,6 +267,22 @@
 
     protected override void OnParametersSet() => ApplyFilters();
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var open = Viewing != null;
+        if (open != scrollLocked)
+        {
+            scrollLocked = open;
+            await JS.InvokeVoidAsync("photoLibraryViewer.lockScroll", open);
+        }
+
+        if (focusViewer && open)
+        {
+            focusViewer = false;
+            await viewerRef.FocusAsync();
+        }
+    }
+
     private void ApplyFilters()
     {
         if (library == null) return;
@@ -161,28 +298,148 @@
             "title" => photos.OrderBy(photo => photo.Title, StringComparer.OrdinalIgnoreCase).ToList(),
             _ => photos.ToList()
         };
+
+        // The open photo follows the address bar, which also makes Back and Forward step through the viewer.
+        var wasOpen = viewIndex >= 0;
+        viewIndex = string.IsNullOrEmpty(ViewId) ? -1 : Filtered.FindIndex(photo => photo.Id == ViewId);
+        if (viewIndex >= 0 && !string.IsNullOrEmpty(ViewKind)) chosenKind = ViewKind;
+        if (viewIndex >= 0 && !wasOpen) focusViewer = true;
+        if (viewIndex < 0) openedHere = false;
     }
 
+    // ---------- viewer ----------
+
+    private void Open(int index)
+    {
+        openedHere = true;
+        focusViewer = true;
+        Go(CategorySlug, MinRating, Current, Sort, Filtered[index].Id, chosenKind, replace: false);
+    }
+
+    private async Task Close()
+    {
+        if (openedHere)
+        {
+            await JS.InvokeVoidAsync("photoLibraryViewer.back");
+            return;
+        }
+
+        Go(CategorySlug, MinRating, Current, Sort, null, null, replace: true);
+    }
+
+    private void Step(int delta)
+    {
+        var target = viewIndex + delta;
+        if (target < 0 || target >= Filtered.Count) return;
+        Go(CategorySlug, MinRating, Current, Sort, Filtered[target].Id, chosenKind, replace: true);
+    }
+
+    private void Choose(string kind)
+    {
+        chosenKind = kind;
+        if (Viewing != null) Go(CategorySlug, MinRating, Current, Sort, Viewing.Id, kind, replace: true);
+    }
+
+    private void StepVersion(int delta)
+    {
+        if (Viewing == null || ShownVersion == null) return;
+        var versions = Viewing.Versions;
+        var target = versions.IndexOf(ShownVersion) + delta;
+        if (target >= 0 && target < versions.Count) Choose(versions[target].Kind);
+    }
+
+    /// <summary>The version to show for a photo: the one last picked when this photo has it, otherwise its first.</summary>
+    private LibraryVersion? VersionFor(LibraryPhoto photo) =>
+        photo.Versions.FirstOrDefault(version => version.Kind == chosenKind) ?? photo.Versions.FirstOrDefault();
+
+    private async Task OnViewerKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowRight": Step(1); break;
+            case "ArrowLeft": Step(-1); break;
+            case "ArrowDown": StepVersion(1); break;
+            case "ArrowUp": StepVersion(-1); break;
+            case "Escape": await Close(); break;
+        }
+    }
+
+    private void OnTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length == 0) return;
+        touchStartX = e.Touches[0].ClientX;
+        touchStartY = e.Touches[0].ClientY;
+    }
+
+    // A horizontal swipe on the photo steps to the next or previous photo.
+    private void OnTouchEnd(TouchEventArgs e)
+    {
+        if (e.ChangedTouches.Length == 0) return;
+        var dx = e.ChangedTouches[0].ClientX - touchStartX;
+        var dy = e.ChangedTouches[0].ClientY - touchStartY;
+        if (Math.Abs(dx) < 50 || Math.Abs(dx) < Math.Abs(dy) * 1.5) return;
+        Step(dx < 0 ? 1 : -1);
+    }
+
+    // ---------- filters ----------
+
     // Each change keeps the other filters as they are.
-    private void OnCategoryChanged(ChangeEventArgs e) => Go(NullIfEmpty(e.Value?.ToString()), MinRating, Current, Sort);
-    private void OnMinRatingChanged(ChangeEventArgs e) => Go(CategorySlug, int.TryParse(e.Value?.ToString(), out var value) ? value : null, Current, Sort);
-    private void OnCurrentChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, e.Value?.ToString() switch { "true" => true, "false" => false, _ => null }, Sort);
-    private void OnSortChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, Current, NullIfEmpty(e.Value?.ToString()));
+    private void OnCategoryChanged(ChangeEventArgs e) => Go(NullIfEmpty(e.Value?.ToString()), MinRating, Current, Sort, null, null, true);
+    private void OnMinRatingChanged(ChangeEventArgs e) => Go(CategorySlug, int.TryParse(e.Value?.ToString(), out var value) ? value : null, Current, Sort, null, null, true);
+    private void OnCurrentChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, e.Value?.ToString() switch { "true" => true, "false" => false, _ => null }, Sort, null, null, true);
+    private void OnSortChanged(ChangeEventArgs e) => Go(CategorySlug, MinRating, Current, NullIfEmpty(e.Value?.ToString()), null, null, true);
 
-    private void ClearFilters() => Go(null, null, null, null);
+    private void ClearFilters() => Go(null, null, null, null, null, null, true);
 
-    // Changes the filters in the address bar without reloading the page.
-    private void Go(string? category, int? minRating, bool? current, string? sort)
+    // Changes the address bar without reloading the page.
+    private void Go(string? category, int? minRating, bool? current, string? sort, string? view, string? version, bool replace)
     {
         var parts = new List<string>();
         if (category != null) parts.Add("category=" + Uri.EscapeDataString(category));
         if (minRating != null) parts.Add("minRating=" + minRating);
         if (current != null) parts.Add("current=" + (current.Value ? "true" : "false"));
         if (sort != null && sort != "category") parts.Add("sort=" + Uri.EscapeDataString(sort));
-        Nav.NavigateTo("photos" + (parts.Count > 0 ? "?" + string.Join("&", parts) : ""), new NavigationOptions { ReplaceHistoryEntry = true });
+        if (view != null) parts.Add("view=" + Uri.EscapeDataString(view));
+        if (view != null && version != null) parts.Add("version=" + Uri.EscapeDataString(version));
+        Nav.NavigateTo("photos" + (parts.Count > 0 ? "?" + string.Join("&", parts) : ""), new NavigationOptions { ReplaceHistoryEntry = replace });
     }
+
+    // ---------- labels ----------
+
+    private RenderFragment DownloadLinks(List<LibraryVersion> versions) => __builder =>
+    {
+        for (var i = 0; i < versions.Count; i++)
+        {
+            if (i > 0)
+            {
+                <span aria-hidden="true"> · </span>
+            }
+            <a href="@versions[i].DownloadUrl" title="Download @versions[i].Label (@FileSize(versions[i].Bytes))">@ShortName(versions[i])</a>
+        }
+    };
+
+    /// <summary>The version's name within its cropped or uncropped group.</summary>
+    private static string ShortName(LibraryVersion version) => version.Kind switch
+    {
+        "CroppedWhiteBackground" or "WhiteBackground" => "on white",
+        "CroppedTransparent" or "Transparent" => "transparent",
+        "Cropped" => "plain",
+        "Original" => "original",
+        _ => version.Label
+    };
+
+    private static string VersionName(LibraryVersion version) => (version.IsCropped ? "Cropped, " : "Uncropped, ") + ShortName(version);
+
+    private static bool IsTransparent(LibraryVersion version) => version.Kind is "CroppedTransparent" or "Transparent";
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private static string FileSize(long bytes) => bytes >= 1048576 ? $"{bytes / 1048576.0:F1} MB" : $"{Math.Max(1, bytes / 1024)} KB";
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!scrollLocked) return;
+        try { await JS.InvokeVoidAsync("photoLibraryViewer.lockScroll", false); }
+        catch (JSDisconnectedException) { }
+    }
 }

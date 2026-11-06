@@ -43,8 +43,11 @@ namespace BlazorApp.Shared.PhotoReview
             ["photos[].orientation"] = "landscape, portrait or square, from the size of the cropped version. Null when unknown.",
             ["photos[].hasTransparentVersion"] = "True when a cropped transparent version is available.",
             ["photos[].thumbnailUrl"] = "Small preview image. Null when none is available.",
-            ["photos[].versions"] = "Versions that can be downloaded for this photo.",
-            ["photos[].versions[].kind"] = "Internal name of the version: CroppedWhiteBackground, Cropped or CroppedTransparent.",
+            ["photos[].versions"] = "Versions that can be downloaded for this photo: cropped versions first, then the uncropped original and its full-frame edits.",
+            ["photos[].versions[].kind"] = "Internal name of the version. Cropped: CroppedWhiteBackground, Cropped, CroppedTransparent. Uncropped: Original (exactly as taken), WhiteBackground, Transparent.",
+            ["photos[].versions[].isCropped"] = "True when the version is cropped to the subject. False for the full frame.",
+            ["photos[].versions[].thumbnailUrl"] = "Small preview of this version. Null when none is available.",
+            ["photos[].versions[].previewUrl"] = "Large preview of this version, sized for viewing on screen. Null when none is available.",
             ["photos[].versions[].label"] = "Readable name of the version, for display.",
             ["photos[].versions[].fileName"] = "File name of the version.",
             ["photos[].versions[].widthPx"] = "Width of the version in pixels.",
@@ -155,7 +158,10 @@ namespace BlazorApp.Shared.PhotoReview
                     HeightPx = file.Height,
                     Bytes = file.Bytes,
                     Url = file.Url,
-                    DownloadUrl = file.DownloadUrl
+                    DownloadUrl = file.DownloadUrl,
+                    IsCropped = file.IsCropped,
+                    ThumbnailUrl = file.ThumbUrl.Length > 0 ? file.ThumbUrl : null,
+                    PreviewUrl = file.PreviewUrl.Length > 0 ? file.PreviewUrl : null
                 }).ToList()
             };
         }
@@ -219,5 +225,8 @@ namespace BlazorApp.Shared.PhotoReview
         public long Bytes { get; set; }
         public string Url { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
+        public bool IsCropped { get; set; }
+        public string? ThumbnailUrl { get; set; }
+        public string? PreviewUrl { get; set; }
     }
 }

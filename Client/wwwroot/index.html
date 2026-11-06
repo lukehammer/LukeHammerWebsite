@@ -115,6 +115,17 @@
             document.cookie = 'photoshoot_password=' + encodeURIComponent(value) + '; Path=/; Max-Age=2592000; SameSite=Lax' + secure;
         };
 
+        // Photo library viewer: stops the page behind the full-screen viewer from scrolling, and closes the viewer
+        // with the browser's Back so the address bar and history stay in step.
+        window.photoLibraryViewer = {
+            lockScroll: function (on) {
+                document.documentElement.style.overflow = on ? 'hidden' : '';
+            },
+            back: function () {
+                history.back();
+            }
+        };
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
             var refreshing = false;
