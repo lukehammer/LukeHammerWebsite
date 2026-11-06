@@ -10,6 +10,7 @@ builder.Services.AddScoped<ScheduleSpectatorsClient>();
 builder.Services.AddScoped<BlazorApp.Client.PhotoShoot.PhotoShootApiClient>();
 builder.Services.AddScoped<BlazorApp.Client.PhotoShoot.PhotoShootStore>();
 builder.Services.AddScoped<BlazorApp.Client.PhotoShoot.PhotoShootBrowser>();
+builder.Services.AddScoped<BlazorApp.Client.PhotoShoot.PhotoShootMedia>();
 builder.Services.AddScoped<BlazorApp.Client.PhotoReview.PhotoReviewApi>();
 builder.Services.AddScoped<BlazorApp.Client.PhotoReview.PhotoReviewState>();
 

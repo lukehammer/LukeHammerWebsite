@@ -3,6 +3,7 @@
 @implements IAsyncDisposable
 @inject PhotoShootStore Store
 @inject PhotoShootBrowser Browser
+@inject PhotoShootMedia Media
 
 <PageTitle>Shot marker · Photo Shoot</PageTitle>
 
@@ -93,6 +94,14 @@
                         </div>
                     }
 
+                    @if (current != null)
+                    {
+                        <figure class="ps-marker-qr" aria-label="Shot code for sorting photos">
+                            <div id="ps-marker-qr"></div>
+                            <figcaption class="ps-small">Shot code. Photographed before each shot so the upload can sort it.</figcaption>
+                        </figure>
+                    }
+
                     <div class="ps-marker-clock">
                         <div class="ps-marker-date">@now.ToString("dddd, MMMM d, yyyy")</div>
                         <time class="ps-marker-time" datetime="@now.ToString("yyyy-MM-ddTHH:mm:ss")">@now.ToString("h:mm:ss tt")</time>
@@ -115,6 +124,7 @@
     private DateTime now = DateTime.Now;
     private Timer? clock;
     private bool busy;
+    private string? renderedQr;
 
     protected override void OnInitialized()
     {
@@ -131,6 +141,25 @@
         {
             await Browser.KeepAwakeAsync(true);
         }
+
+        var payload = CurrentQrPayload();
+        if (payload != null && payload != renderedQr)
+        {
+            renderedQr = payload;
+            await Media.RenderQrAsync("ps-marker-qr", payload);
+        }
+    }
+
+    private string? CurrentQrPayload()
+    {
+        var doc = Store.Shoot;
+        if (doc == null)
+        {
+            return null;
+        }
+
+        var current = PhotoShootPlanner.FindShot(doc, doc.Session.CurrentShotId);
+        return current == null ? null : PhotoShootUploadSort.QrPayload(doc.Id, current.Id);
     }
 
     private async Task Do(SessionAction action, string shotId = "")
