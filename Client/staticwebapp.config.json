@@ -1,4 +1,12 @@
 {
+    "routes": [
+        {
+            "route": "/photos",
+            "headers": {
+                "Link": "</api/photoreview/library/data>; rel=\"alternate\"; type=\"application/json\"; title=\"Photo library data (JSON)\", </api/photoreview/library/manifest>; rel=\"alternate\"; type=\"application/json\"; title=\"Photo library manifest (JSON)\", </llms.txt>; rel=\"describedby\"; type=\"text/plain\""
+            }
+        }
+    ],
     "navigationFallback": {
         "rewrite": "/index.html"
     }
