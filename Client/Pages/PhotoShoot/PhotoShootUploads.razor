@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject PhotoShootStore Store
 @inject NavigationManager Nav
+@inject PhotoShootMedia Media
 
 <PageTitle>Uploads · Photo Shoot</PageTitle>
 
@@ -25,6 +26,34 @@
     @if (!string.IsNullOrEmpty(error))
     {
         <div class="ps-flash ps-flash-error" role="alert">@error</div>
+    }
+
+    @if (progress.Length > 0)
+    {
+        <p class="ps-muted ps-small" role="status" aria-live="polite">@progress</p>
+    }
+
+    @if (sortResults.Count > 0)
+    {
+        <section class="ps-card" aria-label="Last sort">
+            <h2 class="ps-h2">Last sort <span class="ps-count-badge">@sortResults.Count</span></h2>
+            <p class="ps-muted ps-small">@sortSummary</p>
+            <table class="ps-table">
+                <thead><tr><th>File</th><th>Shot</th><th>Result</th><th>Score</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var row in sortResults)
+                    {
+                        <tr>
+                            <td>@row.FileName</td>
+                            <td>@row.ShotTitle</td>
+                            <td>@row.Status</td>
+                            <td>@(row.Score > 0 ? row.Score.ToString("0.00") : "")</td>
+                            <td>@(row.Recommended ? "Recommended" : "")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
     }
 
     <div class="ps-upload-tools">
@@ -138,6 +167,9 @@
     private string error = "";
     private bool busy;
     private string currentSetupId = "";
+    private string progress = "";
+    private string sortSummary = "";
+    private List<SortRow> sortResults = new();
 
     protected override void OnInitialized()
     {
@@ -211,18 +243,73 @@
 
     private async Task OneAsync(string shotId, InputFileChangeEventArgs e) => await UploadOne(e.File, shotId, place: false);
 
+    /// <summary>
+    /// Whole-shoot upload. Pass 1 measures every photo in the browser (sharpness, exposure, marker QR, capture time)
+    /// and sorts the frames into shots by their marker. Pass 2 uploads each photo to its shot, or to the inbox when unsorted.
+    /// Nothing is analysed on the server. See docs/photoshoot/POC-DECISIONS.md.
+    /// </summary>
     private async Task BulkAsync(InputFileChangeEventArgs e)
     {
         error = "";
+        sortResults = new List<SortRow>();
+        sortSummary = "";
+        if (Store.Shoot is not { } doc)
+        {
+            return;
+        }
+
         busy = true;
         try
         {
-            foreach (var file in e.GetMultipleFiles(200))
+            var files = e.GetMultipleFiles(1000);
+            var frames = new List<PhotoShootUploadSort.Frame>();
+            var byId = new Dictionary<string, IBrowserFile>();
+            for (var i = 0; i < files.Count; i++)
             {
-                await UploadOne(file, "", place: false);
+                progress = $"Checking photo {i + 1} of {files.Count}";
+                StateHasChanged();
+                var file = files[i];
+                var id = i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                byId[id] = file;
+                var analysed = await AnalyseAsync(file);
+                frames.Add(new PhotoShootUploadSort.Frame
+                {
+                    Id = id,
+                    CapturedUtc = analysed.CapturedUtc,
+                    QrText = analysed.QrText,
+                    Metrics = new PhotoShootUploadSort.FrameMetrics
+                    {
+                        Sharpness = analysed.Sharpness,
+                        MeanLuma = analysed.MeanLuma,
+                        ClippedHighlights = analysed.ClippedHighlights,
+                        ClippedShadows = analysed.ClippedShadows,
+                    },
+                });
             }
 
-            await Store.RunAsync(id => Store.Api.PlaceFinishedAsync(id));
+            var sorted = PhotoShootUploadSort.Sort(doc.Id, frames);
+            PhotoShootUploadSort.Recommend(sorted);
+
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var row = sorted[i];
+                progress = $"Uploading photo {i + 1} of {sorted.Count}";
+                StateHasChanged();
+                var file = byId[row.Id];
+                await UploadSource(file, row.ShotId, row.CapturedUtc);
+                sortResults.Add(new SortRow
+                {
+                    FileName = file.Name,
+                    ShotTitle = row.ShotId.Length == 0 ? "Not placed" : PhotoShootPlanner.FindShot(doc, row.ShotId)?.Title ?? row.ShotId,
+                    Status = row.Passed ? (row.Evidence == "Unsorted" ? "Passed, not sorted" : "Passed") : row.FailReason,
+                    Score = row.Score,
+                    Recommended = row.Recommended,
+                });
+            }
+
+            var recommended = sorted.Count(f => f.Recommended);
+            var unsorted = sorted.Count(f => f.Evidence == "Unsorted");
+            sortSummary = $"{sorted.Count} photos. {recommended} recommended, {unsorted} not sorted (no marker before them). Recommendations are shown here only for now; use Make final to set one.";
             if (Store.FlashIsError) error = Store.Flash;
         }
         catch (PhotoShootApiException ex)
@@ -231,8 +318,80 @@
         }
         finally
         {
+            progress = "";
             busy = false;
         }
+    }
+
+    private async Task<AnalysedPhoto> AnalyseAsync(IBrowserFile file)
+    {
+        var source = await OpenSourceAsync(file);
+        await using var raw = source.OpenReadStream(100 * 1024 * 1024);
+        using var buffer = new MemoryStream();
+        await raw.CopyToAsync(buffer);
+        var fallback = file.LastModified.UtcDateTime;
+        var result = await Media.AnalyseAsync(buffer.ToArray(), fallback);
+        var captured = fallback;
+        if (DateTime.TryParse(result.CapturedIso, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed))
+        {
+            captured = parsed;
+        }
+
+        return new AnalysedPhoto
+        {
+            Sharpness = result.Sharpness,
+            MeanLuma = result.MeanLuma,
+            ClippedHighlights = result.ClippedHighlights,
+            ClippedShadows = result.ClippedShadows,
+            QrText = result.QrText,
+            CapturedUtc = captured,
+        };
+    }
+
+    private async Task UploadSource(IBrowserFile file, string shotId, DateTime captured)
+    {
+        var source = await OpenSourceAsync(file);
+        await using var raw = source.OpenReadStream(100 * 1024 * 1024);
+        using var buffer = new MemoryStream();
+        await raw.CopyToAsync(buffer);
+        buffer.Position = 0;
+        var ok = string.IsNullOrEmpty(shotId)
+            ? await Store.RunAsync(id => Store.Api.UploadFinishedAsync(id, null, buffer, captured))
+            : await Store.RunAsync(id => Store.Api.UploadFinishedAsync(id, shotId, buffer, captured));
+        if (!ok)
+        {
+            error = Store.Flash;
+        }
+    }
+
+    private static async Task<IBrowserFile> OpenSourceAsync(IBrowserFile file)
+    {
+        if (file.Name.EndsWith(".heic", StringComparison.OrdinalIgnoreCase) || file.Name.EndsWith(".heif", StringComparison.OrdinalIgnoreCase))
+        {
+            try { return await file.RequestImageFileAsync("image/jpeg", 20000, 20000); }
+            catch (Exception) { return file; }
+        }
+
+        return file;
+    }
+
+    private sealed class AnalysedPhoto
+    {
+        public double Sharpness { get; set; }
+        public double MeanLuma { get; set; }
+        public double ClippedHighlights { get; set; }
+        public double ClippedShadows { get; set; }
+        public string? QrText { get; set; }
+        public DateTime CapturedUtc { get; set; }
+    }
+
+    private sealed class SortRow
+    {
+        public string FileName { get; set; } = "";
+        public string ShotTitle { get; set; } = "";
+        public string Status { get; set; } = "";
+        public double Score { get; set; }
+        public bool Recommended { get; set; }
     }
 
     private async Task UploadOne(IBrowserFile file, string shotId, bool place)
