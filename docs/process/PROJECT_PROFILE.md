@@ -27,7 +27,7 @@ This is the project-specific half of the `agent-team` plugin's dispatcher playbo
 
 ## 3. Commands
 - **Build:** `dotnet build BlazorStaticWebApps.sln`
-- **Unit tests:** `dotnet test UnitTest/UnitTest.csproj` (photo shoot only: add `--filter "FullyQualifiedName~PhotoShoot"`). One sports test depends on today's date and has failed on `main` before; treat it as known-flaky and say so when it fails.
+- **Unit tests:** `dotnet test UnitTest/UnitTest.csproj` (photo shoot only: add `--filter "FullyQualifiedName~PhotoShoot"`).
 - **E2E tests:** none yet. Browser checks so far were done by hand (see [STATUS.md](../photoshoot/STATUS.md)).
 - **Run locally:** API with `scripts/start-api.ps1` (port 7071, creates `Api/local.settings.json` from the example). Client with `Client/restart-dev.ps1` (port 5000). Optional `swa start http://localhost:5000 --api-location http://localhost:7071` gives one address on port 4280.
 - **Dev sign-in bypass:** photo shoot only, `PHOTOSHOOT_DEV_AUTH=true` in `Api/local.settings.json`. It works only when `WEBSITE_SITE_NAME` is not set, so never in Azure.

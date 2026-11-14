@@ -57,11 +57,16 @@ namespace UnitTest
 
         {
 
-            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), BlazorApp.Shared.SportNames.Soccer);
+            var today = new DateTime(2026, 9, 1);
+
+            var games = BlazorApp.Shared.SportsSchedules.GetUpcoming(
+                SeedEvents(), BlazorApp.Shared.SportNames.Soccer, today: today);
 
 
 
-            games.Should().OnlyContain(e => e.Date >= DateTime.Today);
+            games.Should().NotBeEmpty();
+
+            games.Should().OnlyContain(e => e.Date >= today);
 
             games.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Soccer);
 

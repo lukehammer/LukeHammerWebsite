@@ -266,14 +266,15 @@ namespace BlazorApp.Shared
             return liveAt > seedAt;
         }
 
-        public static IReadOnlyList<Event> GetUpcoming(IEnumerable<Event> events, string? sport = null, string? kid = null)
+        public static IReadOnlyList<Event> GetUpcoming(IEnumerable<Event> events, string? sport = null, string? kid = null, DateTime? today = null)
         {
             if (events == null)
             {
                 return Array.Empty<Event>();
             }
 
-            IEnumerable<Event> query = events.Where(x => x != null && x.Date >= DateTime.Today);
+            var cutoff = (today ?? DateTime.Today).Date;
+            IEnumerable<Event> query = events.Where(x => x != null && x.Date >= cutoff);
 
             if (sport is { } sportValue && !string.IsNullOrWhiteSpace(sportValue))
             {
