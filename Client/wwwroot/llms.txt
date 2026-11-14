@@ -4,6 +4,10 @@
 
 The site is a Blazor WebAssembly app, so most pages need JavaScript. The photo library is server-rendered and does not.
 
+## Projects
+
+- [Projects](https://lukehammer.com/projects): Luke Hammer's projects, each with a short summary and a link: Lucky Luke Magic, Capture Checklist, Show Planner, Greg Moreland's website, and ShowStill (in development).
+
 ## Photo library
 
 - [Photo library (interactive)](https://lukehammer.com/photos): filter by category and rating, and sort, in the browser.
