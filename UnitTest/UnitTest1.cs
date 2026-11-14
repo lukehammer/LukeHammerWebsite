@@ -30,14 +30,16 @@ namespace UnitTest
 
         {
 
+            var today = new DateTime(2026, 9, 1);
+
             var contests = BlazorApp.Shared.SportsSchedules.GetUpcoming(
-                SeedEvents(), BlazorApp.Shared.SportNames.Baseball, "Levi");
+                SeedEvents(), BlazorApp.Shared.SportNames.Baseball, "Levi", today);
 
 
 
             contests.Should().NotBeEmpty();
 
-            contests.Should().OnlyContain(e => e.Date >= DateTime.Today);
+            contests.Should().OnlyContain(e => e.Date >= today);
 
             contests.Should().OnlyContain(e => e.Sport == BlazorApp.Shared.SportNames.Baseball);
 
@@ -88,13 +90,15 @@ namespace UnitTest
 
         {
 
-            var combined = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents());
+            var today = new DateTime(2026, 9, 1);
+
+            var combined = BlazorApp.Shared.SportsSchedules.GetUpcoming(SeedEvents(), today: today);
 
 
 
             combined.Should().NotBeEmpty();
 
-            combined.Should().OnlyContain(e => e.Date >= DateTime.Today);
+            combined.Should().OnlyContain(e => e.Date >= today);
 
             combined.Should().OnlyContain(e => e.Kids.Count > 0);
 
