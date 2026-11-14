@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "agent-team-playbook": {
+      "source": { "source": "github", "repo": "lukehammer/agent-team-playbook" }
+    }
+  },
+  "enabledPlugins": {
+    "agent-team@agent-team-playbook": true
+  }
+}
