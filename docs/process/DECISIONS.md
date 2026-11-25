@@ -2,6 +2,10 @@
 
 Newest first. Append only: a changed decision gets a new entry; old entries are never edited. Photo shoot decisions made before this log are in [docs/photoshoot/POC-DECISIONS.md](../photoshoot/POC-DECISIONS.md).
 
+## 2026-11-18: ShowStill demo linked on the Projects page
+- **Decided (Luke):** the ShowStill card on `/projects` has a "Demo" badge and two links, both opening in a new tab with no `nofollow`: "See how it works (preview)" (brave-cliff-03cdb131e.6.azurestaticapps.net/demo.html) and "View the photo library" (the same site's home page, 12 finished, labelled photos). The text says the app itself is still being built.
+- **Replaces:** the 2026-11-14 choice that ShowStill had a description only and no link. ShowStill stays the last card.
+
 ## 2026-11-14: Public Projects page at /projects
 - **Decided (Luke):** a public page at `/projects` with a "Projects" link in the left menu, listing his projects with a short plain-words summary and a direct link. Links are ordinary backlinks (no `nofollow`), opening in a new tab.
 - **Entries, in order:** Lucky Luke Magic (luckylukemagic.com, his main site); Capture Checklist (capturechecklist.com); Show Planner (its Azure address); Greg Moreland's website; ShowStill.
